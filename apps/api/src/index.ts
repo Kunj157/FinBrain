@@ -19,6 +19,7 @@ app.use('/api/v1/plaid', require('./routes/plaid').default);
 app.use('/api/v1/import', require('./routes/import').default);
 app.use('/api/v1/currency', require('./routes/currency').default);
 app.use('/api/v1/receipts', require('./routes/receipts').default);
+app.use('/api/v1/devbank', require('./routes/devbank').default);
 
 app.use((_req, res) => {
   res.status(404).json({ success: false, error: 'Not found' });
