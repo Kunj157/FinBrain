@@ -15,6 +15,8 @@ app.get('/api/v1/health', (_req, res) => {
   res.json({ status: 'ok', service: 'finbrain-api', timestamp: new Date().toISOString() });
 });
 
+app.use('/api/v1/plaid', require('./routes/plaid').default);
+
 app.use((_req, res) => {
   res.status(404).json({ success: false, error: 'Not found' });
 });

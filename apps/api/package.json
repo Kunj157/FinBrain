@@ -22,6 +22,9 @@
     "express": "^4.19.0",
     "helmet": "^7.1.0",
     "morgan": "^1.10.0",
+    "multer": "^2.2.0",
+    "plaid": "^43.0.0",
+    "stripe": "^22.3.0",
     "zod": "^3.23.0"
   },
   "devDependencies": {
