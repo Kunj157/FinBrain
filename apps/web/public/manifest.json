@@ -1,0 +1,17 @@
+{
+  "name": "FinBrain",
+  "short_name": "FinBrain",
+  "description": "AI-Powered Personal Finance Dashboard",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#0a0b0e",
+  "theme_color": "#0a0b0e",
+  "icons": [
+    {
+      "src": "/favicon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}

@@ -1,0 +1,87 @@
+version: "3.8"
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: finbrain-postgres
+    environment:
+      POSTGRES_USER: finbrain
+      POSTGRES_PASSWORD: finbrain
+      POSTGRES_DB: finbrain
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U finbrain"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    image: redis:7-alpine
+    container_name: finbrain-redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  api:
+    build:
+      context: .
+      dockerfile: apps/api/Dockerfile
+    container_name: finbrain-api
+    ports:
+      - "4000:4000"
+    env_file:
+      - apps/api/.env
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    volumes:
+      - ./apps/api/src:/app/apps/api/src
+      - ./packages:/app/packages
+
+  ml-service:
+    build:
+      context: apps/ml-service
+      dockerfile: Dockerfile
+    container_name: finbrain-ml
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./apps/ml-service/src:/app/src
+
+  web:
+    build:
+      context: .
+      dockerfile: apps/web/Dockerfile
+    container_name: finbrain-web
+    ports:
+      - "5173:5173"
+    env_file:
+      - apps/web/.env
+    depends_on:
+      - api
+    volumes:
+      - ./apps/web/src:/app/apps/web/src
+      - ./packages:/app/packages
+
+  devbank:
+    image: ranjankumar/devbank-sdk:latest
+    container_name: finbrain-devbank
+    ports:
+      - "8001:8000"
+    environment:
+      - DEV_BANK_API_KEY=devbank-dev-key
+
+volumes:
+  postgres_data:
+  redis_data:
