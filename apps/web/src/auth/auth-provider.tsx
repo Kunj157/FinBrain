@@ -4,7 +4,7 @@ import { AuthContext, type AuthUser } from '@/hooks/use-auth';
 const DEV_USER: AuthUser = {
   id: 'dev-user-001',
   email: 'dev@finbrain.ai',
-  name: 'Kunj Shah',
+  name: 'Kunj Patel',
   avatarUrl: undefined,
 };
 

@@ -39,7 +39,7 @@ export default function Onboarding() {
 
   if (step === 'done') {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-[#0a0b0e]">
+      <div className="flex min-h-screen items-center justify-center bg-background">
         <div className="text-center max-w-md px-4 animate-fade-in">
           <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-2xl bg-emerald-500/10 border border-emerald-500/20 mb-6">
             <Check className="h-8 w-8 text-emerald-400" />
@@ -57,7 +57,7 @@ export default function Onboarding() {
   }
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-[#0a0b0e] p-4">
+    <div className="flex min-h-screen items-center justify-center bg-background p-4">
       <div className="absolute inset-0 bg-gradient-to-br from-emerald-500/5 via-transparent to-teal-500/5 pointer-events-none" />
 
       <div className="relative w-full max-w-2xl animate-fade-in">
