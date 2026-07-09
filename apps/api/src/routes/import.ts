@@ -8,16 +8,17 @@ const router = Router();
 
 router.post('/csv', upload.single('file'), async (req: Request, res: Response) => {
   try {
-    if (!req.file) {
+    const file = req.file as Express.Multer.File | undefined;
+    if (!file) {
       return res.status(400).json({ success: false, error: 'No file uploaded' });
     }
 
-    const content = fs.readFileSync(req.file.path, 'utf-8');
+    const content = fs.readFileSync(file.path, 'utf-8');
     const records = parse(content, {
       columns: true,
       skip_empty_lines: true,
       trim: true,
-    });
+    }) as Record<string, string>[];
 
     const columnMap: Record<string, string> = {
       date: 'date',
@@ -28,7 +29,7 @@ router.post('/csv', upload.single('file'), async (req: Request, res: Response) =
       type: 'type',
     };
 
-    const transactions = records.map((record: Record<string, string>) => {
+    const transactions = records.map((record) => {
       const mapped: Record<string, string> = {};
       for (const [key, value] of Object.entries(record)) {
         const normalizedKey = columnMap[key.toLowerCase()] || key.toLowerCase();
@@ -44,14 +45,14 @@ router.post('/csv', upload.single('file'), async (req: Request, res: Response) =
       };
     });
 
-    fs.unlinkSync(req.file.path);
+    fs.unlinkSync(file.path);
 
     res.json({
       success: true,
       data: {
         total: transactions.length,
         preview: transactions.slice(0, 10),
-        columns: Object.keys(records[0] || {}),
+        columns: records.length > 0 ? Object.keys(records[0]) : [],
         suggestedMapping: columnMap,
       },
     });
