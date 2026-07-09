@@ -16,6 +16,7 @@ app.get('/api/v1/health', (_req, res) => {
 });
 
 app.use('/api/v1/plaid', require('./routes/plaid').default);
+app.use('/api/v1/import', require('./routes/import').default);
 
 app.use((_req, res) => {
   res.status(404).json({ success: false, error: 'Not found' });
