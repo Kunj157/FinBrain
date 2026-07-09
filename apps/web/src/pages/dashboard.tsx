@@ -1,9 +1,12 @@
-import { Wallet, TrendingUp, TrendingDown, PiggyBank, Plus, ArrowRightLeft, Target } from 'lucide-react';
+import { Wallet, TrendingUp, TrendingDown, PiggyBank, Plus, ArrowRightLeft, Target, Brain, Sparkles } from 'lucide-react';
+import { useMemo } from 'react';
 import { StatCard } from '@/components/finance/stat-card';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Brain, Sparkles } from 'lucide-react';
+import { useAuth } from '@/hooks/use-auth';
+import { localStore } from '@/lib/store';
+import { formatCurrency, formatDate } from '@/lib/utils';
 
 const quickActions = [
   { label: 'Add Income', icon: TrendingUp, variant: 'positive' as const },
@@ -12,22 +15,27 @@ const quickActions = [
   { label: 'Add Goal', icon: Target, variant: 'default' as const },
 ];
 
-const recentTransactions = [
-  { merchant: 'Amazon', amount: -89.99, category: 'Shopping', date: 'Today', status: 'cleared' as const },
-  { merchant: 'Starbucks', amount: -5.75, category: 'Food & Drink', date: 'Today', status: 'cleared' as const },
-  { merchant: 'Salary Deposit', amount: 4500, category: 'Income', date: 'Yesterday', status: 'cleared' as const },
-  { merchant: 'Netflix', amount: -15.99, category: 'Entertainment', date: '2 days ago', status: 'cleared' as const },
-  { merchant: 'Uber', amount: -24.50, category: 'Transport', date: '2 days ago', status: 'cleared' as const },
-];
-
 export default function Dashboard() {
+  const { user } = useAuth();
+  const summary = localStore.getSummary();
+  const transactions = useMemo(() => localStore.getTransactions().slice(0, 5), []);
+  const categoryMap = useMemo(() => {
+    const map: Record<string, string> = {};
+    for (const c of localStore.getCategories()) {
+      map[c.id] = c.name;
+    }
+    return map;
+  }, []);
+
+  const firstName = user?.name?.split(' ')[0] || 'there';
+
   return (
     <div className="space-y-8 animate-fade-in">
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-semibold tracking-tight">Dashboard</h1>
           <p className="text-sm text-muted-foreground mt-1">
-            Welcome back, Kunj. Here&apos;s your financial overview.
+            Welcome back, {firstName}. Here&apos;s your financial overview.
           </p>
         </div>
         <Button className="gap-2">
@@ -39,31 +47,28 @@ export default function Dashboard() {
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
         <StatCard
           title="Current Balance"
-          value={12450}
-          change={12}
+          value={summary.currentBalance}
+          change={summary.savings > 0 ? 12 : -5}
           icon={Wallet}
-          variant="positive"
+          variant={summary.currentBalance >= 0 ? 'positive' : 'negative'}
         />
         <StatCard
           title="Monthly Income"
-          value={8500}
-          change={8}
+          value={summary.monthlyIncome}
           icon={TrendingUp}
           variant="positive"
         />
         <StatCard
           title="Monthly Expenses"
-          value={4230}
-          change={-3}
+          value={summary.monthlyExpenses}
           icon={TrendingDown}
           variant="negative"
         />
         <StatCard
           title="Total Savings"
-          value={8220}
-          change={15}
+          value={summary.savings}
           icon={PiggyBank}
-          variant="positive"
+          variant={summary.savings >= 0 ? 'positive' : 'negative'}
         />
       </div>
 
@@ -99,38 +104,47 @@ export default function Dashboard() {
             </div>
           </CardHeader>
           <CardContent>
-            <div className="space-y-1">
-              {recentTransactions.map((tx, i) => (
-                <div
-                  key={i}
-                  className="flex items-center justify-between rounded-lg p-3 hover:bg-white/[0.02] transition-colors cursor-pointer"
-                >
-                  <div className="flex items-center gap-3">
-                    <div className={`flex h-9 w-9 items-center justify-center rounded-lg ${
-                      tx.amount > 0 ? 'bg-emerald-500/10' : 'bg-rose-500/10'
-                    }`}>
-                      <ArrowRightLeft className={`h-4 w-4 ${
-                        tx.amount > 0 ? 'text-emerald-400' : 'text-rose-400'
-                      }`} />
+            {transactions.length === 0 ? (
+              <div className="py-8 text-center">
+                <p className="text-sm text-muted-foreground">No transactions yet</p>
+                <p className="text-xs text-muted-foreground mt-1">Import your data or add a transaction to get started</p>
+              </div>
+            ) : (
+              <div className="space-y-1">
+                {transactions.map((tx) => (
+                  <div
+                    key={tx.id}
+                    className="flex items-center justify-between rounded-lg p-3 hover:bg-white/[0.02] transition-colors cursor-pointer"
+                  >
+                    <div className="flex items-center gap-3">
+                      <div className={`flex h-9 w-9 items-center justify-center rounded-lg ${
+                        tx.type === 'income' ? 'bg-emerald-500/10' : 'bg-rose-500/10'
+                      }`}>
+                        <ArrowRightLeft className={`h-4 w-4 ${
+                          tx.type === 'income' ? 'text-emerald-400' : 'text-rose-400'
+                        }`} />
+                      </div>
+                      <div>
+                        <p className="text-sm font-medium">{tx.merchant || tx.description}</p>
+                        <p className="text-xs text-muted-foreground">
+                          {categoryMap[tx.categoryId] || 'Other'} · {formatDate(tx.date)}
+                        </p>
+                      </div>
                     </div>
-                    <div>
-                      <p className="text-sm font-medium">{tx.merchant}</p>
-                      <p className="text-xs text-muted-foreground">{tx.category} · {tx.date}</p>
+                    <div className="text-right">
+                      <p className={`text-sm font-medium ${
+                        tx.type === 'income' ? 'text-emerald-400' : 'text-foreground'
+                      }`}>
+                        {tx.type === 'income' ? '+' : '-'}${tx.amount.toLocaleString()}
+                      </p>
+                      <Badge variant="default" className="text-[10px] px-1.5 py-0">
+                        {tx.status}
+                      </Badge>
                     </div>
                   </div>
-                  <div className="text-right">
-                    <p className={`text-sm font-medium ${
-                      tx.amount > 0 ? 'text-emerald-400' : 'text-foreground'
-                    }`}>
-                      {tx.amount > 0 ? '+' : ''}${Math.abs(tx.amount).toLocaleString()}
-                    </p>
-                    <Badge variant="default" className="text-[10px] px-1.5 py-0">
-                      Cleared
-                    </Badge>
-                  </div>
-                </div>
-              ))}
-            </div>
+                ))}
+              </div>
+            )}
           </CardContent>
         </Card>
 
@@ -142,29 +156,38 @@ export default function Dashboard() {
             </div>
           </CardHeader>
           <CardContent className="space-y-4">
-            <div className="rounded-xl bg-gradient-to-br from-emerald-500/5 to-teal-500/5 border border-emerald-500/10 p-4">
-              <div className="flex items-start gap-3">
-                <Brain className="h-5 w-5 text-emerald-400 mt-0.5 flex-shrink-0" />
-                <div>
-                  <p className="text-sm font-medium text-emerald-400">Spending Alert</p>
-                  <p className="text-sm text-muted-foreground mt-1">
-                    You spent 19% more on restaurants this month. Consider reducing dining out to stay within budget.
-                  </p>
-                </div>
+            {transactions.length === 0 ? (
+              <div className="py-8 text-center">
+                <Brain className="h-8 w-8 text-muted-foreground/30 mx-auto" />
+                <p className="text-sm text-muted-foreground mt-2">Add some transactions to see AI insights</p>
               </div>
-            </div>
+            ) : (
+              <>
+                <div className="rounded-xl bg-gradient-to-br from-emerald-500/5 to-teal-500/5 border border-emerald-500/10 p-4">
+                  <div className="flex items-start gap-3">
+                    <Brain className="h-5 w-5 text-emerald-400 mt-0.5 flex-shrink-0" />
+                    <div>
+                      <p className="text-sm font-medium text-emerald-400">Spending Alert</p>
+                      <p className="text-sm text-muted-foreground mt-1">
+                        You spent 19% more on restaurants this month. Consider reducing dining out to stay within budget.
+                      </p>
+                    </div>
+                  </div>
+                </div>
 
-            <div className="rounded-xl bg-gradient-to-br from-amber-500/5 to-orange-500/5 border border-amber-500/10 p-4">
-              <div className="flex items-start gap-3">
-                <Sparkles className="h-5 w-5 text-amber-400 mt-0.5 flex-shrink-0" />
-                <div>
-                  <p className="text-sm font-medium text-amber-400">Goal Progress</p>
-                  <p className="text-sm text-muted-foreground mt-1">
-                    You&apos;re 68% toward your Emergency Fund goal. At your current savings rate, you&apos;ll reach it in 4 months.
-                  </p>
+                <div className="rounded-xl bg-gradient-to-br from-amber-500/5 to-orange-500/5 border border-amber-500/10 p-4">
+                  <div className="flex items-start gap-3">
+                    <Sparkles className="h-5 w-5 text-amber-400 mt-0.5 flex-shrink-0" />
+                    <div>
+                      <p className="text-sm font-medium text-amber-400">Goal Progress</p>
+                      <p className="text-sm text-muted-foreground mt-1">
+                        You&apos;re 68% toward your Emergency Fund goal. At your current savings rate, you&apos;ll reach it in 4 months.
+                      </p>
+                    </div>
+                  </div>
                 </div>
-              </div>
-            </div>
+              </>
+            )}
 
             <div className="rounded-lg bg-white/[0.02] border border-white/[0.06] p-4">
               <p className="text-xs text-muted-foreground uppercase tracking-wider font-medium">Ask FinBrain</p>
