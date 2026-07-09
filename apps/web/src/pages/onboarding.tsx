@@ -1,9 +1,11 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Brain, Building2, Upload, Database, ArrowRight, Check } from 'lucide-react';
+import { Brain, Building2, Upload, Database, ArrowRight, Check, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { PlaidLinkButton } from '@/components/finance/plaid-link';
 import { CsvImport } from '@/components/finance/csv-import';
+import { localStore } from '@/lib/store';
+import { generateSampleData } from '@/lib/sample-data';
 
 type Step = 'welcome' | 'plaid' | 'csv' | 'sample' | 'done';
 
@@ -32,6 +34,7 @@ export default function Onboarding() {
   const navigate = useNavigate();
   const [step, setStep] = useState<Step>('welcome');
   const [selected, setSelected] = useState<string | null>(null);
+  const [generating, setGenerating] = useState(false);
 
   const handleComplete = () => {
     navigate('/');
@@ -140,9 +143,25 @@ export default function Onboarding() {
               We&apos;ll generate 3 months of realistic transactions — salary deposits,
               bills, coffee runs, shopping, and more. You can edit or delete anything later.
             </p>
-            <Button onClick={() => setStep('done')} className="gap-2">
-              <Database className="h-4 w-4" />
-              Generate sample data
+            <Button
+              onClick={() => {
+                setGenerating(true);
+                setTimeout(() => {
+                  const data = generateSampleData();
+                  localStore.setTransactions(data);
+                  setGenerating(false);
+                  setStep('done');
+                }, 1500);
+              }}
+              className="gap-2"
+              disabled={generating}
+            >
+              {generating ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <Database className="h-4 w-4" />
+              )}
+              {generating ? 'Generating...' : 'Generate sample data'}
             </Button>
             <button
               onClick={() => setStep('welcome')}
