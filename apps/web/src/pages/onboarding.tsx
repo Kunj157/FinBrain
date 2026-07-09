@@ -6,6 +6,7 @@ import { PlaidLinkButton } from '@/components/finance/plaid-link';
 import { CsvImport } from '@/components/finance/csv-import';
 import { localStore } from '@/lib/store';
 import { generateSampleData } from '@/lib/sample-data';
+import { useAuth } from '@/hooks/use-auth';
 
 type Step = 'welcome' | 'plaid' | 'csv' | 'sample' | 'done';
 
@@ -32,6 +33,8 @@ const options = [
 
 export default function Onboarding() {
   const navigate = useNavigate();
+  const { user } = useAuth();
+  const currency = user?.currency || 'USD';
   const [step, setStep] = useState<Step>('welcome');
   const [selected, setSelected] = useState<string | null>(null);
   const [generating, setGenerating] = useState(false);
@@ -147,7 +150,7 @@ export default function Onboarding() {
               onClick={() => {
                 setGenerating(true);
                 setTimeout(() => {
-                  const data = generateSampleData();
+                  const data = generateSampleData(currency);
                   localStore.setTransactions(data);
                   setGenerating(false);
                   setStep('done');

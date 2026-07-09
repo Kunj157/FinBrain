@@ -2,6 +2,8 @@ import { useState, useCallback, useRef } from 'react';
 import { Button } from '@/components/ui/button';
 import { Upload, FileText, Check, X, AlertCircle, Loader2 } from 'lucide-react';
 import api from '@/lib/api';
+import { formatCurrency } from '@/lib/utils';
+import { useAuth } from '@/hooks/use-auth';
 
 interface PreviewRow {
   date: string;
@@ -23,6 +25,8 @@ export function CsvImport({ onComplete }: CsvImportProps) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+  const { user } = useAuth();
+  const currency = user?.currency || 'USD';
 
   const handleFile = useCallback(async (selected: File) => {
     if (!selected.name.endsWith('.csv')) {
@@ -135,7 +139,7 @@ export function CsvImport({ onComplete }: CsvImportProps) {
                     <td className={`py-2 px-3 text-right font-medium ${
                       row.type === 'income' ? 'text-emerald-400' : ''
                     }`}>
-                      {row.type === 'income' ? '+' : ''}${Math.abs(row.amount).toFixed(2)}
+                      {row.type === 'income' ? '+' : ''}{formatCurrency(Math.abs(row.amount), currency)}
                     </td>
                     <td className="py-2 px-3">
                       <span className="rounded-full bg-white/[0.04] px-2 py-0.5 text-xs">{row.category}</span>

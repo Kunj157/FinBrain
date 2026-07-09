@@ -1,4 +1,4 @@
-import type { Transaction, DashboardSummary, Category } from '@finbrain/shared';
+import type { Transaction, DashboardSummary, Category, Currency } from '@finbrain/shared';
 
 const STORE_PREFIX = 'finbrain-';
 
@@ -43,6 +43,11 @@ export const localStore = {
       { id: '10', userId: '', name: 'Other', icon: 'more-horizontal', color: '#6b7280', isCustom: false, createdAt: '' },
     ]),
 
+  getPreferredCurrency: (): Currency => {
+    const stored = localStorage.getItem('finbrain-currency') as Currency | null;
+    return stored || 'USD';
+  },
+
   getSummary: (): DashboardSummary => {
     const txns = localStore.getTransactions();
     const now = new Date();
@@ -61,7 +66,7 @@ export const localStore = {
       monthlyExpenses: expenses,
       savings: income - expenses,
       budgetUtilization: expenses > 0 ? (expenses / (income || 1)) * 100 : 0,
-      currency: 'USD',
+      currency: localStore.getPreferredCurrency(),
     };
   },
 

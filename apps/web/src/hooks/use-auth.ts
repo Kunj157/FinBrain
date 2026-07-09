@@ -1,10 +1,13 @@
 import { createContext, useContext } from 'react';
 
+import type { Currency } from '@finbrain/shared';
+
 export interface AuthUser {
   id: string;
   email: string;
   name: string;
   avatarUrl?: string;
+  currency: Currency;
 }
 
 interface AuthContextType {
@@ -13,6 +16,7 @@ interface AuthContextType {
   isSignedIn: boolean;
   signIn: (email: string, name: string) => void;
   signOut: () => void;
+  updateCurrency: (currency: Currency) => void;
 }
 
 export const AuthContext = createContext<AuthContextType>({
@@ -21,6 +25,7 @@ export const AuthContext = createContext<AuthContextType>({
   isSignedIn: false,
   signIn: () => {},
   signOut: () => {},
+  updateCurrency: () => {},
 });
 
 export function useAuth() {

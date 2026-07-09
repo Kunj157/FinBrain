@@ -27,6 +27,7 @@ export default function Dashboard() {
     return map;
   }, []);
 
+  const currency = user?.currency || 'USD';
   const firstName = user?.name?.split(' ')[0] || 'there';
 
   return (
@@ -51,24 +52,28 @@ export default function Dashboard() {
           change={summary.savings > 0 ? 12 : -5}
           icon={Wallet}
           variant={summary.currentBalance >= 0 ? 'positive' : 'negative'}
+          currency={currency}
         />
         <StatCard
           title="Monthly Income"
           value={summary.monthlyIncome}
           icon={TrendingUp}
           variant="positive"
+          currency={currency}
         />
         <StatCard
           title="Monthly Expenses"
           value={summary.monthlyExpenses}
           icon={TrendingDown}
           variant="negative"
+          currency={currency}
         />
         <StatCard
           title="Total Savings"
           value={summary.savings}
           icon={PiggyBank}
           variant={summary.savings >= 0 ? 'positive' : 'negative'}
+          currency={currency}
         />
       </div>
 
@@ -135,7 +140,7 @@ export default function Dashboard() {
                       <p className={`text-sm font-medium ${
                         tx.type === 'income' ? 'text-emerald-400' : 'text-foreground'
                       }`}>
-                        {tx.type === 'income' ? '+' : '-'}${tx.amount.toLocaleString()}
+                        {tx.type === 'income' ? '+' : '-'}{formatCurrency(tx.amount, currency)}
                       </p>
                       <Badge variant="default" className="text-[10px] px-1.5 py-0">
                         {tx.status}
