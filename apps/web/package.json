@@ -12,8 +12,8 @@
     "clean": "rm -rf dist"
   },
   "dependencies": {
-    "@finbrain/shared": "workspace:*",
     "@clerk/clerk-react": "^5.0.0",
+    "@finbrain/shared": "workspace:*",
     "@hookform/resolvers": "^3.9.0",
     "@radix-ui/react-accordion": "^1.2.0",
     "@radix-ui/react-avatar": "^1.1.0",
@@ -43,6 +43,7 @@
     "react-chartjs-2": "^5.2.0",
     "react-dom": "^19.0.0",
     "react-hook-form": "^7.52.0",
+    "react-plaid-link": "^4.1.1",
     "react-router-dom": "^6.26.0",
     "tailwind-merge": "^2.4.0",
     "tailwindcss-animate": "^1.0.7",
