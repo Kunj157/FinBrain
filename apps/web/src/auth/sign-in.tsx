@@ -21,7 +21,7 @@ export default function SignIn() {
   };
 
   return (
-    <div className="flex min-h-screen flex-col items-center justify-center bg-[#0a0b0e]">
+    <div className="flex min-h-screen flex-col items-center justify-center bg-background">
       <div className="absolute inset-0 bg-gradient-to-br from-emerald-500/5 via-transparent to-teal-500/5 pointer-events-none" />
       <div className="relative w-full max-w-md space-y-8 px-4">
         <div className="text-center">

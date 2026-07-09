@@ -2,6 +2,7 @@ import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import { QueryClientProvider } from '@tanstack/react-query';
 import { queryClient } from '@/lib/query';
 import { AuthProvider } from '@/auth/auth-provider';
+import { ThemeProvider } from '@/hooks/use-theme';
 import { ProtectedRoute } from '@/auth/protected-route';
 import { AppLayout } from '@/components/layout/app-layout';
 
@@ -23,6 +24,7 @@ export default function App() {
   return (
     <QueryClientProvider client={queryClient}>
       <BrowserRouter>
+        <ThemeProvider>
         <AuthProvider>
           <Routes>
             <Route path="/sign-in" element={<SignIn />} />
@@ -49,6 +51,7 @@ export default function App() {
             </Route>
           </Routes>
         </AuthProvider>
+        </ThemeProvider>
       </BrowserRouter>
     </QueryClientProvider>
   );
