@@ -11,6 +11,7 @@ interface AuthContextType {
   user: AuthUser | null;
   isLoading: boolean;
   isSignedIn: boolean;
+  signIn: (email: string, name: string) => void;
   signOut: () => void;
 }
 
@@ -18,6 +19,7 @@ export const AuthContext = createContext<AuthContextType>({
   user: null,
   isLoading: false,
   isSignedIn: false,
+  signIn: () => {},
   signOut: () => {},
 });
 

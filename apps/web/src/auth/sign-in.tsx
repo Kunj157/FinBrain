@@ -1,7 +1,25 @@
-import { Brain } from 'lucide-react';
+import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { Brain, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { useAuth } from '@/hooks/use-auth';
 
 export default function SignIn() {
+  const navigate = useNavigate();
+  const { signIn } = useAuth();
+  const [email, setEmail] = useState('');
+  const [loading, setLoading] = useState(false);
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!email) return;
+    setLoading(true);
+    await new Promise((r) => setTimeout(r, 600));
+    const name = email.split('@')[0].replace(/[^a-zA-Z ]/g, ' ');
+    signIn(email, name);
+    navigate('/');
+  };
+
   return (
     <div className="flex min-h-screen flex-col items-center justify-center bg-[#0a0b0e]">
       <div className="absolute inset-0 bg-gradient-to-br from-emerald-500/5 via-transparent to-teal-500/5 pointer-events-none" />
@@ -19,12 +37,15 @@ export default function SignIn() {
           </p>
         </div>
 
-        <div className="glass rounded-2xl p-8 space-y-6">
+        <form onSubmit={handleSubmit} className="glass rounded-2xl p-8 space-y-6">
           <div className="space-y-2">
             <label className="text-sm font-medium text-foreground">Email</label>
             <input
               type="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
               placeholder="you@example.com"
+              required
               className="w-full h-11 px-4 rounded-xl bg-white/[0.03] border border-white/[0.06] text-sm text-foreground placeholder:text-muted-foreground/50 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500/30 transition-all"
             />
           </div>
@@ -36,8 +57,9 @@ export default function SignIn() {
               className="w-full h-11 px-4 rounded-xl bg-white/[0.03] border border-white/[0.06] text-sm text-foreground placeholder:text-muted-foreground/50 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500/30 transition-all"
             />
           </div>
-          <Button className="w-full h-12 text-base">
-            Sign In
+          <Button type="submit" className="w-full h-12 text-base" disabled={loading}>
+            {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
+            {loading ? 'Signing in...' : 'Sign In'}
           </Button>
           <div className="text-center text-sm text-muted-foreground">
             Don&apos;t have an account?{' '}
@@ -45,7 +67,7 @@ export default function SignIn() {
               Sign up
             </a>
           </div>
-        </div>
+        </form>
 
         <p className="text-center text-xs text-muted-foreground">
           By signing in, you agree to our Terms of Service and Privacy Policy
