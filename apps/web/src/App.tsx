@@ -17,6 +17,7 @@ import Reports from '@/pages/reports';
 import Insights from '@/pages/insights';
 import SettingsPage from '@/pages/settings';
 import HelpPage from '@/pages/help';
+import Onboarding from '@/pages/onboarding';
 
 export default function App() {
   return (
@@ -34,7 +35,8 @@ export default function App() {
                 </ProtectedRoute>
               }
             >
-              <Route path="/" element={<Dashboard />} />
+              <Route path="/onboarding" element={<Onboarding />} />
+            <Route path="/" element={<Dashboard />} />
               <Route path="/transactions" element={<Transactions />} />
               <Route path="/budgets" element={<Budgets />} />
               <Route path="/goals" element={<Goals />} />
