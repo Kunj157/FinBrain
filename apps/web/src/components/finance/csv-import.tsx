@@ -174,7 +174,7 @@ export function CsvImport({ onComplete }: CsvImportProps) {
                 </tr>
               </thead>
               <tbody>
-                {(skipDuplicates ? filteredPreview : preview).map((row, i) => (
+                {(skipDuplicates ? filteredPreview! : preview!).map((row, i) => (
                   <tr key={i} className="border-b border-white/[0.03]">
                     <td className="py-2 px-3">{row.date}</td>
                     <td className="py-2 px-3">{row.merchant || '-'}</td>
@@ -199,13 +199,13 @@ export function CsvImport({ onComplete }: CsvImportProps) {
 
           <div className="flex items-center justify-between mt-4 pt-4 border-t border-white/[0.06]">
             <p className="text-xs text-muted-foreground">
-              {skipDuplicates && duplicates.size > 0
+              {skipDuplicates && duplicates.size > 0 && filteredPreview && preview
                 ? `Importing ${filteredPreview.length} of ${preview.length} transactions (${duplicates.size} skipped)`
-                : `Showing all ${preview.length} transactions`}
+                : preview ? `Showing all ${preview.length} transactions` : ''}
             </p>
             <Button className="gap-2" onClick={onComplete}>
               <Check className="h-4 w-4" />
-              Import {filteredPreview.length} transaction{filteredPreview.length !== 1 ? 's' : ''}
+              Import {filteredPreview?.length || 0} transaction{filteredPreview?.length !== 1 ? 's' : ''}
             </Button>
           </div>
         </div>

@@ -26,11 +26,11 @@ router.post('/ocr', upload.single('file'), async (req: Request, res: Response) =
     fs.unlinkSync(file.path);
 
     if (!response.ok) {
-      const error = await response.json();
-      return res.status(response.status).json({ success: false, error: error.detail || 'OCR failed' });
+      const errorBody = await response.json() as { detail?: string };
+      return res.status(response.status).json({ success: false, error: errorBody.detail || 'OCR failed' });
     }
 
-    const result = await response.json();
+    const result = await response.json() as { data: unknown };
     res.json({ success: true, data: result.data });
   } catch (error) {
     console.error('Receipt OCR error:', error);

@@ -1,13 +1,12 @@
 const MERCHANT_CATEGORY_MAP: Record<string, string[]> = {
   'Food & Drink': ['starbucks', 'chipotle', 'domino\'s', 'subway', 'mcdonald\'s', 'panera', 'whole foods', 'trader joe\'s', 'kroger', 'costco', 'walmart', 'restaurant', 'cafe', 'pizza', 'sushi', 'diner', 'bakery', 'deli', 'grill'],
-  Shopping: ['amazon', 'target', 'best buy', 'nike', 'h&m', 'ikea', 'home depot', 'ebay', 'etsy', 'shop', 'mall', 'clothing', 'electronics', 'walmart'],
+  Shopping: ['amazon', 'target', 'best buy', 'nike', 'h&m', 'ikea', 'home depot', 'ebay', 'etsy', 'shop', 'mall', 'clothing', 'electronics', 'subscription', 'membership', 'software', 'cloud'],
   Transport: ['uber', 'lyft', 'shell', 'exxon', 'chevron', 'bp', 'gas', 'parking', 'fuel', 'toll', 'transit', 'metro', 'train', 'taxi'],
   Entertainment: ['netflix', 'spotify', 'hulu', 'disney+', 'hbo', 'amc', 'game', 'steam', 'apple music', 'youtube', 'cinema', 'movies', 'concert', 'theatre'],
   'Bills & Utilities': ['verizon', 'at&t', 'comcast', 'pge', 'duke energy', 'water', 'internet', 'insurance', 'electric', 'utility', 'phone', 'bill', 'renewal'],
   Healthcare: ['cvs', 'walgreens', 'kaiser', 'doctor', 'dentist', 'hospital', 'clinic', 'pharmacy', 'medical', 'health', 'urgent care'],
   Housing: ['rent', 'mortgage', 'lease', 'apartment', 'property', 'maintenance', 'repair'],
   Education: ['coursera', 'udemy', 'university', 'college', 'school', 'tuition', 'book', 'course'],
-  Shopping: ['subscription', 'membership', 'software', 'cloud'],
 };
 
 const CATEGORY_IDS: Record<string, string> = {
