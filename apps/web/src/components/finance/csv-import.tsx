@@ -11,6 +11,7 @@ interface PreviewRow {
   description: string;
   merchant: string;
   category: string;
+  categoryId?: string | null;
   type: string;
 }
 
@@ -142,7 +143,11 @@ export function CsvImport({ onComplete }: CsvImportProps) {
                       {row.type === 'income' ? '+' : ''}{formatCurrency(Math.abs(row.amount), currency)}
                     </td>
                     <td className="py-2 px-3">
-                      <span className="rounded-full bg-white/[0.04] px-2 py-0.5 text-xs">{row.category}</span>
+                      <span className={`rounded-full px-2 py-0.5 text-xs ${
+                        row.categoryId ? 'bg-emerald-500/10 text-emerald-400' : 'bg-white/[0.04] text-muted-foreground'
+                      }`}>
+                        {row.category}{row.categoryId ? ' ✓' : ''}
+                      </span>
                     </td>
                   </tr>
                 ))}
