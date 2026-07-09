@@ -28,3 +28,4 @@ docker-data/
 .idea/
 *.swp
 *.swo
+apps/web/.vite/
