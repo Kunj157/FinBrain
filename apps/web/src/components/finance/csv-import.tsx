@@ -1,9 +1,11 @@
-import { useState, useCallback, useRef } from 'react';
+import { useState, useCallback, useRef, useMemo } from 'react';
 import { Button } from '@/components/ui/button';
-import { Upload, FileText, Check, X, AlertCircle, Loader2 } from 'lucide-react';
+import { Upload, FileText, Check, X, AlertCircle, Loader2, CopyX } from 'lucide-react';
 import api from '@/lib/api';
 import { formatCurrency } from '@/lib/utils';
 import { useAuth } from '@/hooks/use-auth';
+import { localStore } from '@/lib/store';
+import { findDuplicates } from '@/lib/duplicate-detection';
 
 interface PreviewRow {
   date: string;
@@ -25,9 +27,24 @@ export function CsvImport({ onComplete }: CsvImportProps) {
   const [preview, setPreview] = useState<PreviewRow[] | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [skipDuplicates, setSkipDuplicates] = useState(true);
   const inputRef = useRef<HTMLInputElement>(null);
   const { user } = useAuth();
   const currency = user?.currency || 'USD';
+  const existingTxns = useMemo(() => localStore.getTransactions(), []);
+
+  const duplicates = useMemo(() => {
+    if (!preview) return new Map();
+    return findDuplicates(
+      preview.map((r) => ({ merchant: r.merchant, amount: Math.abs(r.amount), date: r.date })),
+      existingTxns,
+    );
+  }, [preview, existingTxns]);
+
+  const filteredPreview = useMemo(() => {
+    if (!preview || !skipDuplicates) return preview;
+    return preview.filter((_, i) => !duplicates.has(i));
+  }, [preview, skipDuplicates, duplicates]);
 
   const handleFile = useCallback(async (selected: File) => {
     if (!selected.name.endsWith('.csv')) {
@@ -120,6 +137,31 @@ export function CsvImport({ onComplete }: CsvImportProps) {
             </div>
           </div>
 
+          {duplicates.size > 0 && (
+            <div className="mb-4 rounded-lg border border-amber-500/20 bg-amber-500/5 p-3 text-sm">
+              <div className="flex items-start gap-2">
+                <CopyX className="h-4 w-4 text-amber-400 mt-0.5 flex-shrink-0" />
+                <div>
+                  <p className="text-amber-400 font-medium">
+                    {duplicates.size} duplicate{duplicates.size > 1 ? 's' : ''} detected
+                  </p>
+                  <p className="text-muted-foreground mt-0.5">
+                    These transactions appear to already exist in your account.
+                  </p>
+                  <label className="flex items-center gap-2 mt-2 text-xs text-muted-foreground cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={skipDuplicates}
+                      onChange={(e) => setSkipDuplicates(e.target.checked)}
+                      className="rounded border-white/[0.08] bg-white/[0.02]"
+                    />
+                    Skip duplicates during import
+                  </label>
+                </div>
+              </div>
+            </div>
+          )}
+
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
@@ -132,7 +174,7 @@ export function CsvImport({ onComplete }: CsvImportProps) {
                 </tr>
               </thead>
               <tbody>
-                {preview.map((row, i) => (
+                {(skipDuplicates ? filteredPreview : preview).map((row, i) => (
                   <tr key={i} className="border-b border-white/[0.03]">
                     <td className="py-2 px-3">{row.date}</td>
                     <td className="py-2 px-3">{row.merchant || '-'}</td>
@@ -157,11 +199,13 @@ export function CsvImport({ onComplete }: CsvImportProps) {
 
           <div className="flex items-center justify-between mt-4 pt-4 border-t border-white/[0.06]">
             <p className="text-xs text-muted-foreground">
-              Showing first {preview.length} of {preview.length} transactions
+              {skipDuplicates && duplicates.size > 0
+                ? `Importing ${filteredPreview.length} of ${preview.length} transactions (${duplicates.size} skipped)`
+                : `Showing all ${preview.length} transactions`}
             </p>
             <Button className="gap-2" onClick={onComplete}>
               <Check className="h-4 w-4" />
-              Import {preview.length} transactions
+              Import {filteredPreview.length} transaction{filteredPreview.length !== 1 ? 's' : ''}
             </Button>
           </div>
         </div>
