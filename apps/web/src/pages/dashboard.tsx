@@ -26,7 +26,7 @@ export default function Dashboard() {
   const fetchData = useCallback(async () => {
     try {
       const [txnRes, catRes] = await Promise.all([
-        api.get('/transactions?limit=10000'),
+        api.get('/transactions?limit=100'),
         api.get('/categories'),
       ]);
       setAllTransactions(txnRes.data.data.data);

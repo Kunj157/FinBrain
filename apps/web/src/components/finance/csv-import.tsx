@@ -37,7 +37,7 @@ export function CsvImport({ onComplete }: StatementImportProps) {
   useEffect(() => {
     (async () => {
       try {
-        const { data } = await api.get('/transactions?limit=10000');
+        const { data } = await api.get('/transactions?limit=100');
         setExistingTxns(data.data.data);
       } catch {
         // silent

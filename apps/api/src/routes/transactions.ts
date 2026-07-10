@@ -21,7 +21,7 @@ const updateTransactionSchema = createTransactionSchema.partial();
 
 const querySchema = z.object({
   page: z.coerce.number().min(1).default(1),
-  limit: z.coerce.number().min(1).max(100).default(20),
+  limit: z.coerce.number().min(1).max(1000).default(20),
   type: z.enum(['income', 'expense']).optional(),
   categoryId: z.string().optional(),
   startDate: z.string().optional(),

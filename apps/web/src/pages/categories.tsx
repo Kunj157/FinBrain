@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { Plus, X, Check, Tags, Pencil, Trash2, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Select } from '@/components/ui/select';
 import api from '@/lib/api';
 import type { Category } from '@finbrain/shared';
 
@@ -202,15 +203,11 @@ export default function CategoriesPage() {
 
               <div>
                 <label className="text-xs text-muted-foreground block mb-1">Icon</label>
-                <select
+                <Select
                   value={form.icon}
-                  onChange={(e) => setForm((f) => ({ ...f, icon: e.target.value }))}
-                  className="w-full h-10 px-3 rounded-lg bg-white/[0.02] border border-white/[0.08] text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/20"
-                >
-                  {ICON_OPTIONS.map((opt) => (
-                    <option key={opt.value} value={opt.value}>{opt.label} {opt.value}</option>
-                  ))}
-                </select>
+                  onValueChange={(value) => setForm((f) => ({ ...f, icon: value }))}
+                  options={ICON_OPTIONS.map((opt) => ({ value: opt.value, label: `${opt.label} ${opt.value}` }))}
+                />
               </div>
 
               <div className="flex gap-3 pt-2">

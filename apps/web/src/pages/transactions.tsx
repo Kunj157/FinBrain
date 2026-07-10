@@ -3,6 +3,7 @@ import { Plus, Search, ArrowUpDown, Pencil, Trash2, ArrowRightLeft, X, Check, Lo
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import { Select } from '@/components/ui/select';
 import { useAuth } from '@/hooks/use-auth';
 import api from '@/lib/api';
 import { formatCurrency, formatDate } from '@/lib/utils';
@@ -147,35 +148,31 @@ export default function TransactionsPage() {
                 className="w-full h-10 pl-9 pr-3 rounded-lg bg-white/[0.02] border border-white/[0.08] text-sm text-foreground placeholder:text-muted-foreground/50 focus:outline-none focus:ring-2 focus:ring-emerald-500/20"
               />
             </div>
-            <select
+            <Select
               value={filters.type}
-              onChange={(e) => { setFilters((f) => ({ ...f, type: e.target.value })); setPage(1); }}
-              className="h-10 rounded-lg bg-white/[0.02] border border-white/[0.08] px-3 text-sm text-muted-foreground focus:outline-none focus:ring-2 focus:ring-emerald-500/20"
-            >
-              <option value="">All types</option>
-              <option value="income">Income</option>
-              <option value="expense">Expense</option>
-            </select>
-            <select
+              onValueChange={(value) => { setFilters((f) => ({ ...f, type: value })); setPage(1); }}
+              options={[
+                { value: '', label: 'All types' },
+                { value: 'income', label: 'Income' },
+                { value: 'expense', label: 'Expense' },
+              ]}
+            />
+            <Select
               value={filters.categoryId}
-              onChange={(e) => { setFilters((f) => ({ ...f, categoryId: e.target.value })); setPage(1); }}
-              className="h-10 rounded-lg bg-white/[0.02] border border-white/[0.08] px-3 text-sm text-muted-foreground focus:outline-none focus:ring-2 focus:ring-emerald-500/20"
-            >
-              <option value="">All categories</option>
-              {categories.map((c) => (
-                <option key={c.id} value={c.id}>{c.name}</option>
-              ))}
-            </select>
-            <select
+              onValueChange={(value) => { setFilters((f) => ({ ...f, categoryId: value })); setPage(1); }}
+              options={[
+                { value: '', label: 'All categories' },
+                ...categories.map((c) => ({ value: c.id, label: c.name })),
+              ]}
+            />
+            <Select
               value={filters.paymentMethod}
-              onChange={(e) => { setFilters((f) => ({ ...f, paymentMethod: e.target.value })); setPage(1); }}
-              className="h-10 rounded-lg bg-white/[0.02] border border-white/[0.08] px-3 text-sm text-muted-foreground focus:outline-none focus:ring-2 focus:ring-emerald-500/20"
-            >
-              <option value="">All methods</option>
-              {PAYMENT_METHODS.map((m) => (
-                <option key={m.value} value={m.value}>{m.label}</option>
-              ))}
-            </select>
+              onValueChange={(value) => { setFilters((f) => ({ ...f, paymentMethod: value })); setPage(1); }}
+              options={[
+                { value: '', label: 'All methods' },
+                ...PAYMENT_METHODS.map((m) => ({ value: m.value, label: m.label })),
+              ]}
+            />
             {selected.size > 0 && (
               <Button variant="destructive" size="sm" onClick={handleBulkDelete} className="gap-1">
                 <Trash2 className="h-3 w-3" />
@@ -452,43 +449,34 @@ function TransactionForm({
             </div>
             <div>
               <label className="text-xs text-muted-foreground block mb-1">Category *</label>
-              <select
-                required
+              <Select
                 value={form.categoryId}
-                onChange={(e) => setForm((f) => ({ ...f, categoryId: e.target.value }))}
-                className="w-full h-10 px-3 rounded-lg bg-white/[0.02] border border-white/[0.08] text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-emerald-500/20"
-              >
-                {categories.map((c) => (
-                  <option key={c.id} value={c.id}>{c.name}</option>
-                ))}
-              </select>
+                onValueChange={(value) => setForm((f) => ({ ...f, categoryId: value }))}
+                options={categories.map((c) => ({ value: c.id, label: c.name }))}
+              />
             </div>
           </div>
 
           <div className="grid grid-cols-2 gap-4">
             <div>
               <label className="text-xs text-muted-foreground block mb-1">Payment Method</label>
-              <select
+              <Select
                 value={form.paymentMethod}
-                onChange={(e) => setForm((f) => ({ ...f, paymentMethod: e.target.value as PaymentMethod }))}
-                className="w-full h-10 px-3 rounded-lg bg-white/[0.02] border border-white/[0.08] text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-emerald-500/20"
-              >
-                {PAYMENT_METHODS.map((m) => (
-                  <option key={m.value} value={m.value}>{m.label}</option>
-                ))}
-              </select>
+                onValueChange={(value) => setForm((f) => ({ ...f, paymentMethod: value as PaymentMethod }))}
+                options={PAYMENT_METHODS.map((m) => ({ value: m.value, label: m.label }))}
+              />
             </div>
             <div>
               <label className="text-xs text-muted-foreground block mb-1">Status</label>
-              <select
+              <Select
                 value={form.status}
-                onChange={(e) => setForm((f) => ({ ...f, status: e.target.value as TransactionStatus }))}
-                className="w-full h-10 px-3 rounded-lg bg-white/[0.02] border border-white/[0.08] text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-emerald-500/20"
-              >
-                <option value="cleared">Cleared</option>
-                <option value="pending">Pending</option>
-                <option value="flagged">Flagged</option>
-              </select>
+                onValueChange={(value) => setForm((f) => ({ ...f, status: value as TransactionStatus }))}
+                options={[
+                  { value: 'cleared', label: 'Cleared' },
+                  { value: 'pending', label: 'Pending' },
+                  { value: 'flagged', label: 'Flagged' },
+                ]}
+              />
             </div>
           </div>
 
