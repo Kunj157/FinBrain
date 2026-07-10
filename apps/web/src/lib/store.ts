@@ -28,6 +28,19 @@ export const localStore = {
     localStore.setTransactions(all);
     return txn;
   },
+  updateTransaction: (id: string, updates: Partial<Transaction>) => {
+    const all = localStore.getTransactions();
+    const idx = all.findIndex((t) => t.id === id);
+    if (idx === -1) return null;
+    all[idx] = { ...all[idx], ...updates, updatedAt: new Date().toISOString() };
+    localStore.setTransactions(all);
+    return all[idx];
+  },
+  deleteTransaction: (id: string) => {
+    const all = localStore.getTransactions();
+    const filtered = all.filter((t) => t.id !== id);
+    localStore.setTransactions(filtered);
+  },
 
   getCategories: () =>
     read<Category[]>('categories', [
@@ -42,6 +55,14 @@ export const localStore = {
       { id: '9', userId: '', name: 'Housing', icon: 'home', color: '#f97316', isCustom: false, createdAt: '' },
       { id: '10', userId: '', name: 'Other', icon: 'more-horizontal', color: '#6b7280', isCustom: false, createdAt: '' },
     ]),
+
+  addCategory: (cat: Category) => {
+    const all = localStore.getCategories();
+    all.push(cat);
+    write('categories', all);
+    return cat;
+  },
+  setCategories: (cats: Category[]) => write('categories', cats),
 
   getPreferredCurrency: (): Currency => {
     const stored = localStorage.getItem('finbrain-currency') as Currency | null;
