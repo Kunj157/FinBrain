@@ -1,9 +1,9 @@
-import { useState, useMemo } from 'react';
+import { useState, useEffect } from 'react';
 import { Plus, X, Check, Tags, Pencil, Trash2, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { localStore } from '@/lib/store';
-import { useAuth } from '@/hooks/use-auth';
+import { Select } from '@/components/ui/select';
+import api from '@/lib/api';
 import type { Category } from '@finbrain/shared';
 
 const ICON_OPTIONS = [
@@ -30,8 +30,8 @@ const PRESET_COLORS = [
 type FormMode = 'create' | 'edit';
 
 export default function CategoriesPage() {
-  const { user } = useAuth();
-  const categories = localStore.getCategories();
+  const [categories, setCategories] = useState<Category[]>([]);
+  const [loading, setLoading] = useState(true);
 
   const [showForm, setShowForm] = useState(false);
   const [formMode, setFormMode] = useState<FormMode>('create');
@@ -42,6 +42,21 @@ export default function CategoriesPage() {
     icon: 'tags',
     color: '#10b981',
   });
+
+  const fetchCategories = async () => {
+    try {
+      const { data } = await api.get('/categories');
+      setCategories(data.data);
+    } catch {
+      // silent
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchCategories();
+  }, []);
 
   const openCreate = () => {
     setForm({ name: '', icon: 'tags', color: '#10b981' });
@@ -57,33 +72,47 @@ export default function CategoriesPage() {
     setShowForm(true);
   };
 
-  const handleSave = () => {
+  const handleSave = async () => {
     if (!form.name.trim()) return;
 
-    if (formMode === 'edit' && editingCat) {
-      const all = localStore.getCategories();
-      const updated = all.map((c) =>
-        c.id === editingCat.id ? { ...c, name: form.name.trim(), icon: form.icon, color: form.color } : c,
-      );
-      localStore.setCategories(updated);
-    } else {
-      localStore.addCategory({
-        id: `cat-${Date.now()}`,
-        userId: user?.id || 'dev-user-001',
-        name: form.name.trim(),
-        icon: form.icon,
-        color: form.color,
-        isCustom: true,
-        createdAt: new Date().toISOString(),
-      });
+    try {
+      if (formMode === 'edit' && editingCat) {
+        await api.put(`/categories/${editingCat.id}`, {
+          name: form.name.trim(),
+          icon: form.icon,
+          color: form.color,
+        });
+      } else {
+        await api.post('/categories', {
+          name: form.name.trim(),
+          icon: form.icon,
+          color: form.color,
+        });
+      }
+      await fetchCategories();
+    } catch {
+      // silent
     }
 
     setShowForm(false);
   };
 
-  const handleDelete = (id: string) => {
-    localStore.setCategories(localStore.getCategories().filter((c) => c.id !== id));
+  const handleDelete = async (id: string) => {
+    try {
+      await api.delete(`/categories/${id}`);
+      await fetchCategories();
+    } catch {
+      // silent
+    }
   };
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center min-h-[60vh]">
+        <Loader2 className="h-8 w-8 text-muted-foreground animate-spin" />
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6 animate-fade-in">
@@ -174,15 +203,11 @@ export default function CategoriesPage() {
 
               <div>
                 <label className="text-xs text-muted-foreground block mb-1">Icon</label>
-                <select
+                <Select
                   value={form.icon}
-                  onChange={(e) => setForm((f) => ({ ...f, icon: e.target.value }))}
-                  className="w-full h-10 px-3 rounded-lg bg-white/[0.02] border border-white/[0.08] text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/20"
-                >
-                  {ICON_OPTIONS.map((opt) => (
-                    <option key={opt.value} value={opt.value}>{opt.label} {opt.value}</option>
-                  ))}
-                </select>
+                  onValueChange={(value) => setForm((f) => ({ ...f, icon: value }))}
+                  options={ICON_OPTIONS.map((opt) => ({ value: opt.value, label: `${opt.label} ${opt.value}` }))}
+                />
               </div>
 
               <div className="flex gap-3 pt-2">

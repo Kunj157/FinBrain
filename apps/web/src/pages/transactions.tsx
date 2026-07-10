@@ -1,12 +1,13 @@
-import { useState, useMemo, useCallback } from 'react';
+import { useState, useMemo, useCallback, useEffect } from 'react';
 import { Plus, Search, ArrowUpDown, Pencil, Trash2, ArrowRightLeft, X, Check, Loader2, ChevronLeft, ChevronRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import { Select } from '@/components/ui/select';
 import { useAuth } from '@/hooks/use-auth';
-import { localStore } from '@/lib/store';
+import api from '@/lib/api';
 import { formatCurrency, formatDate } from '@/lib/utils';
-import type { Transaction, PaymentMethod, TransactionStatus, Currency as SharedCurrency } from '@finbrain/shared';
+import type { Transaction, PaymentMethod, TransactionStatus, Currency as SharedCurrency, Category } from '@finbrain/shared';
 
 const PAYMENT_METHODS = [
   { value: 'cash', label: 'Cash' },
@@ -38,36 +39,43 @@ export default function TransactionsPage() {
   const [formMode, setFormMode] = useState<FormMode>('create');
   const [editingTxn, setEditingTxn] = useState<Transaction | null>(null);
   const [selected, setSelected] = useState<Set<string>>(new Set());
+  const [txns, setTxns] = useState<Transaction[]>([]);
+  const [categories, setCategories] = useState<Category[]>([]);
+  const [total, setTotal] = useState(0);
+  const [loading, setLoading] = useState(true);
   const limit = 15;
 
-  const allTxns = localStore.getTransactions();
-  const categories = localStore.getCategories();
+  const fetchData = useCallback(async () => {
+    setLoading(true);
+    try {
+      const params = new URLSearchParams();
+      params.set('page', String(page));
+      params.set('limit', String(limit));
+      params.set('sort', filters.sort);
+      params.set('order', filters.order);
+      if (filters.type) params.set('type', filters.type);
+      if (filters.categoryId) params.set('categoryId', filters.categoryId);
+      if (filters.paymentMethod) params.set('paymentMethod', filters.paymentMethod);
+      if (filters.search) params.set('search', filters.search);
 
-  const filtered = useMemo(() => {
-    let result = [...allTxns];
-    if (filters.type) result = result.filter((t) => t.type === filters.type);
-    if (filters.categoryId) result = result.filter((t) => t.categoryId === filters.categoryId);
-    if (filters.paymentMethod) result = result.filter((t) => t.paymentMethod === filters.paymentMethod);
-    if (filters.search) {
-      const q = filters.search.toLowerCase();
-      result = result.filter((t) =>
-        t.description.toLowerCase().includes(q) ||
-        (t.merchant && t.merchant.toLowerCase().includes(q)),
-      );
+      const [txnRes, catRes] = await Promise.all([
+        api.get(`/transactions?${params}`),
+        api.get('/categories'),
+      ]);
+
+      setTxns(txnRes.data.data.data);
+      setTotal(txnRes.data.data.total);
+      if (!categories.length) setCategories(catRes.data.data);
+    } catch {
+      // silent
+    } finally {
+      setLoading(false);
     }
-    result.sort((a, b) => {
-      const aVal = a[filters.sort as keyof Transaction] as string | number;
-      const bVal = b[filters.sort as keyof Transaction] as string | number;
-      if (typeof aVal === 'string') {
-        return filters.order === 'asc' ? aVal.localeCompare(bVal as string) : (bVal as string).localeCompare(aVal);
-      }
-      return filters.order === 'asc' ? (aVal as number) - (bVal as number) : (bVal as number) - (aVal as number);
-    });
-    return result;
-  }, [allTxns, filters]);
+  }, [page, filters, categories.length]);
 
-  const totalPages = Math.ceil(filtered.length / limit);
-  const paginated = filtered.slice((page - 1) * limit, page * limit);
+  useEffect(() => {
+    fetchData();
+  }, [fetchData]);
 
   const categoryMap = useMemo(() => {
     const map: Record<string, string> = {};
@@ -75,19 +83,23 @@ export default function TransactionsPage() {
     return map;
   }, [categories]);
 
+  const totalPages = Math.ceil(total / limit);
+
   const toggleSort = (field: string) => {
     setFilters((f) => ({ ...f, sort: field, order: f.sort === field && f.order === 'desc' ? 'asc' : 'desc' }));
     setPage(1);
   };
 
-  const handleDelete = useCallback((id: string) => {
-    localStore.deleteTransaction(id);
-  }, []);
+  const handleDelete = useCallback(async (id: string) => {
+    await api.delete(`/transactions/${id}`);
+    fetchData();
+  }, [fetchData]);
 
-  const handleBulkDelete = useCallback(() => {
-    for (const id of selected) localStore.deleteTransaction(id);
+  const handleBulkDelete = useCallback(async () => {
+    await api.delete('/transactions/bulk', { data: { ids: Array.from(selected) } });
     setSelected(new Set());
-  }, [selected]);
+    fetchData();
+  }, [selected, fetchData]);
 
   const toggleSelect = (id: string) => {
     setSelected((prev) => {
@@ -115,7 +127,7 @@ export default function TransactionsPage() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-semibold tracking-tight">Transactions</h1>
-          <p className="text-sm text-muted-foreground mt-1">{allTxns.length} total transactions</p>
+          <p className="text-sm text-muted-foreground mt-1">{total} total transactions</p>
         </div>
         <Button onClick={openCreate} className="gap-2">
           <Plus className="h-4 w-4" />
@@ -136,35 +148,31 @@ export default function TransactionsPage() {
                 className="w-full h-10 pl-9 pr-3 rounded-lg bg-white/[0.02] border border-white/[0.08] text-sm text-foreground placeholder:text-muted-foreground/50 focus:outline-none focus:ring-2 focus:ring-emerald-500/20"
               />
             </div>
-            <select
+            <Select
               value={filters.type}
-              onChange={(e) => { setFilters((f) => ({ ...f, type: e.target.value })); setPage(1); }}
-              className="h-10 rounded-lg bg-white/[0.02] border border-white/[0.08] px-3 text-sm text-muted-foreground focus:outline-none focus:ring-2 focus:ring-emerald-500/20"
-            >
-              <option value="">All types</option>
-              <option value="income">Income</option>
-              <option value="expense">Expense</option>
-            </select>
-            <select
+              onValueChange={(value) => { setFilters((f) => ({ ...f, type: value })); setPage(1); }}
+              options={[
+                { value: '', label: 'All types' },
+                { value: 'income', label: 'Income' },
+                { value: 'expense', label: 'Expense' },
+              ]}
+            />
+            <Select
               value={filters.categoryId}
-              onChange={(e) => { setFilters((f) => ({ ...f, categoryId: e.target.value })); setPage(1); }}
-              className="h-10 rounded-lg bg-white/[0.02] border border-white/[0.08] px-3 text-sm text-muted-foreground focus:outline-none focus:ring-2 focus:ring-emerald-500/20"
-            >
-              <option value="">All categories</option>
-              {categories.map((c) => (
-                <option key={c.id} value={c.id}>{c.name}</option>
-              ))}
-            </select>
-            <select
+              onValueChange={(value) => { setFilters((f) => ({ ...f, categoryId: value })); setPage(1); }}
+              options={[
+                { value: '', label: 'All categories' },
+                ...categories.map((c) => ({ value: c.id, label: c.name })),
+              ]}
+            />
+            <Select
               value={filters.paymentMethod}
-              onChange={(e) => { setFilters((f) => ({ ...f, paymentMethod: e.target.value })); setPage(1); }}
-              className="h-10 rounded-lg bg-white/[0.02] border border-white/[0.08] px-3 text-sm text-muted-foreground focus:outline-none focus:ring-2 focus:ring-emerald-500/20"
-            >
-              <option value="">All methods</option>
-              {PAYMENT_METHODS.map((m) => (
-                <option key={m.value} value={m.value}>{m.label}</option>
-              ))}
-            </select>
+              onValueChange={(value) => { setFilters((f) => ({ ...f, paymentMethod: value })); setPage(1); }}
+              options={[
+                { value: '', label: 'All methods' },
+                ...PAYMENT_METHODS.map((m) => ({ value: m.value, label: m.label })),
+              ]}
+            />
             {selected.size > 0 && (
               <Button variant="destructive" size="sm" onClick={handleBulkDelete} className="gap-1">
                 <Trash2 className="h-3 w-3" />
@@ -174,7 +182,11 @@ export default function TransactionsPage() {
           </div>
         </CardHeader>
         <CardContent className="p-0">
-          {paginated.length === 0 ? (
+          {loading ? (
+            <div className="py-16 text-center">
+              <Loader2 className="h-10 w-10 text-muted-foreground/30 mx-auto animate-spin" />
+            </div>
+          ) : txns.length === 0 ? (
             <div className="py-16 text-center">
               <ArrowRightLeft className="h-10 w-10 text-muted-foreground/30 mx-auto" />
               <p className="text-sm text-muted-foreground mt-3">No transactions found</p>
@@ -190,10 +202,10 @@ export default function TransactionsPage() {
                     <th className="w-10 px-4 py-3">
                       <input
                         type="checkbox"
-                        checked={selected.size === paginated.length && paginated.length > 0}
+                        checked={selected.size === txns.length && txns.length > 0}
                         onChange={() => {
-                          if (selected.size === paginated.length) setSelected(new Set());
-                          else setSelected(new Set(paginated.map((t) => t.id)));
+                          if (selected.size === txns.length) setSelected(new Set());
+                          else setSelected(new Set(txns.map((t) => t.id)));
                         }}
                         className="rounded border-white/[0.08] bg-white/[0.02]"
                       />
@@ -214,7 +226,7 @@ export default function TransactionsPage() {
                   </tr>
                 </thead>
                 <tbody>
-                  {paginated.map((txn) => (
+                  {txns.map((txn) => (
                     <tr key={txn.id} className="border-b border-white/[0.03] hover:bg-white/[0.01] transition-colors">
                       <td className="px-4 py-3">
                         <input
@@ -307,7 +319,6 @@ function TransactionForm({
   onClose: () => void;
   onSave: () => void;
 }) {
-  const { user } = useAuth();
   const [form, setForm] = useState({
     type: transaction?.type || 'expense',
     amount: transaction?.amount.toString() || '',
@@ -332,39 +343,28 @@ function TransactionForm({
       return;
     }
 
-    const now = new Date().toISOString();
+    const payload = {
+      type: form.type as 'income' | 'expense',
+      amount,
+      currency,
+      description: form.description,
+      merchant: form.merchant || undefined,
+      categoryId: form.categoryId,
+      paymentMethod: form.paymentMethod as PaymentMethod,
+      date: form.date,
+      status: form.status as TransactionStatus,
+      isRecurring: form.isRecurring,
+      notes: form.notes || undefined,
+    };
 
-    if (mode === 'edit' && transaction) {
-      localStore.updateTransaction(transaction.id, {
-        type: form.type as 'income' | 'expense',
-        amount,
-        description: form.description,
-        merchant: form.merchant || undefined,
-        categoryId: form.categoryId,
-        paymentMethod: form.paymentMethod as PaymentMethod,
-        date: form.date,
-        status: form.status as TransactionStatus,
-        isRecurring: form.isRecurring,
-        notes: form.notes || undefined,
-      });
-    } else {
-      localStore.addTransaction({
-        id: `txn-${Date.now()}`,
-        userId: user?.id || 'dev-user-001',
-        type: form.type as 'income' | 'expense',
-        amount,
-        currency,
-        description: form.description,
-        merchant: form.merchant || undefined,
-        categoryId: form.categoryId,
-        paymentMethod: form.paymentMethod as PaymentMethod,
-        date: form.date,
-        status: form.status as TransactionStatus,
-        isRecurring: form.isRecurring,
-        notes: form.notes || undefined,
-        createdAt: now,
-        updatedAt: now,
-      });
+    try {
+      if (mode === 'edit' && transaction) {
+        await api.put(`/transactions/${transaction.id}`, payload);
+      } else {
+        await api.post('/transactions', payload);
+      }
+    } catch {
+      // silent
     }
 
     setSaving(false);
@@ -449,43 +449,34 @@ function TransactionForm({
             </div>
             <div>
               <label className="text-xs text-muted-foreground block mb-1">Category *</label>
-              <select
-                required
+              <Select
                 value={form.categoryId}
-                onChange={(e) => setForm((f) => ({ ...f, categoryId: e.target.value }))}
-                className="w-full h-10 px-3 rounded-lg bg-white/[0.02] border border-white/[0.08] text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-emerald-500/20"
-              >
-                {categories.map((c) => (
-                  <option key={c.id} value={c.id}>{c.name}</option>
-                ))}
-              </select>
+                onValueChange={(value) => setForm((f) => ({ ...f, categoryId: value }))}
+                options={categories.map((c) => ({ value: c.id, label: c.name }))}
+              />
             </div>
           </div>
 
           <div className="grid grid-cols-2 gap-4">
             <div>
               <label className="text-xs text-muted-foreground block mb-1">Payment Method</label>
-              <select
+              <Select
                 value={form.paymentMethod}
-                onChange={(e) => setForm((f) => ({ ...f, paymentMethod: e.target.value as PaymentMethod }))}
-                className="w-full h-10 px-3 rounded-lg bg-white/[0.02] border border-white/[0.08] text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-emerald-500/20"
-              >
-                {PAYMENT_METHODS.map((m) => (
-                  <option key={m.value} value={m.value}>{m.label}</option>
-                ))}
-              </select>
+                onValueChange={(value) => setForm((f) => ({ ...f, paymentMethod: value as PaymentMethod }))}
+                options={PAYMENT_METHODS.map((m) => ({ value: m.value, label: m.label }))}
+              />
             </div>
             <div>
               <label className="text-xs text-muted-foreground block mb-1">Status</label>
-              <select
+              <Select
                 value={form.status}
-                onChange={(e) => setForm((f) => ({ ...f, status: e.target.value as TransactionStatus }))}
-                className="w-full h-10 px-3 rounded-lg bg-white/[0.02] border border-white/[0.08] text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-emerald-500/20"
-              >
-                <option value="cleared">Cleared</option>
-                <option value="pending">Pending</option>
-                <option value="flagged">Flagged</option>
-              </select>
+                onValueChange={(value) => setForm((f) => ({ ...f, status: value as TransactionStatus }))}
+                options={[
+                  { value: 'cleared', label: 'Cleared' },
+                  { value: 'pending', label: 'Pending' },
+                  { value: 'flagged', label: 'Flagged' },
+                ]}
+              />
             </div>
           </div>
 

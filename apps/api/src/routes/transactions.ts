@@ -21,7 +21,7 @@ const updateTransactionSchema = createTransactionSchema.partial();
 
 const querySchema = z.object({
   page: z.coerce.number().min(1).default(1),
-  limit: z.coerce.number().min(1).max(100).default(20),
+  limit: z.coerce.number().min(1).max(1000).default(20),
   type: z.enum(['income', 'expense']).optional(),
   categoryId: z.string().optional(),
   startDate: z.string().optional(),
@@ -119,6 +119,40 @@ router.delete('/:id', (req: Request, res: Response) => {
 
   transactions.splice(idx, 1);
   res.json({ success: true, message: 'Transaction deleted' });
+});
+
+router.post('/bulk', (req: Request, res: Response) => {
+  const { items } = req.body;
+  if (!Array.isArray(items) || items.length === 0) {
+    return res.status(400).json({ success: false, error: 'items array is required' });
+  }
+
+  const created = items.map((item: Record<string, unknown>) => ({
+    id: String(nextId++),
+    userId: req.headers['x-user-id'] || 'dev-user-001',
+    ...item,
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
+  }));
+
+  transactions.unshift(...created);
+  res.status(201).json({ success: true, data: created });
+});
+
+router.delete('/bulk', (req: Request, res: Response) => {
+  const { ids } = req.body;
+  if (!Array.isArray(ids) || ids.length === 0) {
+    return res.status(400).json({ success: false, error: 'ids array is required' });
+  }
+
+  const idSet = new Set(ids);
+  for (let i = transactions.length - 1; i >= 0; i--) {
+    if (idSet.has(transactions[i].id)) {
+      transactions.splice(i, 1);
+    }
+  }
+
+  res.json({ success: true, message: `${ids.length} transaction(s) deleted` });
 });
 
 export default router;
