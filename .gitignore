@@ -1,0 +1,34 @@
+node_modules/
+dist/
+.env
+.env.local
+*.log
+.DS_Store
+coverage/
+.next/
+.cache/
+*.tsbuildinfo
+.turbo/
+
+# Python
+__pycache__/
+*.pyc
+.venv/
+venv/
+*.egg-info/
+
+# Prisma
+apps/api/prisma/migrations/
+
+# Docker
+docker-data/
+
+# IDE
+.vscode/
+
+# AI agent instructions (local only)
+AGENTS.md
+.idea/
+*.swp
+*.swo
+apps/web/.vite/

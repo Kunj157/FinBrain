@@ -1,0 +1,299 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Currency {
+  USD
+  EUR
+  GBP
+  INR
+  JPY
+  CAD
+  AUD
+}
+
+enum TransactionType {
+  income
+  expense
+}
+
+enum PaymentMethod {
+  cash
+  credit_card
+  debit_card
+  bank_transfer
+  upi
+  other
+}
+
+enum TransactionStatus {
+  pending
+  cleared
+  flagged
+}
+
+enum BudgetPeriod {
+  weekly
+  monthly
+  yearly
+}
+
+model User {
+  id        String   @id @default(cuid())
+  clerkId   String   @unique
+  email     String   @unique
+  name      String
+  avatarUrl String?
+
+  currency       Currency @default(USD)
+  monthlyIncome  Float?
+  onboardingCompleted Boolean @default(false)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  transactions      Transaction[]
+  categories        Category[]
+  budgets           Budget[]
+  goals             Goal[]
+  forecasts         Forecast[]
+  recommendations   Recommendation[]
+  financialHealth   FinancialHealth?
+  receipts          Receipt[]
+  notifications     Notification[]
+  auditLogs         AuditLog[]
+
+  @@map("users")
+}
+
+model Category {
+  id     String @id @default(cuid())
+  name   String
+  icon   String @default("folder")
+  color  String @default("#6b7280")
+  parentId String?
+  isCustom Boolean @default(false)
+
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  parent      Category?   @relation("CategoryHierarchy", fields: [parentId], references: [id])
+  children    Category[]  @relation("CategoryHierarchy")
+  transactions Transaction[]
+  budgets     Budget[]
+  goals       Goal[]
+
+  createdAt DateTime @default(now())
+
+  @@unique([userId, name])
+  @@map("categories")
+}
+
+model Transaction {
+  id          String          @id @default(cuid())
+  type        TransactionType
+  amount      Float
+  currency    Currency        @default(USD)
+  description String
+  merchant    String?
+  categoryId  String
+  paymentMethod PaymentMethod @default(other)
+  date        DateTime
+  notes       String?
+  receiptUrl  String?
+  status      TransactionStatus @default(cleared)
+  isRecurring Boolean         @default(false)
+
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  category Category @relation(fields: [categoryId], references: [id])
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([userId, date])
+  @@index([userId, categoryId])
+  @@map("transactions")
+}
+
+model Budget {
+  id        String       @id @default(cuid())
+  amount    Float
+  currency  Currency     @default(USD)
+  period    BudgetPeriod @default(monthly)
+  startDate DateTime
+  endDate   DateTime?
+  spent     Float        @default(0)
+  remaining Float?
+
+  userId     String
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  categoryId String
+  category   Category @relation(fields: [categoryId], references: [id])
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  histories BudgetHistory[]
+
+  @@unique([userId, categoryId, period, startDate])
+  @@map("budgets")
+}
+
+model BudgetHistory {
+  id        String   @id @default(cuid())
+  amount    Float
+  spent     Float
+  remaining Float
+  recordedAt DateTime @default(now())
+
+  budgetId String
+  budget   Budget @relation(fields: [budgetId], references: [id], onDelete: Cascade)
+
+  @@map("budget_histories")
+}
+
+model Goal {
+  id            String  @id @default(cuid())
+  name          String
+  targetAmount  Float
+  currency      Currency @default(USD)
+  currentAmount Float    @default(0)
+  deadline      DateTime?
+  goalType      String   @default("custom")
+  icon          String   @default("target")
+  estimatedCompletion DateTime?
+
+  userId     String
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  categoryId String?
+  category   Category? @relation(fields: [categoryId], references: [id])
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  contributions GoalContribution[]
+
+  @@map("goals")
+}
+
+model GoalContribution {
+  id       String   @id @default(cuid())
+  amount   Float
+  date     DateTime @default(now())
+  notes    String?
+
+  goalId String
+  goal   Goal @relation(fields: [goalId], references: [id], onDelete: Cascade)
+
+  @@map("goal_contributions")
+}
+
+model Forecast {
+  id      String   @id @default(cuid())
+  type    String
+  model   String
+  period  String
+  values  Json
+  accuracy Float?
+
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+
+  @@map("forecasts")
+}
+
+model Recommendation {
+  id          String   @id @default(cuid())
+  type        String
+  title       String
+  description String
+  severity    String   @default("medium")
+  category    String?
+  amount      Float?
+  read        Boolean  @default(false)
+
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+
+  @@map("recommendations")
+}
+
+model FinancialHealth {
+  id                  String   @id @default(cuid())
+  score               Int      @default(0)
+  savingsRate         Float    @default(0)
+  expenseRatio        Float    @default(0)
+  budgetAdherence     Float    @default(0)
+  emergencyFundMonths Float    @default(0)
+  debtRatio           Float    @default(0)
+  spendingConsistency Float    @default(0)
+  history             Json     @default("[]")
+
+  userId String @unique
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  updatedAt DateTime @updatedAt
+
+  @@map("financial_health")
+}
+
+model Receipt {
+  id           String   @id @default(cuid())
+  imageUrl     String
+  merchant     String?
+  amount       Float?
+  date         DateTime?
+  categoryId   String?
+  status       String   @default("pending")
+  notes        String?
+
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("receipts")
+}
+
+model Notification {
+  id      String   @id @default(cuid())
+  title   String
+  message String
+  type    String   @default("info")
+  read    Boolean  @default(false)
+
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+
+  @@map("notifications")
+}
+
+model AuditLog {
+  id        String   @id @default(cuid())
+  action    String
+  entity    String
+  entityId  String?
+  details   Json?
+  ipAddress String?
+
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+
+  @@map("audit_logs")
+}
