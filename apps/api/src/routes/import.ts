@@ -2,11 +2,107 @@ import { Router, type Request, type Response } from 'express';
 import multer from 'multer';
 import { parse } from 'csv-parse/sync';
 import fs from 'fs';
+import pdfParse from 'pdf-parse';
 import { suggestCategory } from '../services/auto-categorize';
+import { parsePdfText } from '../services/pdf-parser';
 
 const upload = multer({ dest: 'uploads/' });
 const router = Router();
 
+function isPdf(file: Express.Multer.File): boolean {
+  return file.mimetype === 'application/pdf' || file.originalname.toLowerCase().endsWith('.pdf');
+}
+
+async function parseCsv(filePath: string): Promise<Record<string, string>[]> {
+  const content = fs.readFileSync(filePath, 'utf-8');
+  return parse(content, {
+    columns: true,
+    skip_empty_lines: true,
+    trim: true,
+  }) as Record<string, string>[];
+}
+
+async function parsePdfFile(filePath: string): Promise<Record<string, string>[]> {
+  const pdfBuffer = fs.readFileSync(filePath);
+  const pdfData = await pdfParse(pdfBuffer);
+  const transactions = parsePdfText(pdfData.text);
+  return transactions.map((tx) => ({
+    date: tx.date,
+    amount: (tx.type === 'expense' ? -tx.amount : tx.amount).toString(),
+    description: tx.description,
+    merchant: tx.merchant,
+    type: tx.type,
+  }));
+}
+
+function normalizeColumnNames(record: Record<string, string>): Record<string, string> {
+  const csvColumnMap: Record<string, string> = {
+    date: 'date', amount: 'amount', description: 'description',
+    merchant: 'merchant', category: 'category', type: 'type',
+  };
+  const mapped: Record<string, string> = {};
+  for (const [key, value] of Object.entries(record)) {
+    const normalizedKey = csvColumnMap[key.toLowerCase()] || key.toLowerCase();
+    mapped[normalizedKey] = value;
+  }
+  return mapped;
+}
+
+function enrichTransaction(record: Record<string, string>) {
+  const mapped = normalizeColumnNames(record);
+  const merchant = mapped.merchant || mapped.vendor || mapped.payee || '';
+  const description = mapped.description || mapped.name || mapped.memo || '';
+  const detectedCategory = suggestCategory(merchant, description);
+  const amount = parseFloat(mapped.amount) || 0;
+
+  return {
+    date: mapped.date || '',
+    amount,
+    description,
+    merchant,
+    category: mapped.category || detectedCategory?.categoryName || 'Uncategorized',
+    categoryId: detectedCategory?.categoryId || null,
+    type: amount >= 0 ? 'income' : 'expense',
+  };
+}
+
+router.post('/parse', upload.single('file'), async (req: Request, res: Response) => {
+  try {
+    const file = req.file as Express.Multer.File | undefined;
+    if (!file) {
+      return res.status(400).json({ success: false, error: 'No file uploaded' });
+    }
+
+    let transactions: ReturnType<typeof enrichTransaction>[];
+    let format: 'csv' | 'pdf';
+
+    if (isPdf(file)) {
+      const records = await parsePdfFile(file.path);
+      transactions = records.map(enrichTransaction);
+      format = 'pdf';
+    } else {
+      const records = await parseCsv(file.path);
+      transactions = records.map(enrichTransaction);
+      format = 'csv';
+    }
+
+    fs.unlinkSync(file.path);
+
+    res.json({
+      success: true,
+      data: {
+        format,
+        total: transactions.length,
+        preview: transactions.slice(0, 10),
+      },
+    });
+  } catch (error) {
+    console.error('Import error:', error);
+    res.status(500).json({ success: false, error: 'Failed to parse file' });
+  }
+});
+
+// keep backward compat
 router.post('/csv', upload.single('file'), async (req: Request, res: Response) => {
   try {
     const file = req.file as Express.Multer.File | undefined;
@@ -14,43 +110,8 @@ router.post('/csv', upload.single('file'), async (req: Request, res: Response) =
       return res.status(400).json({ success: false, error: 'No file uploaded' });
     }
 
-    const content = fs.readFileSync(file.path, 'utf-8');
-    const records = parse(content, {
-      columns: true,
-      skip_empty_lines: true,
-      trim: true,
-    }) as Record<string, string>[];
-
-    const columnMap: Record<string, string> = {
-      date: 'date',
-      amount: 'amount',
-      description: 'description',
-      merchant: 'merchant',
-      category: 'category',
-      type: 'type',
-    };
-
-    const transactions = records.map((record) => {
-      const mapped: Record<string, string> = {};
-      for (const [key, value] of Object.entries(record)) {
-        const normalizedKey = columnMap[key.toLowerCase()] || key.toLowerCase();
-        mapped[normalizedKey] = value;
-      }
-
-      const merchant = mapped.merchant || mapped.vendor || mapped.payee || '';
-      const description = mapped.description || mapped.name || mapped.memo || '';
-      const detectedCategory = suggestCategory(merchant, description);
-
-      return {
-        date: mapped.date || '',
-        amount: parseFloat(mapped.amount) || 0,
-        description,
-        merchant,
-        category: mapped.category || detectedCategory?.categoryName || 'Uncategorized',
-        categoryId: detectedCategory?.categoryId || null,
-        type: mapped.amount && parseFloat(mapped.amount) >= 0 ? 'income' : 'expense',
-      };
-    });
+    const records = await parseCsv(file.path);
+    const transactions = records.map(enrichTransaction);
 
     fs.unlinkSync(file.path);
 
@@ -60,7 +121,6 @@ router.post('/csv', upload.single('file'), async (req: Request, res: Response) =
         total: transactions.length,
         preview: transactions.slice(0, 10),
         columns: records.length > 0 ? Object.keys(records[0]) : [],
-        suggestedMapping: columnMap,
       },
     });
   } catch (error) {

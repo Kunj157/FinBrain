@@ -3,6 +3,7 @@ import { cn } from '@/lib/utils';
 import {
   LayoutDashboard,
   ArrowRightLeft,
+  Tags,
   PiggyBank,
   Target,
   BarChart3,
@@ -19,6 +20,7 @@ const navItems = [
   { icon: LayoutDashboard, label: 'Dashboard', path: '/' },
   { icon: Database, label: 'Onboarding', path: '/onboarding' },
   { icon: ArrowRightLeft, label: 'Transactions', path: '/transactions' },
+  { icon: Tags, label: 'Categories', path: '/categories' },
   { icon: PiggyBank, label: 'Budgets', path: '/budgets' },
   { icon: Target, label: 'Goals', path: '/goals' },
   { icon: BarChart3, label: 'Analytics', path: '/analytics' },

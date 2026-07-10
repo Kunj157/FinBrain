@@ -1,6 +1,6 @@
 import { useState, useCallback, useRef, useMemo } from 'react';
 import { Button } from '@/components/ui/button';
-import { Upload, FileText, Check, X, AlertCircle, Loader2, CopyX } from 'lucide-react';
+import { Upload, FileText, File, Check, X, AlertCircle, Loader2, CopyX } from 'lucide-react';
 import api from '@/lib/api';
 import { formatCurrency } from '@/lib/utils';
 import { useAuth } from '@/hooks/use-auth';
@@ -17,11 +17,11 @@ interface PreviewRow {
   type: string;
 }
 
-interface CsvImportProps {
+interface StatementImportProps {
   onComplete?: () => void;
 }
 
-export function CsvImport({ onComplete }: CsvImportProps) {
+export function CsvImport({ onComplete }: StatementImportProps) {
   const [dragOver, setDragOver] = useState(false);
   const [file, setFile] = useState<File | null>(null);
   const [preview, setPreview] = useState<PreviewRow[] | null>(null);
@@ -47,8 +47,11 @@ export function CsvImport({ onComplete }: CsvImportProps) {
   }, [preview, skipDuplicates, duplicates]);
 
   const handleFile = useCallback(async (selected: File) => {
-    if (!selected.name.endsWith('.csv')) {
-      setError('Please upload a CSV file');
+    const name = selected.name.toLowerCase();
+    const isCsv = name.endsWith('.csv');
+    const isPdf = name.endsWith('.pdf');
+    if (!isCsv && !isPdf) {
+      setError('Please upload a CSV or PDF file');
       return;
     }
     setFile(selected);
@@ -59,10 +62,13 @@ export function CsvImport({ onComplete }: CsvImportProps) {
     formData.append('file', selected);
 
     try {
-      const { data } = await api.post('/import/csv', formData);
+      const { data } = await api.post('/import/parse', formData);
       setPreview(data.data.preview);
-    } catch {
-      setError('Failed to parse file. Check the format and try again.');
+    } catch (err) {
+      const detail = (err as any)?.response?.data?.error || (err as any)?.message || 'Unknown error';
+      const status = (err as any)?.response?.status || '';
+      console.error('Import error:', status, detail, err);
+      setError(`Failed to parse file (${status}: ${detail}). Check the format and try again.`);
     } finally {
       setLoading(false);
     }
@@ -95,7 +101,7 @@ export function CsvImport({ onComplete }: CsvImportProps) {
           <input
             ref={inputRef}
             type="file"
-            accept=".csv"
+            accept=".csv,.pdf"
             className="hidden"
             onChange={(e) => e.target.files?.[0] && handleFile(e.target.files[0])}
           />
@@ -105,10 +111,10 @@ export function CsvImport({ onComplete }: CsvImportProps) {
             <Upload className="h-10 w-10 mx-auto text-muted-foreground/50" />
           )}
           <p className="mt-4 text-sm font-medium">
-            {loading ? 'Parsing your file...' : 'Drop your bank CSV here or click to browse'}
+            {loading ? 'Parsing your file...' : 'Upload your bank statement or receipt'}
           </p>
           <p className="mt-1 text-xs text-muted-foreground">
-            Supports CSV exports from Chase, Bank of America, Mint, YNAB, and more
+            Supports CSV, PDF bank statements and receipt images
           </p>
         </div>
       )}
@@ -124,7 +130,11 @@ export function CsvImport({ onComplete }: CsvImportProps) {
         <div className="glass rounded-xl p-5">
           <div className="flex items-center justify-between mb-4">
             <div className="flex items-center gap-2">
-              <FileText className="h-5 w-5 text-emerald-400" />
+              {file?.name.toLowerCase().endsWith('.pdf') ? (
+                <File className="h-5 w-5 text-rose-400" />
+              ) : (
+                <FileText className="h-5 w-5 text-emerald-400" />
+              )}
               <div>
                 <p className="text-sm font-medium">{file?.name}</p>
                 <p className="text-xs text-muted-foreground">{preview.length} transactions detected</p>

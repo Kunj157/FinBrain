@@ -2,6 +2,25 @@
 
 All notable changes to FinBrain will be documented in this file.
 
+## 0.3.0 — 2026-07-10
+
+### Added
+- Full transactions management page with search, filter, sort, pagination, bulk select/delete, and modal create/edit form
+- Categories management page with add/edit/delete, color picker, and icon selector
+- Dashboard charts (Income vs Expenses bar, Spending by Category donut, 30-day Spending Trend line)
+- Backend CRUD API routes for transactions and categories
+- PDF bank statement parser for German Sparkasse format (DD.MM.YYYY, comma decimals)
+- Unified `/import/parse` endpoint that auto-detects CSV vs PDF
+- Sidebar navigation link for Categories page and Onboarding page
+
+### Fixed
+- PDF import: amount sign no longer stripped (all transactions showed as income)
+- PDF import: `www.` regex no longer matches uppercase merchant names (WWW.)
+- PDF import: date regex boundary now matches German transaction descriptions
+- PDF import: case-insensitive `.pdf` extension check
+- CORS "Network Error" when accessing app from network IP — removed `VITE_API_URL` from `.env` so Vite proxy is used instead of direct API calls
+- File uploads failing with "No file uploaded" — removed axios default `Content-Type: application/json` header that broke FormData multipart uploads
+
 ## 0.2.0 — 2026-07-10
 
 ### Added

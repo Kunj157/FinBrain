@@ -8,6 +8,8 @@ import csvImportRoutes from './routes/import';
 import currencyRoutes from './routes/currency';
 import receiptsRoutes from './routes/receipts';
 import devbankRoutes from './routes/devbank';
+import transactionsRoutes from './routes/transactions';
+import categoriesRoutes from './routes/categories';
 
 const app = express();
 const PORT = process.env.PORT || 4000;
@@ -26,6 +28,8 @@ app.use('/api/v1/import', csvImportRoutes);
 app.use('/api/v1/currency', currencyRoutes);
 app.use('/api/v1/receipts', receiptsRoutes);
 app.use('/api/v1/devbank', devbankRoutes);
+app.use('/api/v1/transactions', transactionsRoutes);
+app.use('/api/v1/categories', categoriesRoutes);
 
 app.use((_req, res) => {
   res.status(404).json({ success: false, error: 'Not found' });

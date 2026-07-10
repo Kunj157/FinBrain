@@ -21,8 +21,8 @@ const options = [
   {
     id: 'csv' as const,
     icon: Upload,
-    title: 'Upload a CSV file',
-    desc: 'Export your transactions from your bank and upload the file',
+    title: 'Upload a bank statement',
+    desc: 'Upload a CSV or PDF export from your bank or a receipt photo',
   },
   {
     id: 'devbank' as const,
@@ -89,7 +89,7 @@ export default function Onboarding() {
               : selected === 'plaid'
               ? 'Connect securely with Plaid to import your transactions.'
               : selected === 'csv'
-              ? 'Upload a CSV export from your bank.'
+              ? 'Upload a CSV or PDF export from your bank.'
               : selected === 'devbank'
               ? 'Connect to DevBank — a local mock bank running via Docker.'
               : 'Generate sample data to explore the dashboard.'}

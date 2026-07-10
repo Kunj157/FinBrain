@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button';
 import { useAuth } from '@/hooks/use-auth';
 import { localStore } from '@/lib/store';
 import { formatCurrency, formatDate } from '@/lib/utils';
+import { IncomeExpenseChart, CategoryChart, SpendingTrend } from '@/components/finance/charts';
 
 const quickActions = [
   { label: 'Add Income', icon: TrendingUp, variant: 'positive' as const },
@@ -18,14 +19,15 @@ const quickActions = [
 export default function Dashboard() {
   const { user } = useAuth();
   const summary = localStore.getSummary();
-  const transactions = useMemo(() => localStore.getTransactions().slice(0, 5), []);
+  const allTransactions = useMemo(() => localStore.getTransactions(), []);
+  const categories = useMemo(() => localStore.getCategories(), []);
   const categoryMap = useMemo(() => {
     const map: Record<string, string> = {};
-    for (const c of localStore.getCategories()) {
+    for (const c of categories) {
       map[c.id] = c.name;
     }
     return map;
-  }, []);
+  }, [categories]);
 
   const currency = user?.currency || 'USD';
   const firstName = user?.name?.split(' ')[0] || 'there';
@@ -100,6 +102,41 @@ export default function Dashboard() {
       <div className="grid gap-6 lg:grid-cols-2">
         <Card>
           <CardHeader>
+            <CardTitle>Income vs Expenses</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="h-64">
+              <IncomeExpenseChart transactions={allTransactions} />
+            </div>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader>
+            <CardTitle>Spending by Category</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="h-64 flex items-center justify-center">
+              <div className="w-full max-w-[220px]">
+                <CategoryChart transactions={allTransactions} categories={categories} />
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+
+      <div className="grid gap-6 lg:grid-cols-3">
+        <Card className="lg:col-span-2">
+          <CardHeader>
+            <CardTitle>Spending Trend (30 days)</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="h-48">
+              <SpendingTrend transactions={allTransactions} />
+            </div>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader>
             <div className="flex items-center justify-between">
               <CardTitle>Recent Transactions</CardTitle>
               <Button variant="ghost" size="sm" className="text-xs gap-1">
@@ -109,14 +146,14 @@ export default function Dashboard() {
             </div>
           </CardHeader>
           <CardContent>
-            {transactions.length === 0 ? (
+            {allTransactions.length === 0 ? (
               <div className="py-8 text-center">
                 <p className="text-sm text-muted-foreground">No transactions yet</p>
                 <p className="text-xs text-muted-foreground mt-1">Import your data or add a transaction to get started</p>
               </div>
             ) : (
               <div className="space-y-1">
-                {transactions.map((tx) => (
+                {allTransactions.slice(0, 5).map((tx) => (
                   <div
                     key={tx.id}
                     className="flex items-center justify-between rounded-lg p-3 hover:bg-white/[0.02] transition-colors cursor-pointer"
@@ -161,7 +198,7 @@ export default function Dashboard() {
             </div>
           </CardHeader>
           <CardContent className="space-y-4">
-            {transactions.length === 0 ? (
+            {allTransactions.length === 0 ? (
               <div className="py-8 text-center">
                 <Brain className="h-8 w-8 text-muted-foreground/30 mx-auto" />
                 <p className="text-sm text-muted-foreground mt-2">Add some transactions to see AI insights</p>
