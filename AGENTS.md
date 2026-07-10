@@ -20,3 +20,13 @@
    - After merging into `main`, create an **automated versioned release** by reading the version from the top of `CHANGELOG.md`
 
 6. **Phase completion reminder** — at each stage when a phase is completed, the AI agent **must remind** the user so they can create the PR from `dev` to `main` and create a release.
+
+## Issue Tracking
+
+1. **Create a GitHub issue** for every bug found or feature requested — whether identified by the user or discovered during development.
+
+2. **Reference the issue** in the branch name and in commit messages (e.g. `fix: add onboarding link to sidebar (#1)`).
+
+3. **Link the issue** in the PR description using GitHub's closing keywords (e.g. `Closes #1`) so the issue auto-closes when the PR merges.
+
+4. **Close issues only via PR merge** — never close manually. This ensures the code change is always traceable to the issue.
