@@ -1,5 +1,5 @@
 import { Wallet, TrendingUp, TrendingDown, PiggyBank, Plus, ArrowRightLeft, Target, Brain, Sparkles, Loader2 } from 'lucide-react';
-import { useMemo, useEffect, useState } from 'react';
+import { useMemo, useEffect, useState, useCallback } from 'react';
 import { StatCard } from '@/components/finance/stat-card';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -23,22 +23,27 @@ export default function Dashboard() {
   const [categories, setCategories] = useState<Category[]>([]);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    (async () => {
-      try {
-        const [txnRes, catRes] = await Promise.all([
-          api.get('/transactions?limit=10000'),
-          api.get('/categories'),
-        ]);
-        setAllTransactions(txnRes.data.data.data);
-        setCategories(catRes.data.data);
-      } catch {
-        // silent
-      } finally {
-        setLoading(false);
-      }
-    })();
+  const fetchData = useCallback(async () => {
+    try {
+      const [txnRes, catRes] = await Promise.all([
+        api.get('/transactions?limit=10000'),
+        api.get('/categories'),
+      ]);
+      setAllTransactions(txnRes.data.data.data);
+      setCategories(catRes.data.data);
+    } catch {
+      // silent
+    } finally {
+      setLoading(false);
+    }
   }, []);
+
+  useEffect(() => {
+    fetchData();
+    const onVisible = () => { if (!document.hidden) fetchData(); };
+    document.addEventListener('visibilitychange', onVisible);
+    return () => document.removeEventListener('visibilitychange', onVisible);
+  }, [fetchData]);
 
   const summary = useMemo(() => {
     const now = new Date();
