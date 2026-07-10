@@ -12,10 +12,12 @@ import {
   Brain,
   Settings,
   HelpCircle,
+  Database,
 } from 'lucide-react';
 
 const navItems = [
   { icon: LayoutDashboard, label: 'Dashboard', path: '/' },
+  { icon: Database, label: 'Onboarding', path: '/onboarding' },
   { icon: ArrowRightLeft, label: 'Transactions', path: '/transactions' },
   { icon: PiggyBank, label: 'Budgets', path: '/budgets' },
   { icon: Target, label: 'Goals', path: '/goals' },

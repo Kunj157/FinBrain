@@ -1,4 +1,4 @@
-import type { Transaction } from '@finbrain/shared';
+import type { Transaction, Currency } from '@finbrain/shared';
 
 const merchants: Record<string, { merchants: string[]; categoryId: string }> = {
   'Food & Drink': {
@@ -49,7 +49,7 @@ function pick<T>(arr: T[]): T {
   return arr[Math.floor(Math.random() * arr.length)];
 }
 
-export function generateSampleData(): Transaction[] {
+export function generateSampleData(currency: Currency = 'USD'): Transaction[] {
   const transactions: Transaction[] = [];
   const userId = 'sample-user';
   let id = 0;
@@ -68,7 +68,7 @@ export function generateSampleData(): Transaction[] {
     const salaryDate2 = new Date(monthDate.getFullYear(), monthDate.getMonth(), 15 + Math.floor(Math.random() * 2));
 
     transactions.push({
-      id: nextId(), userId, type: 'income', amount: 5500, currency: 'USD',
+      id: nextId(), userId, type: 'income', amount: 5500, currency,
       description: 'Monthly salary', merchant: 'Employer Inc.',
       categoryId: '1', paymentMethod: 'bank_transfer',
       date: salaryDate.toISOString().split('T')[0], status: 'cleared', isRecurring: true,
@@ -76,7 +76,7 @@ export function generateSampleData(): Transaction[] {
     });
 
     transactions.push({
-      id: nextId(), userId, type: 'income', amount: 5500, currency: 'USD',
+      id: nextId(), userId, type: 'income', amount: 5500, currency,
       description: 'Monthly salary', merchant: 'Employer Inc.',
       categoryId: '1', paymentMethod: 'bank_transfer',
       date: salaryDate2.toISOString().split('T')[0], status: 'cleared', isRecurring: true,
@@ -86,7 +86,7 @@ export function generateSampleData(): Transaction[] {
     if (Math.random() > 0.5) {
       const fd = new Date(monthDate.getFullYear(), monthDate.getMonth(), 20 + Math.floor(Math.random() * 8));
       transactions.push({
-        id: nextId(), userId, type: 'income', amount: randomAmount(500, 2000), currency: 'USD',
+        id: nextId(), userId, type: 'income', amount: randomAmount(500, 2000), currency,
         description: 'Freelance project', merchant: 'Upwork Client',
         categoryId: '1', paymentMethod: 'bank_transfer',
         date: fd.toISOString().split('T')[0], status: 'cleared', isRecurring: false,
@@ -116,7 +116,7 @@ export function generateSampleData(): Transaction[] {
       );
 
       transactions.push({
-        id: nextId(), userId, type: 'expense', amount, currency: 'USD',
+        id: nextId(), userId, type: 'expense', amount, currency,
         description: `${merchant} purchase`,
         merchant,
         categoryId: cat.categoryId, paymentMethod: pick(['credit_card', 'debit_card', 'cash']),
@@ -133,7 +133,7 @@ export function generateSampleData(): Transaction[] {
       ];
       for (const sub of subs) {
         transactions.push({
-          id: nextId(), userId, type: 'expense', amount: sub.amount, currency: 'USD',
+          id: nextId(), userId, type: 'expense', amount: sub.amount, currency,
           description: `${sub.merchant} subscription`,
           merchant: sub.merchant, categoryId: sub.cat, paymentMethod: 'credit_card',
           date: date.toISOString().split('T')[0], status: 'cleared', isRecurring: true,

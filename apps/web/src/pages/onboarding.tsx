@@ -1,13 +1,15 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Brain, Building2, Upload, Database, ArrowRight, Check, Loader2 } from 'lucide-react';
+import { Brain, Building2, Upload, Database, ArrowRight, Check, Loader2, Server } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { PlaidLinkButton } from '@/components/finance/plaid-link';
 import { CsvImport } from '@/components/finance/csv-import';
 import { localStore } from '@/lib/store';
 import { generateSampleData } from '@/lib/sample-data';
+import { useAuth } from '@/hooks/use-auth';
+import api from '@/lib/api';
 
-type Step = 'welcome' | 'plaid' | 'csv' | 'sample' | 'done';
+type Step = 'welcome' | 'plaid' | 'csv' | 'sample' | 'devbank' | 'done';
 
 const options = [
   {
@@ -23,6 +25,12 @@ const options = [
     desc: 'Export your transactions from your bank and upload the file',
   },
   {
+    id: 'devbank' as const,
+    icon: Server,
+    title: 'Simulated bank (DevBank)',
+    desc: 'Connect to a local mock bank with synthetic data and fraud scenarios',
+  },
+  {
     id: 'sample' as const,
     icon: Database,
     title: 'Try sample data',
@@ -32,9 +40,13 @@ const options = [
 
 export default function Onboarding() {
   const navigate = useNavigate();
+  const { user } = useAuth();
+  const currency = user?.currency || 'USD';
   const [step, setStep] = useState<Step>('welcome');
   const [selected, setSelected] = useState<string | null>(null);
   const [generating, setGenerating] = useState(false);
+  const [devbankStatus, setDevbankStatus] = useState<'checking' | 'available' | 'unavailable' | null>(null);
+  const [devbankError, setDevbankError] = useState<string | null>(null);
 
   const handleComplete = () => {
     navigate('/');
@@ -78,6 +90,8 @@ export default function Onboarding() {
               ? 'Connect securely with Plaid to import your transactions.'
               : selected === 'csv'
               ? 'Upload a CSV export from your bank.'
+              : selected === 'devbank'
+              ? 'Connect to DevBank — a local mock bank running via Docker.'
               : 'Generate sample data to explore the dashboard.'}
           </p>
         </div>
@@ -136,6 +150,93 @@ export default function Onboarding() {
           </div>
         )}
 
+        {step === 'devbank' && (
+          <div className="glass rounded-xl p-8 text-center space-y-6">
+            <Server className="h-12 w-12 mx-auto text-emerald-400" />
+            <p className="text-sm text-muted-foreground">
+              DevBank provides realistic synthetic banking data (scheduled payments,
+              random purchases, fraud scenarios). It needs to be built from source:
+            </p>
+            <pre className="text-xs text-left bg-white/[0.03] rounded-lg p-3 border border-white/[0.06] overflow-x-auto">
+              git clone https://github.com/ranjankumar-gh/devbanksdk.git
+              cd devbanksdk/docker && docker compose up -d
+            </pre>
+            {devbankStatus === 'checking' && (
+              <div className="flex items-center justify-center gap-2 text-sm text-muted-foreground">
+                <Loader2 className="h-4 w-4 animate-spin" />
+                Checking DevBank status...
+              </div>
+            )}
+            {devbankStatus === 'unavailable' && (
+              <div className="rounded-lg bg-amber-500/10 border border-amber-500/20 p-3 text-sm text-amber-400">
+                DevBank is not running. Build it from source (see above) or use the <strong>Sample Data</strong> option instead.
+              </div>
+            )}
+            {devbankError && (
+              <div className="text-sm text-rose-400">{devbankError}</div>
+            )}
+            <Button
+              onClick={async () => {
+                setDevbankStatus('checking');
+                setDevbankError(null);
+                try {
+                  const { data } = await api.get('/devbank/health');
+                  if (data.data.status === 'connected') {
+                    setDevbankStatus('available');
+                    await api.post('/devbank/setup', { name: user?.name || 'Test User', email: user?.email || 'test@finbrain.ai' });
+                    const { data: accts } = await api.get(`/devbank/accounts/${data.data.customerId || ''}`);
+                    const accountId = Array.isArray(accts.data) ? accts.data[0]?.id : null;
+                    setGenerating(true);
+                    if (accountId) {
+                      const { data: txns } = await api.get(`/devbank/transactions/${accountId}?limit=200`);
+                      if (txns.data) {
+                        const mapped = txns.data.map((t: any, i: number) => ({
+                          id: `devbank-${i}`,
+                          userId: user?.id || 'sample-user',
+                          type: t.type === 'credit' ? 'income' as const : 'expense' as const,
+                          amount: Math.abs(t.amount),
+                          currency: t.currency || 'USD',
+                          description: t.description || t.merchant,
+                          merchant: t.merchant,
+                          categoryId: '10',
+                          paymentMethod: 'other' as const,
+                          date: t.created_at?.split('T')[0] || new Date().toISOString().split('T')[0],
+                          status: 'cleared' as const,
+                          isRecurring: false,
+                          createdAt: t.created_at || new Date().toISOString(),
+                          updatedAt: t.created_at || new Date().toISOString(),
+                        }));
+                        localStore.setTransactions(mapped);
+                      }
+                    }
+                    setGenerating(false);
+                    setStep('done');
+                  } else {
+                    setDevbankStatus('unavailable');
+                  }
+                } catch {
+                  setDevbankStatus('unavailable');
+                }
+              }}
+              className="gap-2"
+              disabled={devbankStatus === 'checking' || generating}
+            >
+              {generating ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <Server className="h-4 w-4" />
+              )}
+              {generating ? 'Importing data...' : devbankStatus === 'available' ? 'Import from DevBank' : 'Check & Connect'}
+            </Button>
+            <button
+              onClick={() => setStep('welcome')}
+              className="text-sm text-muted-foreground hover:text-foreground transition-colors"
+            >
+              Choose a different option
+            </button>
+          </div>
+        )}
+
         {step === 'sample' && (
           <div className="glass rounded-xl p-8 text-center space-y-6">
             <Database className="h-12 w-12 mx-auto text-emerald-400" />
@@ -147,7 +248,7 @@ export default function Onboarding() {
               onClick={() => {
                 setGenerating(true);
                 setTimeout(() => {
-                  const data = generateSampleData();
+                  const data = generateSampleData(currency);
                   localStore.setTransactions(data);
                   setGenerating(false);
                   setStep('done');

@@ -3,6 +3,12 @@ import cors from 'cors';
 import helmet from 'helmet';
 import morgan from 'morgan';
 
+import plaidRoutes from './routes/plaid';
+import csvImportRoutes from './routes/import';
+import currencyRoutes from './routes/currency';
+import receiptsRoutes from './routes/receipts';
+import devbankRoutes from './routes/devbank';
+
 const app = express();
 const PORT = process.env.PORT || 4000;
 
@@ -15,8 +21,11 @@ app.get('/api/v1/health', (_req, res) => {
   res.json({ status: 'ok', service: 'finbrain-api', timestamp: new Date().toISOString() });
 });
 
-app.use('/api/v1/plaid', require('./routes/plaid').default);
-app.use('/api/v1/import', require('./routes/import').default);
+app.use('/api/v1/plaid', plaidRoutes);
+app.use('/api/v1/import', csvImportRoutes);
+app.use('/api/v1/currency', currencyRoutes);
+app.use('/api/v1/receipts', receiptsRoutes);
+app.use('/api/v1/devbank', devbankRoutes);
 
 app.use((_req, res) => {
   res.status(404).json({ success: false, error: 'Not found' });

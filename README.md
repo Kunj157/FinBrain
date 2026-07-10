@@ -43,10 +43,10 @@ FinBrain helps users manage their finances while leveraging AI to forecast futur
 |---------|--------|
 | Secure Authentication (Clerk) | ✅ Phase 1 |
 | Dashboard & Summary Cards | ✅ Phase 1 |
-| Bank Integration (Plaid Sandbox) | 📋 Phase 2 |
-| CSV/QFX/OFX Data Import | 📋 Phase 2 |
-| Receipt OCR | 📋 Phase 2 |
-| Multi-Currency Support | 📋 Phase 2 |
+| Bank Integration (Plaid Sandbox) | ✅ Phase 2 |
+| CSV/QFX/OFX Data Import | ✅ Phase 2 |
+| Receipt OCR | ✅ Phase 2 |
+| Multi-Currency Support | ✅ Phase 2 |
 | Transaction CRUD & Search | 📋 Phase 3 |
 | Adaptive Budget Engine | 📋 Phase 4 |
 | Financial Goals | 📋 Phase 4 |
@@ -190,7 +190,7 @@ All feature branches are created from and merged into `dev`.
 | Phase | Focus | Status |
 |-------|-------|--------|
 | 1 | Foundation: Monorepo, Auth, Docker, CI/CD, UI Shell | ✅ Complete |
-| 2 | Data Ingestion: Plaid, CSV, OCR, Multi-Currency | 📋 Upcoming |
+| 2 | Data Ingestion: Plaid, CSV, OCR, Multi-Currency | ✅ Complete |
 | 3 | Finance Core: Transactions, Categories, Dashboard | 📋 Planned |
 | 4 | Adaptive Budgeting & Goals | 📋 Planned |
 | 5 | Analytics & Reports | 📋 Planned |

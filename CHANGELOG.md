@@ -7,8 +7,14 @@ All notable changes to FinBrain will be documented in this file.
 ### Added
 - Plaid bank integration (link token, exchange, sync, accounts)
 - CSV import with drag-and-drop UI and column mapping
-- Onboarding flow with three data import options
+- Onboarding flow with four data import options (Plaid, CSV, DevBank, Sample Data)
 - Local transaction store for demo without backend
+- Multi-currency support with exchange rate API and currency selector in Settings
+- Auto-categorization service that maps merchants to categories
+- CSV duplicate detection with Levenshtein-based fuzzy matching
+- Receipt OCR via ML service (Tesseract) with extract, preview, and save flow
+- DevBank SDK integration for local mock bank data import
+- Dedicated Settings page with Display Preferences and Data management
 
 ### Fixed
 - User display name corrected to "Kunj Patel"

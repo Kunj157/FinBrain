@@ -67,54 +67,55 @@
 
 ---
 
-## Phase 2 — Data Ingestion 📋
+## Phase 2 — Data Ingestion ✅ (Complete)
 
 **Goal**: Users can get their financial data into FinBrain via any method.
 
 ### Plaid Integration
-- [ ] Plaid Link frontend component (sandbox mode)
-- [ ] Plaid API backend routes (`/api/v1/plaid/link-token`, `/api/v1/plaid/exchange-token`)
-- [ ] Plaid Transactions sync (`/api/v1/plaid/sync`)
-- [ ] Sandbox test accounts (`user_good` / `pass_good`)
-- [ ] Map Plaid categories to FinBrain categories
-- [ ] Handle duplicate detection during sync
+- [x] Plaid Link frontend component (sandbox mode)
+- [x] Plaid API backend routes (`/api/v1/plaid/link-token`, `/api/v1/plaid/exchange-token`)
+- [x] Plaid Transactions sync (`/api/v1/plaid/sync`)
+- [x] Sandbox test accounts (`user_good` / `pass_good`)
+- [x] Map Plaid categories to FinBrain categories
+- [x] Handle duplicate detection during sync
 
 ### DevBank SDK Integration
-- [ ] DevBank client service in Docker Compose (already configured)
-- [ ] Synthetic data generation (salary, bills, purchases, fraud scenarios)
-- [ ] Connect DevBank as a mock institution in the UI
-- [ ] One-click "Generate 3 months of sample data"
+- [x] DevBank client service in Docker Compose (already configured)
+- [x] Synthetic data generation (salary, bills, purchases, fraud scenarios)
+- [x] Connect DevBank as a mock institution in the UI
+- [x] One-click "Generate 3 months of sample data"
 
 ### CSV Import
-- [ ] CSV upload UI (drag-and-drop or file picker)
-- [ ] CSV parsing backend (configurable column mapping)
-- [ ] Support for common formats (Chase, Bank of America, Mint, YNAB, generic)
-- [ ] Preview imported data before saving
-- [ ] Duplicate detection with fuzzy matching
-- [ ] Categorization suggestions based on merchant name
+- [x] CSV upload UI (drag-and-drop or file picker)
+- [x] CSV parsing backend (configurable column mapping)
+- [x] Support for common formats (Chase, Bank of America, Mint, YNAB, generic)
+- [x] Preview imported data before saving
+- [x] Duplicate detection with fuzzy matching
+- [x] Categorization suggestions based on merchant name
 
 ### Multi-Currency
-- [ ] Currency selector on user profile
-- [ ] Exchange rate service (free API or hardcoded for testing)
-- [ ] Store `amount` + `currency` on every transaction
-- [ ] Display amounts in user's preferred currency
-- [ ] Conversion for reports and analytics
+- [x] Currency selector on user profile
+- [x] Exchange rate service (hardcoded rates for testing)
+- [x] Store `amount` + `currency` on every transaction
+- [x] Display amounts in user's preferred currency
+- [x] Conversion via `/api/v1/currency/convert` endpoint
 
 ### Receipt OCR
-- [ ] Receipt upload UI with drag-and-drop
-- [ ] ML service OCR endpoint (`/api/v1/receipts/ocr`)
-- [ ] Tesseract-based text extraction
-- [ ] Merchant, amount, date extraction with regex/ML
-- [ ] Suggested category based on merchant
-- [ ] Review & edit before saving to transaction
+- [x] Receipt upload UI with drag-and-drop
+- [x] ML service OCR endpoint (`/api/v1/receipts/ocr`)
+- [x] Tesseract-based text extraction
+- [x] Merchant, amount, date extraction with regex
+- [x] Suggested category based on merchant (via auto-categorize service)
+- [x] Review before saving to transaction
 
 ### Onboarding Flow
-- [ ] First-run wizard with 3 options:
+- [x] First-run wizard with 4 options:
   - Connect your bank (Plaid)
-  - Import a CSV/OFX file  
-  - Start fresh with sample data (DevBank)
-- [ ] Progress indicator for data import status
-- [ ] Skip option (go to empty dashboard)
+  - Import a CSV/OFX file
+  - Start fresh with DevBank
+  - Generate sample data (local)
+- [x] Progress indicator for data import status
+- [x] Skip option (go to empty dashboard)
 
 ---
 
