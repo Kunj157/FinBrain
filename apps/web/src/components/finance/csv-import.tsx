@@ -1,13 +1,17 @@
-import { useState, useCallback, useRef, useMemo } from 'react';
+import { useState, useCallback, useRef, useMemo, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Upload, FileText, File, Check, X, AlertCircle, Loader2, CopyX } from 'lucide-react';
 import api from '@/lib/api';
 import { formatCurrency } from '@/lib/utils';
 import { useAuth } from '@/hooks/use-auth';
-import { localStore } from '@/lib/store';
 import { findDuplicates } from '@/lib/duplicate-detection';
+import type { Transaction } from '@finbrain/shared';
 
-interface PreviewRow {
+interface StatementImportProps {
+  onComplete?: () => void;
+}
+
+type PreviewRow = {
   date: string;
   amount: number;
   description: string;
@@ -15,23 +19,31 @@ interface PreviewRow {
   category: string;
   categoryId?: string | null;
   type: string;
-}
-
-interface StatementImportProps {
-  onComplete?: () => void;
-}
+};
 
 export function CsvImport({ onComplete }: StatementImportProps) {
   const [dragOver, setDragOver] = useState(false);
   const [file, setFile] = useState<File | null>(null);
   const [preview, setPreview] = useState<PreviewRow[] | null>(null);
   const [loading, setLoading] = useState(false);
+  const [importing, setImporting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [skipDuplicates, setSkipDuplicates] = useState(true);
   const inputRef = useRef<HTMLInputElement>(null);
   const { user } = useAuth();
   const currency = user?.currency || 'USD';
-  const existingTxns = useMemo(() => localStore.getTransactions(), []);
+  const [existingTxns, setExistingTxns] = useState<Transaction[]>([]);
+
+  useEffect(() => {
+    (async () => {
+      try {
+        const { data } = await api.get('/transactions?limit=10000');
+        setExistingTxns(data.data.data);
+      } catch {
+        // silent
+      }
+    })();
+  }, []);
 
   const duplicates = useMemo(() => {
     if (!preview) return new Map();
@@ -213,9 +225,19 @@ export function CsvImport({ onComplete }: StatementImportProps) {
                 ? `Importing ${filteredPreview.length} of ${preview.length} transactions (${duplicates.size} skipped)`
                 : preview ? `Showing all ${preview.length} transactions` : ''}
             </p>
-            <Button className="gap-2" onClick={onComplete}>
-              <Check className="h-4 w-4" />
-              Import {filteredPreview?.length || 0} transaction{filteredPreview?.length !== 1 ? 's' : ''}
+            <Button className="gap-2" disabled={importing} onClick={async () => {
+              if (!filteredPreview) return;
+              setImporting(true);
+              try {
+                await api.post('/transactions/bulk', { items: filteredPreview });
+              } catch {
+                // silent
+              }
+              setImporting(false);
+              onComplete?.();
+            }}>
+              {importing ? <Loader2 className="h-4 w-4 animate-spin" /> : <Check className="h-4 w-4" />}
+              {importing ? 'Importing...' : `Import ${filteredPreview?.length || 0} transaction${filteredPreview?.length !== 1 ? 's' : ''}`}
             </Button>
           </div>
         </div>

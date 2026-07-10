@@ -1,12 +1,12 @@
-import { useState, useMemo, useCallback } from 'react';
+import { useState, useMemo, useCallback, useEffect } from 'react';
 import { Plus, Search, ArrowUpDown, Pencil, Trash2, ArrowRightLeft, X, Check, Loader2, ChevronLeft, ChevronRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { useAuth } from '@/hooks/use-auth';
-import { localStore } from '@/lib/store';
+import api from '@/lib/api';
 import { formatCurrency, formatDate } from '@/lib/utils';
-import type { Transaction, PaymentMethod, TransactionStatus, Currency as SharedCurrency } from '@finbrain/shared';
+import type { Transaction, PaymentMethod, TransactionStatus, Currency as SharedCurrency, Category } from '@finbrain/shared';
 
 const PAYMENT_METHODS = [
   { value: 'cash', label: 'Cash' },
@@ -38,36 +38,43 @@ export default function TransactionsPage() {
   const [formMode, setFormMode] = useState<FormMode>('create');
   const [editingTxn, setEditingTxn] = useState<Transaction | null>(null);
   const [selected, setSelected] = useState<Set<string>>(new Set());
+  const [txns, setTxns] = useState<Transaction[]>([]);
+  const [categories, setCategories] = useState<Category[]>([]);
+  const [total, setTotal] = useState(0);
+  const [loading, setLoading] = useState(true);
   const limit = 15;
 
-  const allTxns = localStore.getTransactions();
-  const categories = localStore.getCategories();
+  const fetchData = useCallback(async () => {
+    setLoading(true);
+    try {
+      const params = new URLSearchParams();
+      params.set('page', String(page));
+      params.set('limit', String(limit));
+      params.set('sort', filters.sort);
+      params.set('order', filters.order);
+      if (filters.type) params.set('type', filters.type);
+      if (filters.categoryId) params.set('categoryId', filters.categoryId);
+      if (filters.paymentMethod) params.set('paymentMethod', filters.paymentMethod);
+      if (filters.search) params.set('search', filters.search);
 
-  const filtered = useMemo(() => {
-    let result = [...allTxns];
-    if (filters.type) result = result.filter((t) => t.type === filters.type);
-    if (filters.categoryId) result = result.filter((t) => t.categoryId === filters.categoryId);
-    if (filters.paymentMethod) result = result.filter((t) => t.paymentMethod === filters.paymentMethod);
-    if (filters.search) {
-      const q = filters.search.toLowerCase();
-      result = result.filter((t) =>
-        t.description.toLowerCase().includes(q) ||
-        (t.merchant && t.merchant.toLowerCase().includes(q)),
-      );
+      const [txnRes, catRes] = await Promise.all([
+        api.get(`/transactions?${params}`),
+        api.get('/categories'),
+      ]);
+
+      setTxns(txnRes.data.data.data);
+      setTotal(txnRes.data.data.total);
+      if (!categories.length) setCategories(catRes.data.data);
+    } catch {
+      // silent
+    } finally {
+      setLoading(false);
     }
-    result.sort((a, b) => {
-      const aVal = a[filters.sort as keyof Transaction] as string | number;
-      const bVal = b[filters.sort as keyof Transaction] as string | number;
-      if (typeof aVal === 'string') {
-        return filters.order === 'asc' ? aVal.localeCompare(bVal as string) : (bVal as string).localeCompare(aVal);
-      }
-      return filters.order === 'asc' ? (aVal as number) - (bVal as number) : (bVal as number) - (aVal as number);
-    });
-    return result;
-  }, [allTxns, filters]);
+  }, [page, filters, categories.length]);
 
-  const totalPages = Math.ceil(filtered.length / limit);
-  const paginated = filtered.slice((page - 1) * limit, page * limit);
+  useEffect(() => {
+    fetchData();
+  }, [fetchData]);
 
   const categoryMap = useMemo(() => {
     const map: Record<string, string> = {};
@@ -75,19 +82,23 @@ export default function TransactionsPage() {
     return map;
   }, [categories]);
 
+  const totalPages = Math.ceil(total / limit);
+
   const toggleSort = (field: string) => {
     setFilters((f) => ({ ...f, sort: field, order: f.sort === field && f.order === 'desc' ? 'asc' : 'desc' }));
     setPage(1);
   };
 
-  const handleDelete = useCallback((id: string) => {
-    localStore.deleteTransaction(id);
-  }, []);
+  const handleDelete = useCallback(async (id: string) => {
+    await api.delete(`/transactions/${id}`);
+    fetchData();
+  }, [fetchData]);
 
-  const handleBulkDelete = useCallback(() => {
-    for (const id of selected) localStore.deleteTransaction(id);
+  const handleBulkDelete = useCallback(async () => {
+    await api.delete('/transactions/bulk', { data: { ids: Array.from(selected) } });
     setSelected(new Set());
-  }, [selected]);
+    fetchData();
+  }, [selected, fetchData]);
 
   const toggleSelect = (id: string) => {
     setSelected((prev) => {
@@ -115,7 +126,7 @@ export default function TransactionsPage() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-semibold tracking-tight">Transactions</h1>
-          <p className="text-sm text-muted-foreground mt-1">{allTxns.length} total transactions</p>
+          <p className="text-sm text-muted-foreground mt-1">{total} total transactions</p>
         </div>
         <Button onClick={openCreate} className="gap-2">
           <Plus className="h-4 w-4" />
@@ -174,7 +185,11 @@ export default function TransactionsPage() {
           </div>
         </CardHeader>
         <CardContent className="p-0">
-          {paginated.length === 0 ? (
+          {loading ? (
+            <div className="py-16 text-center">
+              <Loader2 className="h-10 w-10 text-muted-foreground/30 mx-auto animate-spin" />
+            </div>
+          ) : txns.length === 0 ? (
             <div className="py-16 text-center">
               <ArrowRightLeft className="h-10 w-10 text-muted-foreground/30 mx-auto" />
               <p className="text-sm text-muted-foreground mt-3">No transactions found</p>
@@ -190,10 +205,10 @@ export default function TransactionsPage() {
                     <th className="w-10 px-4 py-3">
                       <input
                         type="checkbox"
-                        checked={selected.size === paginated.length && paginated.length > 0}
+                        checked={selected.size === txns.length && txns.length > 0}
                         onChange={() => {
-                          if (selected.size === paginated.length) setSelected(new Set());
-                          else setSelected(new Set(paginated.map((t) => t.id)));
+                          if (selected.size === txns.length) setSelected(new Set());
+                          else setSelected(new Set(txns.map((t) => t.id)));
                         }}
                         className="rounded border-white/[0.08] bg-white/[0.02]"
                       />
@@ -214,7 +229,7 @@ export default function TransactionsPage() {
                   </tr>
                 </thead>
                 <tbody>
-                  {paginated.map((txn) => (
+                  {txns.map((txn) => (
                     <tr key={txn.id} className="border-b border-white/[0.03] hover:bg-white/[0.01] transition-colors">
                       <td className="px-4 py-3">
                         <input
@@ -307,7 +322,6 @@ function TransactionForm({
   onClose: () => void;
   onSave: () => void;
 }) {
-  const { user } = useAuth();
   const [form, setForm] = useState({
     type: transaction?.type || 'expense',
     amount: transaction?.amount.toString() || '',
@@ -332,39 +346,28 @@ function TransactionForm({
       return;
     }
 
-    const now = new Date().toISOString();
+    const payload = {
+      type: form.type as 'income' | 'expense',
+      amount,
+      currency,
+      description: form.description,
+      merchant: form.merchant || undefined,
+      categoryId: form.categoryId,
+      paymentMethod: form.paymentMethod as PaymentMethod,
+      date: form.date,
+      status: form.status as TransactionStatus,
+      isRecurring: form.isRecurring,
+      notes: form.notes || undefined,
+    };
 
-    if (mode === 'edit' && transaction) {
-      localStore.updateTransaction(transaction.id, {
-        type: form.type as 'income' | 'expense',
-        amount,
-        description: form.description,
-        merchant: form.merchant || undefined,
-        categoryId: form.categoryId,
-        paymentMethod: form.paymentMethod as PaymentMethod,
-        date: form.date,
-        status: form.status as TransactionStatus,
-        isRecurring: form.isRecurring,
-        notes: form.notes || undefined,
-      });
-    } else {
-      localStore.addTransaction({
-        id: `txn-${Date.now()}`,
-        userId: user?.id || 'dev-user-001',
-        type: form.type as 'income' | 'expense',
-        amount,
-        currency,
-        description: form.description,
-        merchant: form.merchant || undefined,
-        categoryId: form.categoryId,
-        paymentMethod: form.paymentMethod as PaymentMethod,
-        date: form.date,
-        status: form.status as TransactionStatus,
-        isRecurring: form.isRecurring,
-        notes: form.notes || undefined,
-        createdAt: now,
-        updatedAt: now,
-      });
+    try {
+      if (mode === 'edit' && transaction) {
+        await api.put(`/transactions/${transaction.id}`, payload);
+      } else {
+        await api.post('/transactions', payload);
+      }
+    } catch {
+      // silent
     }
 
     setSaving(false);

@@ -4,7 +4,6 @@ import { Brain, Building2, Upload, Database, ArrowRight, Check, Loader2, Server 
 import { Button } from '@/components/ui/button';
 import { PlaidLinkButton } from '@/components/finance/plaid-link';
 import { CsvImport } from '@/components/finance/csv-import';
-import { localStore } from '@/lib/store';
 import { generateSampleData } from '@/lib/sample-data';
 import { useAuth } from '@/hooks/use-auth';
 import api from '@/lib/api';
@@ -190,23 +189,19 @@ export default function Onboarding() {
                     if (accountId) {
                       const { data: txns } = await api.get(`/devbank/transactions/${accountId}?limit=200`);
                       if (txns.data) {
-                        const mapped = txns.data.map((t: any, i: number) => ({
-                          id: `devbank-${i}`,
-                          userId: user?.id || 'sample-user',
-                          type: t.type === 'credit' ? 'income' as const : 'expense' as const,
+                        const items = txns.data.map((t: any) => ({
+                          type: t.type === 'credit' ? 'income' : 'expense',
                           amount: Math.abs(t.amount),
                           currency: t.currency || 'USD',
                           description: t.description || t.merchant,
                           merchant: t.merchant,
                           categoryId: '10',
-                          paymentMethod: 'other' as const,
+                          paymentMethod: 'other',
                           date: t.created_at?.split('T')[0] || new Date().toISOString().split('T')[0],
-                          status: 'cleared' as const,
+                          status: 'cleared',
                           isRecurring: false,
-                          createdAt: t.created_at || new Date().toISOString(),
-                          updatedAt: t.created_at || new Date().toISOString(),
                         }));
-                        localStore.setTransactions(mapped);
+                        await api.post('/transactions/bulk', { items });
                       }
                     }
                     setGenerating(false);
@@ -245,14 +240,27 @@ export default function Onboarding() {
               bills, coffee runs, shopping, and more. You can edit or delete anything later.
             </p>
             <Button
-              onClick={() => {
+              onClick={async () => {
                 setGenerating(true);
-                setTimeout(() => {
-                  const data = generateSampleData(currency);
-                  localStore.setTransactions(data);
-                  setGenerating(false);
-                  setStep('done');
-                }, 1500);
+                const data = generateSampleData(currency);
+                try {
+                  await api.post('/transactions/bulk', { items: data.map((t) => ({
+                    type: t.type,
+                    amount: t.amount,
+                    currency: t.currency,
+                    description: t.description,
+                    merchant: t.merchant,
+                    categoryId: t.categoryId,
+                    paymentMethod: t.paymentMethod,
+                    date: t.date,
+                    status: t.status,
+                    isRecurring: t.isRecurring,
+                  })) });
+                } catch {
+                  // silent
+                }
+                setGenerating(false);
+                setStep('done');
               }}
               className="gap-2"
               disabled={generating}

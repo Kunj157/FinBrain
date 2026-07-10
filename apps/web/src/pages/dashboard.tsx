@@ -1,13 +1,14 @@
-import { Wallet, TrendingUp, TrendingDown, PiggyBank, Plus, ArrowRightLeft, Target, Brain, Sparkles } from 'lucide-react';
-import { useMemo } from 'react';
+import { Wallet, TrendingUp, TrendingDown, PiggyBank, Plus, ArrowRightLeft, Target, Brain, Sparkles, Loader2 } from 'lucide-react';
+import { useMemo, useEffect, useState } from 'react';
 import { StatCard } from '@/components/finance/stat-card';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/hooks/use-auth';
-import { localStore } from '@/lib/store';
+import api from '@/lib/api';
 import { formatCurrency, formatDate } from '@/lib/utils';
 import { IncomeExpenseChart, CategoryChart, SpendingTrend } from '@/components/finance/charts';
+import type { Transaction, Category } from '@finbrain/shared';
 
 const quickActions = [
   { label: 'Add Income', icon: TrendingUp, variant: 'positive' as const },
@@ -18,9 +19,49 @@ const quickActions = [
 
 export default function Dashboard() {
   const { user } = useAuth();
-  const summary = localStore.getSummary();
-  const allTransactions = useMemo(() => localStore.getTransactions(), []);
-  const categories = useMemo(() => localStore.getCategories(), []);
+  const [allTransactions, setAllTransactions] = useState<Transaction[]>([]);
+  const [categories, setCategories] = useState<Category[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    (async () => {
+      try {
+        const [txnRes, catRes] = await Promise.all([
+          api.get('/transactions?limit=10000'),
+          api.get('/categories'),
+        ]);
+        setAllTransactions(txnRes.data.data.data);
+        setCategories(catRes.data.data);
+      } catch {
+        // silent
+      } finally {
+        setLoading(false);
+      }
+    })();
+  }, []);
+
+  const summary = useMemo(() => {
+    const now = new Date();
+    const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+
+    const monthly = allTransactions.filter((t) => new Date(t.date) >= monthStart);
+    const income = monthly.filter((t) => t.type === 'income').reduce((s, t) => s + t.amount, 0);
+    const expenses = monthly.filter((t) => t.type === 'expense').reduce((s, t) => s + t.amount, 0);
+
+    const allIncome = allTransactions.filter((t) => t.type === 'income').reduce((s, t) => s + t.amount, 0);
+    const allExpenses = allTransactions.filter((t) => t.type === 'expense').reduce((s, t) => s + t.amount, 0);
+
+    const cur = (user?.currency || 'USD') as string;
+
+    return {
+      currentBalance: allIncome - allExpenses,
+      monthlyIncome: income,
+      monthlyExpenses: expenses,
+      savings: income - expenses,
+      currency: cur,
+    };
+  }, [allTransactions, user?.currency]);
+
   const categoryMap = useMemo(() => {
     const map: Record<string, string> = {};
     for (const c of categories) {
@@ -31,6 +72,14 @@ export default function Dashboard() {
 
   const currency = user?.currency || 'USD';
   const firstName = user?.name?.split(' ')[0] || 'there';
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center min-h-[60vh]">
+        <Loader2 className="h-8 w-8 text-muted-foreground animate-spin" />
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-8 animate-fade-in">
