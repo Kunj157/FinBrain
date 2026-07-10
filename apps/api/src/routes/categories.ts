@@ -23,7 +23,7 @@ const createSchema = z.object({
 
 const updateSchema = createSchema.partial();
 
-const categories: Category[] = [
+export const categories: Category[] = [
   { id: '1', userId: 'dev-user-001', name: 'Income', icon: 'trending-up', color: '#10b981', isCustom: false, createdAt: new Date().toISOString() },
   { id: '2', userId: 'dev-user-001', name: 'Food & Drink', icon: 'utensils', color: '#f59e0b', isCustom: false, createdAt: new Date().toISOString() },
   { id: '3', userId: 'dev-user-001', name: 'Shopping', icon: 'shopping-bag', color: '#8b5cf6', isCustom: false, createdAt: new Date().toISOString() },

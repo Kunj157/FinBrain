@@ -1,5 +1,5 @@
 import { useState, useMemo, useCallback, useEffect } from 'react';
-import { Plus, Search, ArrowUpDown, Pencil, Trash2, ArrowRightLeft, X, Check, Loader2, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Plus, Search, ArrowUpDown, Pencil, Trash2, ArrowRightLeft, X, Check, Loader2, ChevronLeft, ChevronRight, Database, Trash } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -36,6 +36,8 @@ export default function TransactionsPage() {
   const [filters, setFilters] = useState<Filters>({ type: '', categoryId: '', paymentMethod: '', search: '', sort: 'date', order: 'desc' });
   const [page, setPage] = useState(1);
   const [showForm, setShowForm] = useState(false);
+  const [seeding, setSeeding] = useState(false);
+  const [clearing, setClearing] = useState(false);
   const [formMode, setFormMode] = useState<FormMode>('create');
   const [editingTxn, setEditingTxn] = useState<Transaction | null>(null);
   const [selected, setSelected] = useState<Set<string>>(new Set());
@@ -122,6 +124,27 @@ export default function TransactionsPage() {
     setShowForm(true);
   };
 
+  const handleSeed = useCallback(async () => {
+    setSeeding(true);
+    try {
+      await api.post('/seed', null, { params: { count: 250 } });
+      await fetchData();
+    } finally {
+      setSeeding(false);
+    }
+  }, [fetchData]);
+
+  const handleClear = useCallback(async () => {
+    setClearing(true);
+    try {
+      await api.delete('/seed');
+      setSelected(new Set());
+      await fetchData();
+    } finally {
+      setClearing(false);
+    }
+  }, [fetchData]);
+
   return (
     <div className="space-y-6 animate-fade-in">
       <div className="flex items-center justify-between">
@@ -129,10 +152,20 @@ export default function TransactionsPage() {
           <h1 className="text-2xl font-semibold tracking-tight">Transactions</h1>
           <p className="text-sm text-muted-foreground mt-1">{total} total transactions</p>
         </div>
-        <Button onClick={openCreate} className="gap-2">
-          <Plus className="h-4 w-4" />
-          Add Transaction
-        </Button>
+        <div className="flex items-center gap-2">
+          <Button variant="outline" size="sm" onClick={handleClear} disabled={clearing || txns.length === 0} className="gap-1.5">
+            {clearing ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Trash className="h-3.5 w-3.5" />}
+            Clear All
+          </Button>
+          <Button variant="outline" size="sm" onClick={handleSeed} disabled={seeding} className="gap-1.5">
+            {seeding ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Database className="h-3.5 w-3.5" />}
+            Generate Sample Data
+          </Button>
+          <Button onClick={openCreate} className="gap-2">
+            <Plus className="h-4 w-4" />
+            Add Transaction
+          </Button>
+        </div>
       </div>
 
       <Card>

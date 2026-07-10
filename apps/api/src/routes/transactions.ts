@@ -32,8 +32,8 @@ const querySchema = z.object({
   order: z.enum(['asc', 'desc']).default('desc'),
 });
 
-const transactions: any[] = [];
-let nextId = 1;
+export const transactions: any[] = [];
+export let nextId = 1;
 
 router.get('/', (req: Request, res: Response) => {
   const parsed = querySchema.safeParse(req.query);

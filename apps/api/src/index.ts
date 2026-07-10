@@ -10,6 +10,8 @@ import receiptsRoutes from './routes/receipts';
 import devbankRoutes from './routes/devbank';
 import transactionsRoutes from './routes/transactions';
 import categoriesRoutes from './routes/categories';
+import seedRoutes from './routes/seed';
+import budgetsRoutes from './routes/budgets';
 
 const app = express();
 const PORT = process.env.PORT || 4000;
@@ -30,6 +32,8 @@ app.use('/api/v1/receipts', receiptsRoutes);
 app.use('/api/v1/devbank', devbankRoutes);
 app.use('/api/v1/transactions', transactionsRoutes);
 app.use('/api/v1/categories', categoriesRoutes);
+app.use('/api/v1/seed', seedRoutes);
+app.use('/api/v1/budgets', budgetsRoutes);
 
 app.use((_req, res) => {
   res.status(404).json({ success: false, error: 'Not found' });
