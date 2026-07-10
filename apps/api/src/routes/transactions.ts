@@ -32,7 +32,7 @@ const querySchema = z.object({
   order: z.enum(['asc', 'desc']).default('desc'),
 });
 
-let transactions: any[] = [];
+const transactions: any[] = [];
 let nextId = 1;
 
 router.get('/', (req: Request, res: Response) => {
