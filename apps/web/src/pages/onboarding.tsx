@@ -124,7 +124,7 @@ export default function Onboarding() {
               We use sandbox mode — no real bank credentials are required for testing.
             </p>
             <div className="flex justify-center">
-              <PlaidLinkButton userId="test-user" onSuccess={() => setStep('done')} />
+              <PlaidLinkButton userId={user?.id || 'anon'} onSuccess={() => setStep('done')} />
             </div>
             <button
               onClick={() => setStep('welcome')}
