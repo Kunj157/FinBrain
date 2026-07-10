@@ -2,7 +2,7 @@
 
 All notable changes to FinBrain will be documented in this file.
 
-## 0.2.0 — Unreleased
+## 0.2.0 — 2026-07-10
 
 ### Added
 - Plaid bank integration (link token, exchange, sync, accounts)

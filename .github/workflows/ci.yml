@@ -86,3 +86,26 @@ jobs:
           file: apps/web/Dockerfile
           push: true
           tags: us-central1-docker.pkg.dev/${{ secrets.GCP_PROJECT_ID }}/finbrain/web:latest
+
+  release:
+    runs-on: ubuntu-latest
+    needs: [build]
+    if: github.ref == 'refs/heads/main'
+    steps:
+      - uses: actions/checkout@v4
+      - name: Extract version from CHANGELOG
+        id: version
+        run: |
+          VERSION=$(grep -m1 '^## ' CHANGELOG.md | sed 's/## //' | sed 's/ — .*//')
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+      - name: Extract release notes
+        run: |
+          awk '/^## /{if(c++) exit} /^### /{p=1} p{print}' CHANGELOG.md > /tmp/release-notes.md
+      - name: Create Release
+        run: |
+          gh release create "${{ steps.version.outputs.version }}" \
+            --title "v${{ steps.version.outputs.version }}" \
+            --notes-file /tmp/release-notes.md \
+            --target "${{ github.sha }}"
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
