@@ -13,6 +13,7 @@ import Transactions from '@/pages/transactions';
 import Budgets from '@/pages/budgets';
 import Goals from '@/pages/goals';
 import Analytics from '@/pages/analytics';
+import Categories from '@/pages/categories';
 import Receipts from '@/pages/receipts';
 import Reports from '@/pages/reports';
 import Insights from '@/pages/insights';
@@ -40,6 +41,7 @@ export default function App() {
               <Route path="/onboarding" element={<Onboarding />} />
             <Route path="/" element={<Dashboard />} />
               <Route path="/transactions" element={<Transactions />} />
+              <Route path="/categories" element={<Categories />} />
               <Route path="/budgets" element={<Budgets />} />
               <Route path="/goals" element={<Goals />} />
               <Route path="/analytics" element={<Analytics />} />
