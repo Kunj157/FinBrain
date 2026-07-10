@@ -154,10 +154,13 @@ export default function Onboarding() {
           <div className="glass rounded-xl p-8 text-center space-y-6">
             <Server className="h-12 w-12 mx-auto text-emerald-400" />
             <p className="text-sm text-muted-foreground">
-              DevBank is a local mock banking service running in Docker. It provides
-              realistic synthetic data including scheduled payments, random purchases,
-              and even fraud scenarios for testing.
+              DevBank provides realistic synthetic banking data (scheduled payments,
+              random purchases, fraud scenarios). It needs to be built from source:
             </p>
+            <pre className="text-xs text-left bg-white/[0.03] rounded-lg p-3 border border-white/[0.06] overflow-x-auto">
+              git clone https://github.com/ranjankumar-gh/devbanksdk.git
+              cd devbanksdk/docker && docker compose up -d
+            </pre>
             {devbankStatus === 'checking' && (
               <div className="flex items-center justify-center gap-2 text-sm text-muted-foreground">
                 <Loader2 className="h-4 w-4 animate-spin" />
@@ -166,7 +169,7 @@ export default function Onboarding() {
             )}
             {devbankStatus === 'unavailable' && (
               <div className="rounded-lg bg-amber-500/10 border border-amber-500/20 p-3 text-sm text-amber-400">
-                DevBank is not running. Start it with <code className="text-xs bg-white/[0.04] px-1.5 py-0.5 rounded">docker compose up devbank</code>
+                DevBank is not running. Build it from source (see above) or use the <strong>Sample Data</strong> option instead.
               </div>
             )}
             {devbankError && (

@@ -1,5 +1,3 @@
-version: "3.8"
-
 services:
   postgres:
     image: postgres:16-alpine
@@ -74,13 +72,15 @@ services:
       - ./apps/web/src:/app/apps/web/src
       - ./packages:/app/packages
 
-  devbank:
-    image: ranjankumar/devbank-sdk:latest
-    container_name: finbrain-devbank
-    ports:
-      - "8001:8000"
-    environment:
-      - DEV_BANK_API_KEY=devbank-dev-key
+  # devbank:
+  #   Build from https://github.com/ranjankumar-gh/devbanksdk
+  #   or remove this block — the sample data generator provides equivalent functionality
+  #   image: ranjankumar/devbank-sdk:latest
+  #   container_name: finbrain-devbank
+  #   ports:
+  #     - "8001:8000"
+  #   environment:
+  #     - DEV_BANK_API_KEY=devbank-dev-key
 
 volumes:
   postgres_data:
