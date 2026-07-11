@@ -11,7 +11,7 @@ const PASSWORD_RULES = [
   { label: 'Uppercase letter', test: (p: string) => /[A-Z]/.test(p) },
   { label: 'Lowercase letter', test: (p: string) => /[a-z]/.test(p) },
   { label: 'Number', test: (p: string) => /\d/.test(p) },
-  { label: 'Special character', test: (p: string) => /[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]/.test(p) },
+  { label: 'Special character', test: (p: string) => /[!@#$%^&*()_+\-=[\]{};':"\\|,.<>/?]/.test(p) },
 ];
 
 type Strength = 'weak' | 'good' | 'strong';

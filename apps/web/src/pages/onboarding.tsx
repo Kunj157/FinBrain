@@ -41,15 +41,15 @@ export default function Onboarding() {
   const { user, isLoading } = useAuth();
   const currency = user?.currency || 'USD';
   const [step, setStep] = useState<Step>('welcome');
+  const [selected, setSelected] = useState<string | null>(null);
+  const [generating, setGenerating] = useState(false);
+  const [devbankStatus, setDevbankStatus] = useState<'checking' | 'available' | 'unavailable' | null>(null);
+  const [devbankError, setDevbankError] = useState<string | null>(null);
 
   if (!isLoading && user && !user.username) {
     navigate('/complete-profile', { replace: true });
     return null;
   }
-  const [selected, setSelected] = useState<string | null>(null);
-  const [generating, setGenerating] = useState(false);
-  const [devbankStatus, setDevbankStatus] = useState<'checking' | 'available' | 'unavailable' | null>(null);
-  const [devbankError, setDevbankError] = useState<string | null>(null);
 
   const handleComplete = () => {
     navigate('/');
