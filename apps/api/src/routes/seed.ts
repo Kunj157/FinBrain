@@ -1,5 +1,5 @@
 import { Router, type Request, type Response } from 'express';
-import { type Prisma } from '@prisma/client';
+import { type Prisma, type Category } from '@prisma/client';
 import { prisma, DEV_USER_ID } from '../prisma';
 
 const router = Router();
@@ -79,7 +79,7 @@ router.post('/transactions', async (req: Request, res: Response) => {
   const count = Math.min(Number(req.query.count) || 250, 1000);
 
   const categories = await prisma.category.findMany({ where: { userId: DEV_USER_ID } });
-  const catByName = new Map(categories.map((c) => [c.name, c.id]));
+  const catByName = new Map(categories.map((c: Category) => [c.name, c.id]));
 
   const incomeCategoryId = catByName.get('Income') || categories[0]?.id;
   if (!incomeCategoryId) {

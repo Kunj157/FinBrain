@@ -1,5 +1,6 @@
 import { Router, type Request, type Response } from 'express';
 import { z } from 'zod';
+import { type Budget } from '@prisma/client';
 import { prisma, DEV_USER_ID } from '../prisma';
 
 const router = Router();
@@ -60,7 +61,7 @@ router.get('/', async (req: Request, res: Response) => {
   });
 
   const enriched = await Promise.all(
-    budgets.map(async (b) => {
+    budgets.map(async (b: Budget) => {
       const spent = await computeSpent(b.categoryId, b.period, b.startDate.toISOString());
       return { ...b, spent, remaining: Math.max(b.amount - spent, 0) };
     }),

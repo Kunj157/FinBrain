@@ -1,4 +1,4 @@
-import { Prisma, PrismaClient } from '@prisma/client';
+import { Prisma, PrismaClient, type Category } from '@prisma/client';
 
 const prisma = new PrismaClient();
 
@@ -71,7 +71,7 @@ async function seedTransactions(count: number = 25) {
   await prisma.transaction.deleteMany({ where: { userId: DEV_USER_ID } });
 
   const categories = await prisma.category.findMany({ where: { userId: DEV_USER_ID } });
-  const catByName = new Map(categories.map((c) => [c.name, c.id]));
+  const catByName = new Map(categories.map((c: Category) => [c.name, c.id]));
 
   const incomeCategoryId = catByName.get('Income') || categories[0]?.id;
   if (!incomeCategoryId) {
