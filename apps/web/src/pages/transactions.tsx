@@ -231,7 +231,7 @@ export default function TransactionsPage() {
             <div className="overflow-x-auto">
               <table className="w-full text-sm">
                 <thead>
-                  <tr className="border-b border-white/[0.06]">
+                  <tr className="border-b border-white/[0.06] bg-background/95 backdrop-blur-xl sticky top-0 z-10">
                     <th className="w-10 px-4 py-3">
                       <input
                         type="checkbox"
@@ -271,7 +271,7 @@ export default function TransactionsPage() {
                       </td>
                       <td className="px-3 py-3 text-muted-foreground">{formatDate(txn.date)}</td>
                       <td className="px-3 py-3 font-medium">{txn.merchant || '-'}</td>
-                      <td className="px-3 py-3 text-muted-foreground max-w-[200px] truncate">{txn.description}</td>
+                      <td className="px-3 py-3 text-muted-foreground max-w-[200px] truncate" title={txn.description}>{txn.description}</td>
                       <td className="px-3 py-3">
                         <span
                           className="inline-block rounded-full px-2 py-0.5 text-xs"
@@ -308,15 +308,34 @@ export default function TransactionsPage() {
       </Card>
 
       {totalPages > 1 && (
-        <div className="flex items-center justify-center gap-2">
+        <div className="flex items-center justify-center gap-1">
           <Button variant="ghost" size="sm" disabled={page === 1} onClick={() => setPage(page - 1)}>
             <ChevronLeft className="h-4 w-4" />
           </Button>
-          {Array.from({ length: totalPages }, (_, i) => i + 1).map((p) => (
-            <Button key={p} variant={p === page ? 'default' : 'ghost'} size="sm" onClick={() => setPage(p)}>
-              {p}
-            </Button>
-          ))}
+          {(() => {
+            const pages: (number | '...')[] = [];
+            const maxVisible = 5;
+            if (totalPages <= maxVisible) {
+              for (let i = 1; i <= totalPages; i++) pages.push(i);
+            } else {
+              pages.push(1);
+              if (page > 3) pages.push('...');
+              const start = Math.max(2, page - 1);
+              const end = Math.min(totalPages - 1, page + 1);
+              for (let i = start; i <= end; i++) pages.push(i);
+              if (page < totalPages - 2) pages.push('...');
+              pages.push(totalPages);
+            }
+            return pages.map((p, idx) =>
+              p === '...' ? (
+                <span key={`e-${idx}`} className="px-1 text-muted-foreground text-sm">...</span>
+              ) : (
+                <Button key={p} variant={p === page ? 'default' : 'ghost'} size="sm" onClick={() => setPage(p)}>
+                  {p}
+                </Button>
+              )
+            );
+          })()}
           <Button variant="ghost" size="sm" disabled={page === totalPages} onClick={() => setPage(page + 1)}>
             <ChevronRight className="h-4 w-4" />
           </Button>
@@ -405,7 +424,7 @@ function TransactionForm({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm" onClick={onClose}>
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm" onClick={onClose} onKeyDown={(e) => { if (e.key === 'Escape') onClose(); }}>
       <div className="w-full max-w-lg mx-4 glass rounded-xl" onClick={(e) => e.stopPropagation()}>
         <div className="flex items-center justify-between p-5 border-b border-white/[0.06]">
           <h2 className="text-lg font-semibold">{mode === 'create' ? 'Add Transaction' : 'Edit Transaction'}</h2>

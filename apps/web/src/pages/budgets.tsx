@@ -158,12 +158,12 @@ export default function Budgets() {
               const isOver = b.spent > b.amount;
               const color = b.category?.color || '#6b7280';
               return (
-                <Card key={b.id} className="relative overflow-hidden">
+                <Card key={b.id} className="group relative overflow-hidden card-hover">
                   <div className="absolute top-0 left-0 w-1 h-full" style={{ backgroundColor: color }} />
                   <CardHeader className="pb-2">
                     <div className="flex items-center justify-between">
                       <CardTitle className="text-sm font-medium">{b.category?.name || 'Unknown'}</CardTitle>
-                      <div className="flex items-center gap-1">
+                      <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
                         <button onClick={() => openEdit(b)} className="p-1.5 rounded-lg hover:bg-white/[0.04] text-muted-foreground hover:text-foreground transition-colors">
                           <Pencil className="h-3.5 w-3.5" />
                         </button>
@@ -227,7 +227,7 @@ function BudgetForm({
   budget,
   categories,
   existingBudgetIds,
-  _currency,
+  currency,
   onClose,
   onSave,
 }: {
@@ -289,7 +289,7 @@ function BudgetForm({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm" onClick={onClose}>
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm" onClick={onClose} onKeyDown={(e) => { if (e.key === 'Escape') onClose(); }}>
       <div className="w-full max-w-md mx-4 glass rounded-xl" onClick={(e) => e.stopPropagation()}>
         <div className="flex items-center justify-between p-5 border-b border-white/[0.06]">
           <h2 className="text-lg font-semibold">{mode === 'create' ? 'Set Budget' : 'Edit Budget'}</h2>
