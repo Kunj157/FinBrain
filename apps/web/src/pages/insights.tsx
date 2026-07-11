@@ -1,7 +1,7 @@
 import { useState, useMemo, useCallback, useEffect, useRef } from 'react';
 import {
   Sparkles, Brain, TrendingUp, TrendingDown, AlertTriangle, Lightbulb,
-  ShieldCheck, ShieldAlert, ShieldX, Send, Loader2, ArrowUpRight, ArrowDownRight,
+  ShieldCheck, ShieldAlert, ShieldX, Send, Loader2,
   DollarSign, PiggyBank, Target, Zap, RefreshCw,
 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
