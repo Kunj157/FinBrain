@@ -129,38 +129,45 @@ router.delete('/:id', async (req: Request, res: Response) => {
 });
 
 router.post('/bulk', async (req: Request, res: Response) => {
-  const { items } = req.body;
-  if (!Array.isArray(items) || items.length === 0) {
-    return res.status(400).json({ success: false, error: 'items array is required' });
+  try {
+    const { items } = req.body;
+    if (!Array.isArray(items) || items.length === 0) {
+      return res.status(400).json({ success: false, error: 'items array is required' });
+    }
+
+    const categories = await prisma.category.findMany({
+      where: { userId: DEV_USER_ID },
+    });
+    const validCatIds = new Set(categories.map((c) => c.id));
+    const fallbackCat = categories.find((c) => c.name === 'Other') || categories[0];
+
+    const data = items.map((item: Record<string, unknown>) => ({
+      userId: DEV_USER_ID,
+      type: (item.type || 'expense') as 'income' | 'expense',
+      amount: item.amount as number,
+      currency: (item.currency || 'USD') as 'USD' | 'EUR' | 'GBP' | 'INR' | 'JPY' | 'CAD' | 'AUD',
+      description: item.description as string,
+      merchant: (item.merchant as string) || null,
+      categoryId: (validCatIds.has(item.categoryId as string) ? item.categoryId : fallbackCat?.id) as string,
+      paymentMethod: (item.paymentMethod || 'other') as 'cash' | 'credit_card' | 'debit_card' | 'bank_transfer' | 'upi' | 'other',
+      date: new Date(item.date as string),
+      notes: (item.notes as string) || null,
+      status: (item.status || 'cleared') as 'pending' | 'cleared' | 'flagged',
+      isRecurring: (item.isRecurring as boolean) || false,
+    }));
+
+    const result = await prisma.transaction.createMany({ data });
+    const created = await prisma.transaction.findMany({
+      where: { userId: DEV_USER_ID },
+      orderBy: { createdAt: 'desc' },
+      take: result.count,
+    });
+
+    res.status(201).json({ success: true, data: created });
+  } catch (error) {
+    console.error('Bulk create error:', error);
+    res.status(500).json({ success: false, error: 'Failed to create transactions' });
   }
-
-  const fallbackCat = await prisma.category.findFirst({
-    where: { userId: DEV_USER_ID, name: 'Other' },
-  });
-
-  const data = items.map((item: Record<string, unknown>) => ({
-    userId: DEV_USER_ID,
-    type: (item.type || 'expense') as 'income' | 'expense',
-    amount: item.amount as number,
-    currency: (item.currency || 'USD') as 'USD' | 'EUR' | 'GBP' | 'INR' | 'JPY' | 'CAD' | 'AUD',
-    description: item.description as string,
-    merchant: (item.merchant as string) || null,
-    categoryId: (item.categoryId as string) || fallbackCat?.id || '',
-    paymentMethod: (item.paymentMethod || 'other') as 'cash' | 'credit_card' | 'debit_card' | 'bank_transfer' | 'upi' | 'other',
-    date: new Date(item.date as string),
-    notes: (item.notes as string) || null,
-    status: (item.status || 'cleared') as 'pending' | 'cleared' | 'flagged',
-    isRecurring: (item.isRecurring as boolean) || false,
-  }));
-
-  const result = await prisma.transaction.createMany({ data });
-  const created = await prisma.transaction.findMany({
-    where: { userId: DEV_USER_ID },
-    orderBy: { createdAt: 'desc' },
-    take: result.count,
-  });
-
-  res.status(201).json({ success: true, data: created });
 });
 
 router.delete('/bulk', async (req: Request, res: Response) => {

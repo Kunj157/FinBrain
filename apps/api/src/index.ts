@@ -43,6 +43,12 @@ app.use((_req, res) => {
   res.status(404).json({ success: false, error: 'Not found' });
 });
 
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+app.use((err: Error, _req: express.Request, res: express.Response, _next: express.NextFunction) => {
+  console.error('Unhandled route error:', err);
+  res.status(500).json({ success: false, error: 'Internal server error' });
+});
+
 async function start() {
   await ensureDevUser();
   await seedDefaultCategories();
@@ -56,6 +62,10 @@ async function start() {
 start().catch((err) => {
   console.error('Failed to start server:', err);
   process.exit(1);
+});
+
+process.on('unhandledRejection', (err) => {
+  console.error('Unhandled rejection:', err);
 });
 
 export default app;
