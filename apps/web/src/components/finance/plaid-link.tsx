@@ -40,6 +40,10 @@ export function PlaidLinkButton({ userId, onSuccess }: PlaidLinkProps) {
         const { data: sync } = await api.post('/plaid/sync-transactions', { accessToken });
         const added = sync.data.added;
 
+        const { data: catRes } = await api.get('/categories');
+        const categories = catRes.data;
+        const otherCat = categories.find((c: any) => c.name === 'Other') || categories[0];
+
         if (added.length > 0) {
           const items = added.map((t: any) => ({
             type: t.amount > 0 ? 'income' as const : 'expense' as const,
@@ -47,7 +51,7 @@ export function PlaidLinkButton({ userId, onSuccess }: PlaidLinkProps) {
             currency: 'USD',
             description: t.name || '',
             merchant: t.merchantName || t.name || '',
-            categoryId: '10',
+            categoryId: otherCat?.id || '',
             paymentMethod: 'other' as const,
             date: t.date,
             status: t.pending ? 'pending' as const : 'cleared' as const,
