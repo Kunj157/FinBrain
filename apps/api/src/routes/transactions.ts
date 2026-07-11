@@ -1,7 +1,7 @@
 import { Router, type Request, type Response } from 'express';
 import { z } from 'zod';
 import { type Prisma } from '@prisma/client';
-import { prisma, DEV_USER_ID } from '../prisma';
+import { prisma } from '../prisma';
 
 const router = Router();
 
@@ -51,7 +51,7 @@ router.get('/', async (req: Request, res: Response) => {
   const { page, limit, type, categoryId, startDate, endDate, search, paymentMethod, sort, order } = parsed.data;
 
   const where: Prisma.TransactionWhereInput = {
-    userId: DEV_USER_ID,
+    userId: req.userId,
     ...(type && { type }),
     ...(categoryId && { categoryId }),
     ...(paymentMethod && { paymentMethod }),
@@ -78,7 +78,7 @@ router.get('/', async (req: Request, res: Response) => {
 
 router.get('/:id', async (req: Request, res: Response) => {
   const txn = await prisma.transaction.findFirst({
-    where: { id: req.params.id, userId: DEV_USER_ID },
+    where: { id: req.params.id, userId: req.userId },
   });
   if (!txn) return res.status(404).json({ success: false, error: 'Transaction not found' });
   res.json({ success: true, data: txn });
@@ -92,7 +92,7 @@ router.post('/', async (req: Request, res: Response) => {
 
   const { date, ...rest } = parsed.data;
   const txn = await prisma.transaction.create({
-    data: { ...rest, date: new Date(date), userId: DEV_USER_ID },
+    data: { ...rest, date: new Date(date), userId: req.userId },
   });
 
   res.status(201).json({ success: true, data: txn });
@@ -100,7 +100,7 @@ router.post('/', async (req: Request, res: Response) => {
 
 router.put('/:id', async (req: Request, res: Response) => {
   const existing = await prisma.transaction.findFirst({
-    where: { id: req.params.id, userId: DEV_USER_ID },
+    where: { id: req.params.id, userId: req.userId },
   });
   if (!existing) return res.status(404).json({ success: false, error: 'Transaction not found' });
 
@@ -120,7 +120,7 @@ router.put('/:id', async (req: Request, res: Response) => {
 
 router.delete('/:id', async (req: Request, res: Response) => {
   const existing = await prisma.transaction.findFirst({
-    where: { id: req.params.id, userId: DEV_USER_ID },
+    where: { id: req.params.id, userId: req.userId },
   });
   if (!existing) return res.status(404).json({ success: false, error: 'Transaction not found' });
 
@@ -136,13 +136,13 @@ router.post('/bulk', async (req: Request, res: Response) => {
     }
 
     const categories = await prisma.category.findMany({
-      where: { userId: DEV_USER_ID },
+      where: { userId: req.userId },
     });
     const validCatIds = new Set(categories.map((c) => c.id));
     const fallbackCat = categories.find((c) => c.name === 'Other') || categories[0];
 
     const data = items.map((item: Record<string, unknown>) => ({
-      userId: DEV_USER_ID,
+      userId: req.userId,
       type: (item.type || 'expense') as 'income' | 'expense',
       amount: item.amount as number,
       currency: (item.currency || 'USD') as 'USD' | 'EUR' | 'GBP' | 'INR' | 'JPY' | 'CAD' | 'AUD',
@@ -158,7 +158,7 @@ router.post('/bulk', async (req: Request, res: Response) => {
 
     const result = await prisma.transaction.createMany({ data });
     const created = await prisma.transaction.findMany({
-      where: { userId: DEV_USER_ID },
+      where: { userId: req.userId },
       orderBy: { createdAt: 'desc' },
       take: result.count,
     });
@@ -177,7 +177,7 @@ router.delete('/bulk', async (req: Request, res: Response) => {
   }
 
   const result = await prisma.transaction.deleteMany({
-    where: { id: { in: ids }, userId: DEV_USER_ID },
+    where: { id: { in: ids }, userId: req.userId },
   });
 
   res.json({ success: true, message: `${result.count} transaction(s) deleted` });

@@ -8,6 +8,7 @@ import { AppLayout } from '@/components/layout/app-layout';
 
 import SignIn from '@/auth/sign-in';
 import SignUp from '@/auth/sign-up';
+import CompleteProfile from '@/auth/complete-profile';
 import Dashboard from '@/pages/dashboard';
 import Transactions from '@/pages/transactions';
 import Budgets from '@/pages/budgets';
@@ -30,6 +31,7 @@ export default function App() {
           <Routes>
             <Route path="/sign-in" element={<SignIn />} />
             <Route path="/sign-up" element={<SignUp />} />
+            <Route path="/complete-profile" element={<CompleteProfile />} />
 
             <Route
               element={

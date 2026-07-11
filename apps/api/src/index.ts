@@ -5,6 +5,9 @@ import morgan from 'morgan';
 
 import { ensureDevUser } from './prisma';
 import { seedDefaultCategories } from './seed-defaults';
+import { requireAuth } from './middleware/auth';
+import './types';
+
 import plaidRoutes from './routes/plaid';
 import csvImportRoutes from './routes/import';
 import currencyRoutes from './routes/currency';
@@ -15,6 +18,7 @@ import categoriesRoutes from './routes/categories';
 import seedRoutes from './routes/seed';
 import budgetsRoutes from './routes/budgets';
 import goalsRoutes from './routes/goals';
+import authRoutes from './routes/auth';
 
 const app = express();
 const PORT = process.env.PORT || 4000;
@@ -28,6 +32,14 @@ app.get('/api/v1/health', (_req, res) => {
   res.json({ status: 'ok', service: 'finbrain-api', timestamp: new Date().toISOString() });
 });
 
+app.use('/api/v1', (req, res, next) => {
+  if (req.path === '/health' || process.env.DEV_MODE === 'true' || !process.env.CLERK_SECRET_KEY) {
+    req.userId = 'dev-user-001';
+    return next();
+  }
+  return requireAuth(req, res, next);
+});
+
 app.use('/api/v1/plaid', plaidRoutes);
 app.use('/api/v1/import', csvImportRoutes);
 app.use('/api/v1/currency', currencyRoutes);
@@ -38,6 +50,7 @@ app.use('/api/v1/categories', categoriesRoutes);
 app.use('/api/v1/seed', seedRoutes);
 app.use('/api/v1/budgets', budgetsRoutes);
 app.use('/api/v1/goals', goalsRoutes);
+app.use('/api/v1/auth', authRoutes);
 
 app.use((_req, res) => {
   res.status(404).json({ success: false, error: 'Not found' });

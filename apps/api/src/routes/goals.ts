@@ -1,7 +1,7 @@
 import { Router, type Request, type Response } from 'express';
 import { z } from 'zod';
 import { type Goal, type GoalContribution } from '@prisma/client';
-import { prisma, DEV_USER_ID } from '../prisma';
+import { prisma } from '../prisma';
 
 const router = Router();
 
@@ -76,7 +76,7 @@ router.get('/', async (req: Request, res: Response) => {
 
   const goals = await prisma.goal.findMany({
     where: {
-      userId: DEV_USER_ID,
+      userId: req.userId,
       ...(goalType && { goalType }),
     },
     include: { contributions: { orderBy: { date: 'desc' } } },
@@ -90,7 +90,7 @@ router.get('/', async (req: Request, res: Response) => {
 
 router.get('/:id', async (req: Request, res: Response) => {
   const goal = await prisma.goal.findFirst({
-    where: { id: req.params.id, userId: DEV_USER_ID },
+    where: { id: req.params.id, userId: req.userId },
     include: { contributions: { orderBy: { date: 'desc' } } },
   });
   if (!goal) return res.status(404).json({ success: false, error: 'Goal not found' });
@@ -106,7 +106,7 @@ router.post('/', async (req: Request, res: Response) => {
 
   const goal = await prisma.goal.create({
     data: {
-      userId: DEV_USER_ID,
+      userId: req.userId,
       name: parsed.data.name,
       targetAmount: parsed.data.targetAmount,
       currency: parsed.data.currency,
@@ -123,7 +123,7 @@ router.post('/', async (req: Request, res: Response) => {
 
 router.put('/:id', async (req: Request, res: Response) => {
   const existing = await prisma.goal.findFirst({
-    where: { id: req.params.id, userId: DEV_USER_ID },
+    where: { id: req.params.id, userId: req.userId },
   });
   if (!existing) return res.status(404).json({ success: false, error: 'Goal not found' });
 
@@ -152,7 +152,7 @@ router.put('/:id', async (req: Request, res: Response) => {
 
 router.delete('/:id', async (req: Request, res: Response) => {
   const existing = await prisma.goal.findFirst({
-    where: { id: req.params.id, userId: DEV_USER_ID },
+    where: { id: req.params.id, userId: req.userId },
   });
   if (!existing) return res.status(404).json({ success: false, error: 'Goal not found' });
 
@@ -162,7 +162,7 @@ router.delete('/:id', async (req: Request, res: Response) => {
 
 router.post('/:id/contributions', async (req: Request, res: Response) => {
   const goal = await prisma.goal.findFirst({
-    where: { id: req.params.id, userId: DEV_USER_ID },
+    where: { id: req.params.id, userId: req.userId },
   });
   if (!goal) return res.status(404).json({ success: false, error: 'Goal not found' });
 
@@ -196,7 +196,7 @@ router.post('/:id/contributions', async (req: Request, res: Response) => {
 
 router.delete('/:id/contributions/:contributionId', async (req: Request, res: Response) => {
   const goal = await prisma.goal.findFirst({
-    where: { id: req.params.id, userId: DEV_USER_ID },
+    where: { id: req.params.id, userId: req.userId },
   });
   if (!goal) return res.status(404).json({ success: false, error: 'Goal not found' });
 

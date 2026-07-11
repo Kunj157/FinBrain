@@ -6,8 +6,11 @@ export interface AuthUser {
   id: string;
   email: string;
   name: string;
+  username?: string | null;
   avatarUrl?: string;
   currency: Currency;
+  birthDate?: string | null;
+  createdAt?: string;
 }
 
 interface AuthContextType {
@@ -17,6 +20,8 @@ interface AuthContextType {
   signIn: (email: string, name: string) => void;
   signOut: () => void;
   updateCurrency: (currency: Currency) => void;
+  getToken?: () => Promise<string | null>;
+  refreshProfile?: () => Promise<void>;
 }
 
 export const AuthContext = createContext<AuthContextType>({

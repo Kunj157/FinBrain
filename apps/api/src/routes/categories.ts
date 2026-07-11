@@ -1,6 +1,6 @@
 import { Router, type Request, type Response } from 'express';
 import { z } from 'zod';
-import { prisma, DEV_USER_ID } from '../prisma';
+import { prisma } from '../prisma';
 
 const router = Router();
 
@@ -13,9 +13,9 @@ const createSchema = z.object({
 
 const updateSchema = createSchema.partial();
 
-router.get('/', async (_req: Request, res: Response) => {
+router.get('/', async (req: Request, res: Response) => {
   const categories = await prisma.category.findMany({
-    where: { userId: DEV_USER_ID },
+    where: { userId: req.userId },
     orderBy: { name: 'asc' },
   });
   res.json({ success: true, data: categories });
@@ -23,7 +23,7 @@ router.get('/', async (_req: Request, res: Response) => {
 
 router.get('/:id', async (req: Request, res: Response) => {
   const cat = await prisma.category.findFirst({
-    where: { id: req.params.id, userId: DEV_USER_ID },
+    where: { id: req.params.id, userId: req.userId },
   });
   if (!cat) return res.status(404).json({ success: false, error: 'Category not found' });
   res.json({ success: true, data: cat });
@@ -38,7 +38,7 @@ router.post('/', async (req: Request, res: Response) => {
   const cat = await prisma.category.create({
     data: {
       ...parsed.data,
-      userId: DEV_USER_ID,
+      userId: req.userId,
       isCustom: true,
     },
   });
@@ -48,7 +48,7 @@ router.post('/', async (req: Request, res: Response) => {
 
 router.put('/:id', async (req: Request, res: Response) => {
   const existing = await prisma.category.findFirst({
-    where: { id: req.params.id, userId: DEV_USER_ID },
+    where: { id: req.params.id, userId: req.userId },
   });
   if (!existing) return res.status(404).json({ success: false, error: 'Category not found' });
 
@@ -67,7 +67,7 @@ router.put('/:id', async (req: Request, res: Response) => {
 
 router.delete('/:id', async (req: Request, res: Response) => {
   const existing = await prisma.category.findFirst({
-    where: { id: req.params.id, userId: DEV_USER_ID },
+    where: { id: req.params.id, userId: req.userId },
   });
   if (!existing) return res.status(404).json({ success: false, error: 'Category not found' });
   if (!existing.isCustom) {

@@ -1,7 +1,7 @@
 import { Router, type Request, type Response } from 'express';
 import { z } from 'zod';
 import { type Budget } from '@prisma/client';
-import { prisma, DEV_USER_ID } from '../prisma';
+import { prisma } from '../prisma';
 
 const router = Router();
 
@@ -26,14 +26,14 @@ function computeEndDate(startDate: string, period: 'weekly' | 'monthly' | 'yearl
   return new Date(start.getFullYear() + 1, start.getMonth(), start.getDate());
 }
 
-async function computeSpent(categoryId: string, period: 'weekly' | 'monthly' | 'yearly', startDate: string): Promise<number> {
+async function computeSpent(userId: string, categoryId: string, period: 'weekly' | 'monthly' | 'yearly', startDate: string): Promise<number> {
   const start = new Date(startDate);
   const end = computeEndDate(startDate, period);
 
   const result = await prisma.transaction.aggregate({
     _sum: { amount: true },
     where: {
-      userId: DEV_USER_ID,
+      userId,
       type: 'expense',
       categoryId,
       date: { gte: start, lt: end },
@@ -50,7 +50,7 @@ router.get('/', async (req: Request, res: Response) => {
   }
 
   const where = {
-    userId: DEV_USER_ID,
+    userId: req.userId,
     ...(parsed.data.period && { period: parsed.data.period }),
     ...(parsed.data.categoryId && { categoryId: parsed.data.categoryId }),
   };
@@ -62,7 +62,7 @@ router.get('/', async (req: Request, res: Response) => {
 
   const enriched = await Promise.all(
     budgets.map(async (b: Budget) => {
-      const spent = await computeSpent(b.categoryId, b.period, b.startDate.toISOString());
+      const spent = await computeSpent(req.userId, b.categoryId, b.period, b.startDate.toISOString());
       return { ...b, spent, remaining: Math.max(b.amount - spent, 0) };
     }),
   );
@@ -72,11 +72,11 @@ router.get('/', async (req: Request, res: Response) => {
 
 router.get('/:id', async (req: Request, res: Response) => {
   const budget = await prisma.budget.findFirst({
-    where: { id: req.params.id, userId: DEV_USER_ID },
+    where: { id: req.params.id, userId: req.userId },
   });
   if (!budget) return res.status(404).json({ success: false, error: 'Budget not found' });
 
-  const spent = await computeSpent(budget.categoryId, budget.period, budget.startDate.toISOString());
+  const spent = await computeSpent(req.userId, budget.categoryId, budget.period, budget.startDate.toISOString());
   res.json({ success: true, data: { ...budget, spent, remaining: Math.max(budget.amount - spent, 0) } });
 });
 
@@ -87,13 +87,13 @@ router.post('/', async (req: Request, res: Response) => {
   }
 
   const category = await prisma.category.findFirst({
-    where: { id: parsed.data.categoryId, userId: DEV_USER_ID },
+    where: { id: parsed.data.categoryId, userId: req.userId },
   });
   if (!category) return res.status(400).json({ success: false, error: 'Category not found' });
 
   const existing = await prisma.budget.findFirst({
     where: {
-      userId: DEV_USER_ID,
+      userId: req.userId,
       categoryId: parsed.data.categoryId,
       period: parsed.data.period,
       startDate: new Date(parsed.data.startDate),
@@ -107,7 +107,7 @@ router.post('/', async (req: Request, res: Response) => {
 
   const budget = await prisma.budget.create({
     data: {
-      userId: DEV_USER_ID,
+      userId: req.userId,
       categoryId: parsed.data.categoryId,
       amount: parsed.data.amount,
       period: parsed.data.period,
@@ -121,7 +121,7 @@ router.post('/', async (req: Request, res: Response) => {
 
 router.put('/:id', async (req: Request, res: Response) => {
   const existing = await prisma.budget.findFirst({
-    where: { id: req.params.id, userId: DEV_USER_ID },
+    where: { id: req.params.id, userId: req.userId },
   });
   if (!existing) return res.status(404).json({ success: false, error: 'Budget not found' });
 
@@ -144,13 +144,13 @@ router.put('/:id', async (req: Request, res: Response) => {
     data: updateData,
   });
 
-  const spent = await computeSpent(budget.categoryId, budget.period, budget.startDate.toISOString());
+  const spent = await computeSpent(req.userId, budget.categoryId, budget.period, budget.startDate.toISOString());
   res.json({ success: true, data: { ...budget, spent, remaining: Math.max(budget.amount - spent, 0) } });
 });
 
 router.delete('/:id', async (req: Request, res: Response) => {
   const existing = await prisma.budget.findFirst({
-    where: { id: req.params.id, userId: DEV_USER_ID },
+    where: { id: req.params.id, userId: req.userId },
   });
   if (!existing) return res.status(404).json({ success: false, error: 'Budget not found' });
 
