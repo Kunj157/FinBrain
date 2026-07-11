@@ -134,9 +134,11 @@ router.post('/bulk', async (req: Request, res: Response) => {
     return res.status(400).json({ success: false, error: 'items array is required' });
   }
 
-  const fallbackCat = await prisma.category.findFirst({
-    where: { userId: DEV_USER_ID, name: 'Other' },
+  const categories = await prisma.category.findMany({
+    where: { userId: DEV_USER_ID },
   });
+  const validCatIds = new Set(categories.map((c) => c.id));
+  const fallbackCat = categories.find((c) => c.name === 'Other') || categories[0];
 
   const data = items.map((item: Record<string, unknown>) => ({
     userId: DEV_USER_ID,
@@ -145,7 +147,7 @@ router.post('/bulk', async (req: Request, res: Response) => {
     currency: (item.currency || 'USD') as 'USD' | 'EUR' | 'GBP' | 'INR' | 'JPY' | 'CAD' | 'AUD',
     description: item.description as string,
     merchant: (item.merchant as string) || null,
-    categoryId: (item.categoryId as string) || fallbackCat?.id || '',
+    categoryId: (validCatIds.has(item.categoryId as string) ? item.categoryId : fallbackCat?.id) as string,
     paymentMethod: (item.paymentMethod || 'other') as 'cash' | 'credit_card' | 'debit_card' | 'bank_transfer' | 'upi' | 'other',
     date: new Date(item.date as string),
     notes: (item.notes as string) || null,
