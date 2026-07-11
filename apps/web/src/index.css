@@ -72,6 +72,16 @@
     @apply bg-emerald-500/20 text-emerald-300;
   }
 
+  select {
+    @apply bg-card text-foreground;
+  }
+
+  select option {
+    @apply bg-card text-foreground;
+    background-color: hsl(210 12% 9%);
+    color: hsl(210 20% 95%);
+  }
+
   ::-webkit-scrollbar {
     @apply w-2;
   }
