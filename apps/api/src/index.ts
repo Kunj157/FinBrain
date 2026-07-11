@@ -18,6 +18,7 @@ import categoriesRoutes from './routes/categories';
 import seedRoutes from './routes/seed';
 import budgetsRoutes from './routes/budgets';
 import goalsRoutes from './routes/goals';
+import authRoutes from './routes/auth';
 
 const app = express();
 const PORT = process.env.PORT || 4000;
@@ -49,6 +50,7 @@ app.use('/api/v1/categories', categoriesRoutes);
 app.use('/api/v1/seed', seedRoutes);
 app.use('/api/v1/budgets', budgetsRoutes);
 app.use('/api/v1/goals', goalsRoutes);
+app.use('/api/v1/auth', authRoutes);
 
 app.use((_req, res) => {
   res.status(404).json({ success: false, error: 'Not found' });

@@ -1,6 +1,7 @@
 import { Router, type Request, type Response } from 'express';
 import { type Prisma, type Category } from '@prisma/client';
 import { prisma } from '../prisma';
+import { seedDefaultCategories } from '../seed-defaults';
 
 const router = Router();
 
@@ -81,9 +82,17 @@ router.post('/transactions', async (req: Request, res: Response) => {
   const categories = await prisma.category.findMany({ where: { userId: req.userId } });
   const catByName = new Map(categories.map((c: Category) => [c.name, c.id]));
 
-  const incomeCategoryId = catByName.get('Income') || categories[0]?.id;
+  let incomeCategoryId = catByName.get('Income') || categories[0]?.id;
   if (!incomeCategoryId) {
-    return res.status(400).json({ success: false, error: 'No categories found. Seed categories first.' });
+    await seedDefaultCategories(req.userId);
+    const newCats = await prisma.category.findMany({ where: { userId: req.userId } });
+    const newCatByName = new Map(newCats.map((c: Category) => [c.name, c.id]));
+    incomeCategoryId = newCatByName.get('Income') || newCats[0]?.id;
+    if (!incomeCategoryId) {
+      return res.status(400).json({ success: false, error: 'Failed to seed categories.' });
+    }
+    catByName.clear();
+    newCatByName.forEach((v, k) => catByName.set(k, v));
   }
 
   const expenseCatNames = ['Food & Drink', 'Shopping', 'Transport', 'Bills & Utilities', 'Entertainment', 'Healthcare', 'Education', 'Housing', 'Other'] as const;

@@ -1,6 +1,7 @@
 import type { Request, Response, NextFunction } from 'express';
 import { createClerkClient, verifyToken } from '@clerk/backend';
 import { prisma } from '../prisma';
+import { seedDefaultCategories } from '../seed-defaults';
 
 const clerkClient = process.env.CLERK_SECRET_KEY
   ? createClerkClient({ secretKey: process.env.CLERK_SECRET_KEY })
@@ -44,6 +45,7 @@ export async function requireAuth(req: Request, res: Response, next: NextFunctio
         },
       });
       req.userId = newUser.id;
+      await seedDefaultCategories(newUser.id);
     }
 
     next();

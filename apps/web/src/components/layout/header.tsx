@@ -1,11 +1,11 @@
-import { Bell, Search, Sun, Moon } from 'lucide-react';
+import { Bell, Search, Sun, Moon, LogOut } from 'lucide-react';
 import { Avatar } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/hooks/use-auth';
 import { useTheme } from '@/hooks/use-theme';
 
 export function Header() {
-  const { user } = useAuth();
+  const { user, signOut } = useAuth();
   const { theme, toggle } = useTheme();
   const isDark = theme === 'dark';
   const initials = user?.name
@@ -42,9 +42,15 @@ export function Header() {
           {isDark ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
         </Button>
 
+        <Button variant="ghost" size="icon" onClick={signOut} title="Sign out">
+          <LogOut className="h-4 w-4" />
+        </Button>
+
         <div className="flex items-center gap-3 ml-2 pl-3 border-l border-white/[0.06]">
           <div className="text-right">
-            <p className="text-xs font-medium">{user?.name || 'User'}</p>
+            <p className="text-xs font-medium">
+              {user?.username ? `@${user.username}` : user?.name || 'User'}
+            </p>
             <p className="text-[10px] text-muted-foreground">Free Plan</p>
           </div>
           <Avatar fallback={initials} size="sm" />

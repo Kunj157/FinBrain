@@ -127,7 +127,7 @@ export default function TransactionsPage() {
   const handleSeed = useCallback(async () => {
     setSeeding(true);
     try {
-      await api.post('/seed', null, { params: { count: 250 } });
+      await api.post('/seed/transactions', null, { params: { count: 250 } });
       await fetchData();
     } finally {
       setSeeding(false);
@@ -137,7 +137,7 @@ export default function TransactionsPage() {
   const handleClear = useCallback(async () => {
     setClearing(true);
     try {
-      await api.delete('/seed');
+      await api.delete('/seed/transactions');
       setSelected(new Set());
       await fetchData();
     } finally {

@@ -4,7 +4,6 @@ import { Brain, Building2, Upload, Database, ArrowRight, Check, Loader2, Server 
 import { Button } from '@/components/ui/button';
 import { PlaidLinkButton } from '@/components/finance/plaid-link';
 import { CsvImport } from '@/components/finance/csv-import';
-import { generateSampleData } from '@/lib/sample-data';
 import { useAuth } from '@/hooks/use-auth';
 import api from '@/lib/api';
 
@@ -39,9 +38,14 @@ const options = [
 
 export default function Onboarding() {
   const navigate = useNavigate();
-  const { user } = useAuth();
+  const { user, isLoading } = useAuth();
   const currency = user?.currency || 'USD';
   const [step, setStep] = useState<Step>('welcome');
+
+  if (!isLoading && user && !user.username) {
+    navigate('/complete-profile', { replace: true });
+    return null;
+  }
   const [selected, setSelected] = useState<string | null>(null);
   const [generating, setGenerating] = useState(false);
   const [devbankStatus, setDevbankStatus] = useState<'checking' | 'available' | 'unavailable' | null>(null);
@@ -242,25 +246,14 @@ export default function Onboarding() {
             <Button
               onClick={async () => {
                 setGenerating(true);
-                const data = generateSampleData(currency);
                 try {
-                  await api.post('/transactions/bulk', { items: data.map((t) => ({
-                    type: t.type,
-                    amount: t.amount,
-                    currency: t.currency,
-                    description: t.description,
-                    merchant: t.merchant,
-                    categoryId: t.categoryId,
-                    paymentMethod: t.paymentMethod,
-                    date: t.date,
-                    status: t.status,
-                    isRecurring: t.isRecurring,
-                  })) });
+                  await api.post('/seed/transactions', null, { params: { count: 250 } });
+                  setStep('done');
                 } catch {
                   // silent
+                } finally {
+                  setGenerating(false);
                 }
-                setGenerating(false);
-                setStep('done');
               }}
               className="gap-2"
               disabled={generating}

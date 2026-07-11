@@ -6,16 +6,19 @@ const DEV_USER: AuthUser = {
   id: 'dev-user-001',
   email: 'dev@finbrain.ai',
   name: 'Kunj Patel',
+  username: 'kunj',
   avatarUrl: undefined,
   currency: 'USD',
 };
 
 export function DevAuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<AuthUser | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
     const storedCurrency = localStorage.getItem('finbrain-currency') as Currency | null;
     setUser({ ...DEV_USER, currency: storedCurrency || 'USD' });
+    setIsLoading(false);
   }, []);
 
   const signIn = useCallback((email: string, name: string) => {
@@ -36,7 +39,7 @@ export function DevAuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   return (
-    <AuthContext.Provider value={{ user, isLoading: false, isSignedIn: !!user, signIn, signOut, updateCurrency }}>
+    <AuthContext.Provider value={{ user, isLoading, isSignedIn: !!user, signIn, signOut, updateCurrency }}>
       {children}
     </AuthContext.Provider>
   );
