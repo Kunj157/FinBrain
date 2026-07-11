@@ -96,16 +96,21 @@ export function Sidebar() {
           ))}
         </div>
 
-        <div className="mx-3 mb-4 rounded-xl bg-gradient-to-br from-emerald-500/5 to-teal-500/5 border border-emerald-500/10 p-4">
-          <div className="flex items-center gap-3">
-            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-emerald-500/10">
-              <Brain className="h-4 w-4 text-emerald-400" />
+        <div className="mx-3 mb-4">
+          <NavLink
+            to="/insights"
+            className="rounded-xl bg-gradient-to-br from-emerald-500/5 to-teal-500/5 border border-emerald-500/10 p-4 block hover:from-emerald-500/10 hover:to-teal-500/10 transition-all duration-200 cursor-pointer"
+          >
+            <div className="flex items-center gap-3">
+              <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-emerald-500/10">
+                <Brain className="h-4 w-4 text-emerald-400" />
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="text-xs font-medium text-emerald-400">Ask FinBrain</p>
+                <p className="text-[10px] text-muted-foreground truncate">Analyze your finances</p>
+              </div>
             </div>
-            <div className="flex-1 min-w-0">
-              <p className="text-xs font-medium text-emerald-400">Ask FinBrain</p>
-              <p className="text-[10px] text-muted-foreground truncate">Analyze your finances</p>
-            </div>
-          </div>
+          </NavLink>
         </div>
       </div>
     </aside>

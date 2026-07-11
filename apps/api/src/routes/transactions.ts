@@ -1,5 +1,7 @@
 import { Router, type Request, type Response } from 'express';
 import { z } from 'zod';
+import { type Prisma } from '@prisma/client';
+import { prisma, DEV_USER_ID } from '../prisma';
 
 const router = Router();
 
@@ -32,10 +34,15 @@ const querySchema = z.object({
   order: z.enum(['asc', 'desc']).default('desc'),
 });
 
-const transactions: any[] = [];
-let nextId = 1;
+const SORT_FIELD_MAP: Record<string, string> = {
+  date: 'date',
+  amount: 'amount',
+  merchant: 'merchant',
+  description: 'description',
+  createdAt: 'createdAt',
+};
 
-router.get('/', (req: Request, res: Response) => {
+router.get('/', async (req: Request, res: Response) => {
   const parsed = querySchema.safeParse(req.query);
   if (!parsed.success) {
     return res.status(400).json({ success: false, error: 'Invalid query', details: parsed.error.format() });
@@ -43,116 +50,126 @@ router.get('/', (req: Request, res: Response) => {
 
   const { page, limit, type, categoryId, startDate, endDate, search, paymentMethod, sort, order } = parsed.data;
 
-  let filtered = [...transactions];
+  const where: Prisma.TransactionWhereInput = {
+    userId: DEV_USER_ID,
+    ...(type && { type }),
+    ...(categoryId && { categoryId }),
+    ...(paymentMethod && { paymentMethod }),
+    ...(startDate && { date: { gte: new Date(startDate) } }),
+    ...(endDate && { date: { lte: new Date(endDate + 'T23:59:59.999Z') } }),
+    ...(search && {
+      OR: [
+        { description: { contains: search, mode: 'insensitive' } },
+        { merchant: { contains: search, mode: 'insensitive' } },
+        { amount: { equals: parseFloat(search) || undefined } },
+      ],
+    }),
+  };
 
-  if (type) filtered = filtered.filter((t) => t.type === type);
-  if (categoryId) filtered = filtered.filter((t) => t.categoryId === categoryId);
-  if (paymentMethod) filtered = filtered.filter((t) => t.paymentMethod === paymentMethod);
-  if (startDate) filtered = filtered.filter((t) => t.date >= startDate);
-  if (endDate) filtered = filtered.filter((t) => t.date <= endDate);
-  if (search) {
-    const q = search.toLowerCase();
-    filtered = filtered.filter((t) =>
-      t.description.toLowerCase().includes(q) ||
-      (t.merchant && t.merchant.toLowerCase().includes(q)) ||
-      t.amount.toString().includes(q),
-    );
-  }
+  const orderBy = { [SORT_FIELD_MAP[sort] || 'date']: order as 'asc' | 'desc' };
 
-  filtered.sort((a, b) => {
-    const aVal = a[sort];
-    const bVal = b[sort];
-    if (typeof aVal === 'string') {
-      return order === 'asc' ? aVal.localeCompare(bVal) : bVal.localeCompare(aVal);
-    }
-    return order === 'asc' ? aVal - bVal : bVal - aVal;
-  });
+  const [data, total] = await Promise.all([
+    prisma.transaction.findMany({ where, orderBy, skip: (page - 1) * limit, take: limit }),
+    prisma.transaction.count({ where }),
+  ]);
 
-  const total = filtered.length;
-  const totalPages = Math.ceil(total / limit);
-  const start = (page - 1) * limit;
-  const data = filtered.slice(start, start + limit);
-
-  res.json({ success: true, data: { data, total, page, limit, totalPages } });
+  res.json({ success: true, data: { data, total, page, limit, totalPages: Math.ceil(total / limit) } });
 });
 
-router.get('/:id', (req: Request, res: Response) => {
-  const txn = transactions.find((t) => t.id === req.params.id);
+router.get('/:id', async (req: Request, res: Response) => {
+  const txn = await prisma.transaction.findFirst({
+    where: { id: req.params.id, userId: DEV_USER_ID },
+  });
   if (!txn) return res.status(404).json({ success: false, error: 'Transaction not found' });
   res.json({ success: true, data: txn });
 });
 
-router.post('/', (req: Request, res: Response) => {
+router.post('/', async (req: Request, res: Response) => {
   const parsed = createTransactionSchema.safeParse(req.body);
   if (!parsed.success) {
     return res.status(400).json({ success: false, error: 'Invalid input', details: parsed.error.format() });
   }
 
-  const txn = {
-    id: String(nextId++),
-    userId: req.headers['x-user-id'] || 'dev-user-001',
-    ...parsed.data,
-    createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString(),
-  };
+  const { date, ...rest } = parsed.data;
+  const txn = await prisma.transaction.create({
+    data: { ...rest, date: new Date(date), userId: DEV_USER_ID },
+  });
 
-  transactions.unshift(txn);
   res.status(201).json({ success: true, data: txn });
 });
 
-router.put('/:id', (req: Request, res: Response) => {
-  const idx = transactions.findIndex((t) => t.id === req.params.id);
-  if (idx === -1) return res.status(404).json({ success: false, error: 'Transaction not found' });
+router.put('/:id', async (req: Request, res: Response) => {
+  const existing = await prisma.transaction.findFirst({
+    where: { id: req.params.id, userId: DEV_USER_ID },
+  });
+  if (!existing) return res.status(404).json({ success: false, error: 'Transaction not found' });
 
   const parsed = updateTransactionSchema.safeParse(req.body);
   if (!parsed.success) {
     return res.status(400).json({ success: false, error: 'Invalid input', details: parsed.error.format() });
   }
 
-  transactions[idx] = { ...transactions[idx], ...parsed.data, updatedAt: new Date().toISOString() };
-  res.json({ success: true, data: transactions[idx] });
+  const { date, ...rest } = parsed.data;
+  const txn = await prisma.transaction.update({
+    where: { id: req.params.id },
+    data: { ...rest, ...(date && { date: new Date(date) }) },
+  });
+
+  res.json({ success: true, data: txn });
 });
 
-router.delete('/:id', (req: Request, res: Response) => {
-  const idx = transactions.findIndex((t) => t.id === req.params.id);
-  if (idx === -1) return res.status(404).json({ success: false, error: 'Transaction not found' });
+router.delete('/:id', async (req: Request, res: Response) => {
+  const existing = await prisma.transaction.findFirst({
+    where: { id: req.params.id, userId: DEV_USER_ID },
+  });
+  if (!existing) return res.status(404).json({ success: false, error: 'Transaction not found' });
 
-  transactions.splice(idx, 1);
+  await prisma.transaction.delete({ where: { id: req.params.id } });
   res.json({ success: true, message: 'Transaction deleted' });
 });
 
-router.post('/bulk', (req: Request, res: Response) => {
+router.post('/bulk', async (req: Request, res: Response) => {
   const { items } = req.body;
   if (!Array.isArray(items) || items.length === 0) {
     return res.status(400).json({ success: false, error: 'items array is required' });
   }
 
-  const created = items.map((item: Record<string, unknown>) => ({
-    id: String(nextId++),
-    userId: req.headers['x-user-id'] || 'dev-user-001',
-    ...item,
-    createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString(),
+  const data = items.map((item: Record<string, unknown>) => ({
+    userId: DEV_USER_ID,
+    type: (item.type || 'expense') as 'income' | 'expense',
+    amount: item.amount as number,
+    currency: (item.currency || 'USD') as 'USD' | 'EUR' | 'GBP' | 'INR' | 'JPY' | 'CAD' | 'AUD',
+    description: item.description as string,
+    merchant: (item.merchant as string) || null,
+    categoryId: item.categoryId as string,
+    paymentMethod: (item.paymentMethod || 'other') as 'cash' | 'credit_card' | 'debit_card' | 'bank_transfer' | 'upi' | 'other',
+    date: new Date(item.date as string),
+    notes: (item.notes as string) || null,
+    status: (item.status || 'cleared') as 'pending' | 'cleared' | 'flagged',
+    isRecurring: (item.isRecurring as boolean) || false,
   }));
 
-  transactions.unshift(...created);
+  const result = await prisma.transaction.createMany({ data });
+  const created = await prisma.transaction.findMany({
+    where: { userId: DEV_USER_ID },
+    orderBy: { createdAt: 'desc' },
+    take: result.count,
+  });
+
   res.status(201).json({ success: true, data: created });
 });
 
-router.delete('/bulk', (req: Request, res: Response) => {
+router.delete('/bulk', async (req: Request, res: Response) => {
   const { ids } = req.body;
   if (!Array.isArray(ids) || ids.length === 0) {
     return res.status(400).json({ success: false, error: 'ids array is required' });
   }
 
-  const idSet = new Set(ids);
-  for (let i = transactions.length - 1; i >= 0; i--) {
-    if (idSet.has(transactions[i].id)) {
-      transactions.splice(i, 1);
-    }
-  }
+  const result = await prisma.transaction.deleteMany({
+    where: { id: { in: ids }, userId: DEV_USER_ID },
+  });
 
-  res.json({ success: true, message: `${ids.length} transaction(s) deleted` });
+  res.json({ success: true, message: `${result.count} transaction(s) deleted` });
 });
 
 export default router;

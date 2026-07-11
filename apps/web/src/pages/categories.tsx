@@ -1,24 +1,45 @@
 import { useState, useEffect } from 'react';
-import { Plus, X, Check, Tags, Pencil, Trash2, Loader2 } from 'lucide-react';
+import {
+  Plus, X, Check, Tags, Pencil, Trash2, Loader2,
+  ShoppingCart, Car, Home, Utensils, Heart, Gamepad2,
+  BookOpen, Gift, Plane, Briefcase, Zap, DollarSign,
+} from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Select } from '@/components/ui/select';
 import api from '@/lib/api';
 import type { Category } from '@finbrain/shared';
 
+const ICON_MAP: Record<string, React.ComponentType<{ className?: string; style?: React.CSSProperties }>> = {
+  'shopping-cart': ShoppingCart,
+  car: Car,
+  house: Home,
+  utensils: Utensils,
+  heart: Heart,
+  gamepad: Gamepad2,
+  book: BookOpen,
+  gift: Gift,
+  plane: Plane,
+  briefcase: Briefcase,
+  zap: Zap,
+  'dollar-sign': DollarSign,
+  tags: Tags,
+  folder: Tags,
+};
+
 const ICON_OPTIONS = [
-  { value: 'shopping-cart', label: '🛒' },
-  { value: 'car', label: '🚗' },
-  { value: 'house', label: '🏠' },
-  { value: 'utensils', label: '🍽️' },
-  { value: 'heart', label: '❤️' },
-  { value: 'gamepad', label: '🎮' },
-  { value: 'book', label: '📚' },
-  { value: 'gift', label: '🎁' },
-  { value: 'plane', label: '✈️' },
-  { value: 'briefcase', label: '💼' },
-  { value: 'zap', label: '⚡' },
-  { value: 'dollar-sign', label: '💰' },
+  { value: 'shopping-cart', label: '🛒 Shopping Cart' },
+  { value: 'car', label: '🚗 Car' },
+  { value: 'house', label: '🏠 House' },
+  { value: 'utensils', label: '🍽️ Utensils' },
+  { value: 'heart', label: '❤️ Heart' },
+  { value: 'gamepad', label: '🎮 Gamepad' },
+  { value: 'book', label: '📚 Book' },
+  { value: 'gift', label: '🎁 Gift' },
+  { value: 'plane', label: '✈️ Plane' },
+  { value: 'briefcase', label: '💼 Briefcase' },
+  { value: 'zap', label: '⚡ Zap' },
+  { value: 'dollar-sign', label: '💰 Dollar' },
 ];
 
 const PRESET_COLORS = [
@@ -128,7 +149,9 @@ export default function CategoriesPage() {
       </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-        {categories.map((cat) => (
+        {categories.map((cat) => {
+          const IconComponent = ICON_MAP[cat.icon] || Tags;
+          return (
           <Card key={cat.id} className="group relative overflow-hidden border-l-[3px]" style={{ borderLeftColor: cat.color }}>
             <CardHeader className="pb-2">
               <div className="flex items-center justify-between">
@@ -137,7 +160,7 @@ export default function CategoriesPage() {
                     className="flex h-10 w-10 items-center justify-center rounded-lg"
                     style={{ backgroundColor: `${cat.color}15` }}
                   >
-                    <Tags className="h-5 w-5" style={{ color: cat.color }} />
+                    <IconComponent className="h-5 w-5" style={{ color: cat.color }} />
                   </div>
                   <CardTitle className="text-sm font-medium">{cat.name}</CardTitle>
                 </div>
@@ -159,7 +182,8 @@ export default function CategoriesPage() {
               </div>
             </CardContent>
           </Card>
-        ))}
+          );
+        })}
       </div>
 
       {showForm && (
@@ -192,7 +216,7 @@ export default function CategoriesPage() {
                       key={color}
                       type="button"
                       onClick={() => setForm((f) => ({ ...f, color }))}
-                      className={`h-8 w-8 rounded-lg border-2 transition-all ${form.color === color ? 'border-white scale-110' : 'border-transparent'}`}
+                      className={`h-8 w-8 rounded-lg border-2 transition-all duration-200 hover:scale-110 ${form.color === color ? 'border-white scale-110 shadow-lg' : 'border-transparent hover:border-white/30'}`}
                       style={{ backgroundColor: color }}
                     >
                       {form.color === color && <Check className="h-4 w-4 mx-auto text-white drop-shadow" />}
