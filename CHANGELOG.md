@@ -2,6 +2,21 @@
 
 All notable changes to FinBrain will be documented in this file.
 
+## 0.5.0 — 2026-07-11
+
+### Added
+- Savings Goals page with full CRUD, contributions, progress bars, on-track detection (10 icons, 9 goal types)
+- Analytics page with monthly income/expenses bar, cumulative trend line, day-of-week spending, category breakdown, top 10 merchants, time period filter
+- Reports page with monthly/quarterly/annual report types, period navigation, category breakdown, top merchants, CSV export, print-to-PDF
+- AI Insights page with financial health score (SVG gauge), auto-generated smart insight cards (alerts, suggestions, observations), and Ask FinBrain chat Q&A
+- Help & Support page with FAQ accordion, quick start guide, keyboard shortcuts reference
+
+### Fixed
+- Plaid link no longer hardcodes invalid `categoryId` '10' — now fetches categories and uses 'Other' as default
+- Bulk transaction import validates `categoryId` against existing DB categories before insert, falls back to 'Other' for invalid IDs
+- Server no longer crashes on unhandled promise rejections — added global Express error handler + process-level `unhandledRejection` handler
+- Select dropdown option text unreadable in dark mode — added explicit `select option` styling
+
 ## 0.4.0 — 2026-07-11
 
 ### Added
