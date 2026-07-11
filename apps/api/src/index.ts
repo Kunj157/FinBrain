@@ -14,6 +14,7 @@ import transactionsRoutes from './routes/transactions';
 import categoriesRoutes from './routes/categories';
 import seedRoutes from './routes/seed';
 import budgetsRoutes from './routes/budgets';
+import goalsRoutes from './routes/goals';
 
 const app = express();
 const PORT = process.env.PORT || 4000;
@@ -36,9 +37,16 @@ app.use('/api/v1/transactions', transactionsRoutes);
 app.use('/api/v1/categories', categoriesRoutes);
 app.use('/api/v1/seed', seedRoutes);
 app.use('/api/v1/budgets', budgetsRoutes);
+app.use('/api/v1/goals', goalsRoutes);
 
 app.use((_req, res) => {
   res.status(404).json({ success: false, error: 'Not found' });
+});
+
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+app.use((err: Error, _req: express.Request, res: express.Response, _next: express.NextFunction) => {
+  console.error('Unhandled route error:', err);
+  res.status(500).json({ success: false, error: 'Internal server error' });
 });
 
 async function start() {
@@ -54,6 +62,10 @@ async function start() {
 start().catch((err) => {
   console.error('Failed to start server:', err);
   process.exit(1);
+});
+
+process.on('unhandledRejection', (err) => {
+  console.error('Unhandled rejection:', err);
 });
 
 export default app;
