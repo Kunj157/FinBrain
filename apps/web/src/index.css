@@ -4,6 +4,7 @@
 
 @layer base {
   :root {
+    color-scheme: dark;
     --background: 210 14% 5%;
     --foreground: 210 20% 95%;
     --card: 210 12% 9%;
@@ -103,7 +104,7 @@
 
   .gradient-border::before {
     content: '';
-    @apply absolute inset-0 rounded-[inherit] p-[1px] bg-gradient-to-b from-emerald-500/20 to-transparent;
+    @apply absolute inset-0 rounded-[inherit] p-[1px] bg-gradient-to-b from-emerald-500/20 to-transparent pointer-events-none;
     -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
     mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
     -webkit-mask-composite: xor;
@@ -119,7 +120,7 @@
   }
 
   .card-hover {
-    @apply transition-all duration-300 hover:bg-white/[0.03] hover:border-white/[0.08] hover:shadow-lg hover:shadow-emerald-500/5;
+    @apply transition-all duration-300 hover:bg-white/[0.03] hover:border-white/[0.1] hover:shadow-xl hover:shadow-emerald-500/5 hover:scale-[1.01];
   }
 
   .nav-link {

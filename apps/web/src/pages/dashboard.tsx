@@ -1,13 +1,15 @@
-import { Wallet, TrendingUp, TrendingDown, PiggyBank, Plus, ArrowRightLeft, Target, Brain, Sparkles } from 'lucide-react';
-import { useMemo } from 'react';
+import { Wallet, TrendingUp, TrendingDown, PiggyBank, Plus, ArrowRightLeft, Target, Brain, Sparkles, Loader2 } from 'lucide-react';
+import { useMemo, useEffect, useState, useCallback } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { StatCard } from '@/components/finance/stat-card';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/hooks/use-auth';
-import { localStore } from '@/lib/store';
+import api from '@/lib/api';
 import { formatCurrency, formatDate } from '@/lib/utils';
 import { IncomeExpenseChart, CategoryChart, SpendingTrend } from '@/components/finance/charts';
+import type { Transaction, Category } from '@finbrain/shared';
 
 const quickActions = [
   { label: 'Add Income', icon: TrendingUp, variant: 'positive' as const },
@@ -18,9 +20,68 @@ const quickActions = [
 
 export default function Dashboard() {
   const { user } = useAuth();
-  const summary = localStore.getSummary();
-  const allTransactions = useMemo(() => localStore.getTransactions(), []);
-  const categories = useMemo(() => localStore.getCategories(), []);
+  const navigate = useNavigate();
+  const [allTransactions, setAllTransactions] = useState<Transaction[]>([]);
+  const [categories, setCategories] = useState<Category[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  const fetchData = useCallback(async () => {
+    try {
+      const [txnRes, catRes] = await Promise.all([
+        api.get('/transactions?limit=100'),
+        api.get('/categories'),
+      ]);
+      setAllTransactions(txnRes.data.data.data);
+      setCategories(catRes.data.data);
+    } catch {
+      // silent
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchData();
+    const onVisible = () => { if (!document.hidden) fetchData(); };
+    document.addEventListener('visibilitychange', onVisible);
+    return () => document.removeEventListener('visibilitychange', onVisible);
+  }, [fetchData]);
+
+  const summary = useMemo(() => {
+    const now = new Date();
+    const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+    const lastMonthStart = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+
+    const monthly = allTransactions.filter((t) => new Date(t.date) >= monthStart);
+    const lastMonth = allTransactions.filter((t) => {
+      const d = new Date(t.date);
+      return d >= lastMonthStart && d < monthStart;
+    });
+
+    const income = monthly.filter((t) => t.type === 'income').reduce((s, t) => s + t.amount, 0);
+    const expenses = monthly.filter((t) => t.type === 'expense').reduce((s, t) => s + t.amount, 0);
+    const lastMonthIncome = lastMonth.filter((t) => t.type === 'income').reduce((s, t) => s + t.amount, 0);
+    const lastMonthExpenses = lastMonth.filter((t) => t.type === 'expense').reduce((s, t) => s + t.amount, 0);
+
+    const allIncome = allTransactions.filter((t) => t.type === 'income').reduce((s, t) => s + t.amount, 0);
+    const allExpenses = allTransactions.filter((t) => t.type === 'expense').reduce((s, t) => s + t.amount, 0);
+
+    const incomeChange = lastMonthIncome > 0 ? Math.round(((income - lastMonthIncome) / lastMonthIncome) * 100) : 0;
+    const expenseChange = lastMonthExpenses > 0 ? Math.round(((expenses - lastMonthExpenses) / lastMonthExpenses) * 100) : 0;
+
+    const cur = (user?.currency || 'USD') as string;
+
+    return {
+      currentBalance: allIncome - allExpenses,
+      monthlyIncome: income,
+      monthlyExpenses: expenses,
+      savings: income - expenses,
+      currency: cur,
+      incomeChange,
+      expenseChange,
+    };
+  }, [allTransactions, user?.currency]);
+
   const categoryMap = useMemo(() => {
     const map: Record<string, string> = {};
     for (const c of categories) {
@@ -31,6 +92,14 @@ export default function Dashboard() {
 
   const currency = user?.currency || 'USD';
   const firstName = user?.name?.split(' ')[0] || 'there';
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center min-h-[60vh]">
+        <Loader2 className="h-8 w-8 text-muted-foreground animate-spin" />
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-8 animate-fade-in">
@@ -51,7 +120,6 @@ export default function Dashboard() {
         <StatCard
           title="Current Balance"
           value={summary.currentBalance}
-          change={summary.savings > 0 ? 12 : -5}
           icon={Wallet}
           variant={summary.currentBalance >= 0 ? 'positive' : 'negative'}
           currency={currency}
@@ -59,6 +127,7 @@ export default function Dashboard() {
         <StatCard
           title="Monthly Income"
           value={summary.monthlyIncome}
+          change={summary.incomeChange}
           icon={TrendingUp}
           variant="positive"
           currency={currency}
@@ -66,6 +135,7 @@ export default function Dashboard() {
         <StatCard
           title="Monthly Expenses"
           value={summary.monthlyExpenses}
+          change={summary.expenseChange}
           icon={TrendingDown}
           variant="negative"
           currency={currency}
@@ -83,7 +153,12 @@ export default function Dashboard() {
         {quickActions.map((action) => (
           <button
             key={action.label}
-            className="flex items-center gap-3 rounded-xl border border-white/[0.06] bg-white/[0.02] p-4 hover:bg-white/[0.04] hover:border-white/[0.1] transition-all duration-200 group"
+            onClick={() => {
+              if (action.label === 'Add Income' || action.label === 'Add Expense') navigate('/transactions');
+              else if (action.label === 'Create Budget') navigate('/budgets');
+              else if (action.label === 'Add Goal') navigate('/goals');
+            }}
+            className="flex items-center gap-3 rounded-xl border border-white/[0.06] bg-white/[0.02] p-4 hover:bg-white/[0.04] hover:border-white/[0.1] transition-all duration-200 group cursor-pointer"
           >
             <div className={`flex h-10 w-10 items-center justify-center rounded-lg ${
               action.variant === 'positive' ? 'bg-emerald-500/10 text-emerald-400' :
@@ -116,7 +191,7 @@ export default function Dashboard() {
           </CardHeader>
           <CardContent>
             <div className="h-64 flex items-center justify-center">
-              <div className="w-full max-w-[220px]">
+              <div className="w-full max-w-[280px] overflow-hidden">
                 <CategoryChart transactions={allTransactions} categories={categories} />
               </div>
             </div>
@@ -139,7 +214,7 @@ export default function Dashboard() {
           <CardHeader>
             <div className="flex items-center justify-between">
               <CardTitle>Recent Transactions</CardTitle>
-              <Button variant="ghost" size="sm" className="text-xs gap-1">
+              <Button variant="ghost" size="sm" className="text-xs gap-1" onClick={() => navigate('/transactions')}>
                 View All
                 <ArrowRightLeft className="h-3 w-3" />
               </Button>
@@ -152,7 +227,7 @@ export default function Dashboard() {
                 <p className="text-xs text-muted-foreground mt-1">Import your data or add a transaction to get started</p>
               </div>
             ) : (
-              <div className="space-y-1">
+              <div className="space-y-1 max-h-[320px] overflow-y-auto pr-1">
                 {allTransactions.slice(0, 5).map((tx) => (
                   <div
                     key={tx.id}

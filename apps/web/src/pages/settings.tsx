@@ -2,7 +2,7 @@ import { useAuth } from '@/hooks/use-auth';
 import { Select } from '@/components/ui/select';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { useNavigate } from 'react-router-dom';
-import { ArrowLeft, Palette, Trash2 } from 'lucide-react';
+import { ArrowLeft, Trash2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { localStore } from '@/lib/store';
 
@@ -33,13 +33,7 @@ export default function SettingsPage() {
       </div>
 
       <Card>
-        <CardHeader>
-          <CardTitle className="text-base flex items-center gap-2">
-            <Palette className="h-4 w-4" />
-            Display Preferences
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
+        <CardContent className="pt-6">
           <div>
             <label className="text-sm font-medium block mb-1.5">Preferred Currency</label>
             <p className="text-xs text-muted-foreground mb-2">
@@ -69,8 +63,10 @@ export default function SettingsPage() {
             variant="destructive"
             size="sm"
             onClick={() => {
-              localStore.clear();
-              navigate('/');
+              if (window.confirm('Are you sure you want to clear all data? This cannot be undone.')) {
+                localStore.clear();
+                navigate('/');
+              }
             }}
           >
             Clear All Data

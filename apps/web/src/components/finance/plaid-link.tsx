@@ -12,14 +12,19 @@ interface PlaidLinkProps {
 export function PlaidLinkButton({ userId, onSuccess }: PlaidLinkProps) {
   const [linkToken, setLinkToken] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
-  const [connected, setConnected] = useState(false);
+  const [status, setStatus] = useState<'idle' | 'token' | 'syncing' | 'done'>('idle');
 
-  const generateToken = useCallback(async () => {
+  const generateToken = useCallback(async (): Promise<string | null> => {
     setLoading(true);
     try {
       const { data } = await api.post('/plaid/create-link-token', { userId });
-      setLinkToken(data.data.linkToken);
+      const token = data.data.linkToken;
+      setLinkToken(token);
+      setStatus('token');
+      return token;
     } catch {
+      return null;
+    } finally {
       setLoading(false);
     }
   }, [userId]);
@@ -27,9 +32,35 @@ export function PlaidLinkButton({ userId, onSuccess }: PlaidLinkProps) {
   const onPlaidSuccess = useCallback(
     async (publicToken: string) => {
       setLoading(true);
+      setStatus('syncing');
       try {
-        await api.post('/plaid/exchange-token', { publicToken });
-        setConnected(true);
+        const { data: exchange } = await api.post('/plaid/exchange-token', { publicToken });
+        const accessToken = exchange.data.accessToken;
+
+        const { data: sync } = await api.post('/plaid/sync-transactions', { accessToken });
+        const added = sync.data.added;
+
+        if (added.length > 0) {
+          const items = added.map((t: any) => ({
+            type: t.amount > 0 ? 'income' as const : 'expense' as const,
+            amount: Math.abs(t.amount),
+            currency: 'USD',
+            description: t.name || '',
+            merchant: t.merchantName || t.name || '',
+            categoryId: '10',
+            paymentMethod: 'other' as const,
+            date: t.date,
+            status: t.pending ? 'pending' as const : 'cleared' as const,
+            isRecurring: false,
+          }));
+          await api.post('/transactions/bulk', { items });
+        }
+
+        setStatus('done');
+        onSuccess?.();
+      } catch {
+        // sync failed but bank is still connected
+        setStatus('done');
         onSuccess?.();
       } finally {
         setLoading(false);
@@ -43,24 +74,27 @@ export function PlaidLinkButton({ userId, onSuccess }: PlaidLinkProps) {
     onSuccess: (publicToken) => onPlaidSuccess(publicToken),
   });
 
-  if (connected) {
+  if (status === 'done') {
     return (
       <div className="flex items-center gap-2 text-sm text-emerald-400">
         <Check className="h-4 w-4" />
-        Bank connected
+        {loading ? 'Importing transactions...' : 'Bank connected'}
       </div>
     );
   }
 
+  const label = status === 'idle' ? 'Connect your bank'
+    : status === 'token' ? 'Open Plaid...'
+    : status === 'syncing' ? 'Importing transactions...'
+    : 'Connected';
+
   return (
     <Button
       onClick={async () => {
-        if (!linkToken) {
-          await generateToken();
-        }
-        open();
+        const token = linkToken || await generateToken();
+        if (token) open();
       }}
-      disabled={loading || !ready}
+      disabled={loading || (!ready && status === 'token')}
       className="gap-2"
     >
       {loading ? (
@@ -68,7 +102,7 @@ export function PlaidLinkButton({ userId, onSuccess }: PlaidLinkProps) {
       ) : (
         <Building2 className="h-4 w-4" />
       )}
-      {loading ? 'Connecting...' : 'Connect your bank'}
+      {label}
     </Button>
   );
 }

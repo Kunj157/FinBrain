@@ -2,6 +2,29 @@
 
 All notable changes to FinBrain will be documented in this file.
 
+## 0.4.0 — 2026-07-11
+
+### Added
+- Database persistence via Prisma/PostgreSQL — all data now survives restarts
+- Auto-seeded default categories on server startup
+- Seed data generator endpoint (`POST /seed/transactions`) for realistic demo data
+- Budgets management page with CRUD, progress bars, and utilization tracking
+- Card hover effects with scale and shadow transitions
+- Category icons mapped to Lucide icon components
+- Sticky table headers with backdrop blur on transactions page
+- Smart pagination with ellipsis on transactions page
+- Escape key closes transaction modal
+- Confirmation dialog before clearing all data in Settings
+
+### Fixed
+- Critical bug: `gradient-border::before` pseudo-element intercepted all clicks inside Card components (missing `pointer-events-none`)
+- Dashboard: real month-over-month percentage changes instead of fake random numbers
+- Dashboard: chart overflow now scrolls instead of clipping
+- Budgets: action buttons hidden by default, revealed on hover
+- Categories: color swatches scale on hover
+- Sidebar: "Ask FinBrain" card now navigates to `/insights`
+- CI: added `prisma generate` to typecheck and build scripts
+
 ## 0.3.0 — 2026-07-10
 
 ### Added
