@@ -1,6 +1,7 @@
 import { Router, type Request, type Response } from 'express';
 import multer from 'multer';
 import fs from 'fs';
+import { suggestCategoryWithML } from '../services/auto-categorize';
 
 const upload = multer({ dest: 'uploads/' });
 const router = Router();
@@ -30,8 +31,18 @@ router.post('/ocr', upload.single('file'), async (req: Request, res: Response) =
       return res.status(response.status).json({ success: false, error: errorBody.detail || 'OCR failed' });
     }
 
-    const result = await response.json() as { data: unknown };
-    res.json({ success: true, data: result.data });
+    const result = await response.json() as { data: { merchant?: string; amount?: number; date?: string; text?: string } };
+    const data = result.data || {};
+
+    let category = null;
+    if (data.merchant) {
+      category = await suggestCategoryWithML(data.merchant, data.text || '');
+    }
+
+    res.json({
+      success: true,
+      data: { ...data, category: category?.categoryName || null, categoryId: category?.categoryId || null },
+    });
   } catch (error) {
     console.error('Receipt OCR error:', error);
     res.status(500).json({ success: false, error: 'OCR service unavailable. Make sure the ML service is running.' });

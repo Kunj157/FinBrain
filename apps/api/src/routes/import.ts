@@ -3,7 +3,7 @@ import multer from 'multer';
 import { parse } from 'csv-parse/sync';
 import fs from 'fs';
 import pdfParse from 'pdf-parse';
-import { suggestCategory } from '../services/auto-categorize';
+import { suggestCategoryWithML } from '../services/auto-categorize';
 import { parsePdfText } from '../services/pdf-parser';
 
 const upload = multer({ dest: 'uploads/' });
@@ -48,11 +48,11 @@ function normalizeColumnNames(record: Record<string, string>): Record<string, st
   return mapped;
 }
 
-function enrichTransaction(record: Record<string, string>) {
+async function enrichTransaction(record: Record<string, string>) {
   const mapped = normalizeColumnNames(record);
   const merchant = mapped.merchant || mapped.vendor || mapped.payee || '';
   const description = mapped.description || mapped.name || mapped.memo || '';
-  const detectedCategory = suggestCategory(merchant, description);
+  const detectedCategory = await suggestCategoryWithML(merchant, description);
   const amount = parseFloat(mapped.amount) || 0;
 
   return {
@@ -73,16 +73,16 @@ router.post('/parse', upload.single('file'), async (req: Request, res: Response)
       return res.status(400).json({ success: false, error: 'No file uploaded' });
     }
 
-    let transactions: ReturnType<typeof enrichTransaction>[];
+    let transactions: Awaited<ReturnType<typeof enrichTransaction>>[];
     let format: 'csv' | 'pdf';
 
     if (isPdf(file)) {
       const records = await parsePdfFile(file.path);
-      transactions = records.map(enrichTransaction);
+      transactions = await Promise.all(records.map(enrichTransaction));
       format = 'pdf';
     } else {
       const records = await parseCsv(file.path);
-      transactions = records.map(enrichTransaction);
+      transactions = await Promise.all(records.map(enrichTransaction));
       format = 'csv';
     }
 
@@ -111,7 +111,7 @@ router.post('/csv', upload.single('file'), async (req: Request, res: Response) =
     }
 
     const records = await parseCsv(file.path);
-    const transactions = records.map(enrichTransaction);
+    const transactions = await Promise.all(records.map(enrichTransaction));
 
     fs.unlinkSync(file.path);
 
@@ -129,26 +129,26 @@ router.post('/csv', upload.single('file'), async (req: Request, res: Response) =
   }
 });
 
-router.post('/suggest-category', (req: Request, res: Response) => {
+router.post('/suggest-category', async (req: Request, res: Response) => {
   const { merchant, description } = req.body;
   if (!merchant && !description) {
     return res.status(400).json({ success: false, error: 'Merchant or description required' });
   }
 
-  const result = suggestCategory(merchant || '', description || '');
+  const result = await suggestCategoryWithML(merchant || '', description || '');
   res.json({ success: true, data: result });
 });
 
-router.post('/suggest-batch', (req: Request, res: Response) => {
+router.post('/suggest-batch', async (req: Request, res: Response) => {
   const { transactions } = req.body as { transactions: { merchant: string; description: string }[] };
   if (!Array.isArray(transactions)) {
     return res.status(400).json({ success: false, error: 'Transactions array required' });
   }
 
-  const suggestions = transactions.map((tx) => ({
+  const suggestions = await Promise.all(transactions.map(async (tx) => ({
     ...tx,
-    suggestion: suggestCategory(tx.merchant || '', tx.description || ''),
-  }));
+    suggestion: await suggestCategoryWithML(tx.merchant || '', tx.description || ''),
+  })));
 
   res.json({ success: true, data: suggestions });
 });

@@ -1,6 +1,7 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from routes.receipts import router as receipts_router
+from routes.categorize import router as categorize_router
 
 app = FastAPI(
     title="FinBrain ML Service",
@@ -17,6 +18,7 @@ app.add_middleware(
 )
 
 app.include_router(receipts_router)
+app.include_router(categorize_router)
 
 
 @app.get("/api/v1/health")

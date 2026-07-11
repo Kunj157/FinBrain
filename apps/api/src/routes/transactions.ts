@@ -2,6 +2,7 @@ import { Router, type Request, type Response } from 'express';
 import { z } from 'zod';
 import { type Prisma } from '@prisma/client';
 import { prisma } from '../prisma';
+import { trainFromUserCorrection } from '../services/auto-categorize';
 
 const router = Router();
 
@@ -101,6 +102,7 @@ router.post('/', async (req: Request, res: Response) => {
 router.put('/:id', async (req: Request, res: Response) => {
   const existing = await prisma.transaction.findFirst({
     where: { id: req.params.id, userId: req.userId },
+    include: { category: true },
   });
   if (!existing) return res.status(404).json({ success: false, error: 'Transaction not found' });
 
@@ -114,6 +116,13 @@ router.put('/:id', async (req: Request, res: Response) => {
     where: { id: req.params.id },
     data: { ...rest, ...(date && { date: new Date(date) }) },
   });
+
+  if (parsed.data.categoryId && existing.merchant && parsed.data.categoryId !== existing.categoryId) {
+    const newCat = await prisma.category.findUnique({ where: { id: parsed.data.categoryId } });
+    if (newCat) {
+      trainFromUserCorrection(existing.merchant, existing.description, newCat.name);
+    }
+  }
 
   res.json({ success: true, data: txn });
 });
