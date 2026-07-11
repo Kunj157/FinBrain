@@ -32,3 +32,4 @@ AGENTS.md
 *.swp
 *.swo
 apps/web/.vite/
+apps/api/uploads/
