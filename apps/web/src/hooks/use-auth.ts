@@ -17,6 +17,7 @@ interface AuthContextType {
   signIn: (email: string, name: string) => void;
   signOut: () => void;
   updateCurrency: (currency: Currency) => void;
+  getToken?: () => Promise<string | null>;
 }
 
 export const AuthContext = createContext<AuthContextType>({
