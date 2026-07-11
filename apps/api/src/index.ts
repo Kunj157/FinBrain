@@ -3,6 +3,8 @@ import cors from 'cors';
 import helmet from 'helmet';
 import morgan from 'morgan';
 
+import { ensureDevUser } from './prisma';
+import { seedDefaultCategories } from './seed-defaults';
 import plaidRoutes from './routes/plaid';
 import csvImportRoutes from './routes/import';
 import currencyRoutes from './routes/currency';
@@ -39,8 +41,19 @@ app.use((_req, res) => {
   res.status(404).json({ success: false, error: 'Not found' });
 });
 
-app.listen(PORT, () => {
-  console.log(`FinBrain API running on port ${PORT}`);
+async function start() {
+  await ensureDevUser();
+  await seedDefaultCategories();
+  console.log('Database initialized with dev user and default categories');
+
+  app.listen(PORT, () => {
+    console.log(`FinBrain API running on port ${PORT}`);
+  });
+}
+
+start().catch((err) => {
+  console.error('Failed to start server:', err);
+  process.exit(1);
 });
 
 export default app;

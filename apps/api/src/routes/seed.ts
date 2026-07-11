@@ -1,42 +1,43 @@
 import { Router, type Request, type Response } from 'express';
-import { transactions } from './transactions';
+import { type Prisma } from '@prisma/client';
+import { prisma, DEV_USER_ID } from '../prisma';
 
 const router = Router();
 
 const merchants: Record<string, { merchants: string[]; descs: string[] }> = {
-  '2': {
+  'Food & Drink': {
     merchants: ['Starbucks', "McDonald's", 'Chipotle', 'Subway', "Domino's", 'Pizza Hut', 'Taco Bell', 'Panera Bread', "Dunkin'", "Wendy's", 'KFC', 'Whole Foods', "Trader Joe's", 'Kroger', 'Costco'],
     descs: ['Coffee', 'Lunch', 'Dinner', 'Groceries', 'Quick bite', 'Takeout'],
   },
-  '3': {
+  Shopping: {
     merchants: ['Amazon', 'Walmart', 'Target', 'Best Buy', 'Nike', "Macy's", 'eBay', 'H&M', 'Zara', 'IKEA'],
     descs: ['Online shopping', 'Clothing', 'Electronics', 'Home decor', 'Accessories'],
   },
-  '4': {
+  Transport: {
     merchants: ['Uber', 'Lyft', 'Shell', 'Exxon', 'BP', 'Chevron', 'Amtrak', 'Greyhound', 'Delta Airlines', 'United Airlines'],
     descs: ['Gas', 'Ride share', 'Bus fare', 'Flight ticket', 'Parking'],
   },
-  '5': {
+  'Bills & Utilities': {
     merchants: ['Verizon', 'AT&T', 'T-Mobile', 'Comcast', 'PG&E', 'National Grid', 'State Farm', 'Allstate', 'Geico'],
     descs: ['Phone bill', 'Internet', 'Electric bill', 'Insurance', 'Water bill', 'Rent'],
   },
-  '6': {
+  Entertainment: {
     merchants: ['Netflix', 'Spotify', 'Disney+', 'HBO Max', 'Hulu', 'AMC Theatres', 'Regal Cinemas', 'Steam', 'PlayStation Store', 'Xbox Store', 'Apple Music'],
     descs: ['Movie ticket', 'Streaming subscription', 'Game purchase', 'Concert ticket'],
   },
-  '7': {
+  Healthcare: {
     merchants: ['CVS Pharmacy', 'Walgreens', 'Kaiser Permanente', 'Mayo Clinic', 'Cleveland Clinic', 'Dental Associates', 'Vision Center'],
     descs: ['Prescription', 'Doctor visit', 'Dental checkup', 'Eye exam', 'Vitamins'],
   },
-  '8': {
+  Education: {
     merchants: ['Coursera', 'Udemy', 'Khan Academy', 'Duolingo', 'Skillshare', 'Harvard Extension', 'Community College'],
     descs: ['Online course', 'Tuition', 'Books', 'Workshop', 'Certification'],
   },
-  '9': {
+  Housing: {
     merchants: ['Property Management Co.', 'Home Depot', "Lowe's", 'Ace Hardware', 'Rent Payment'],
     descs: ['Rent', 'Repair', 'Maintenance', 'Cleaning supplies', 'Furniture'],
   },
-  '10': {
+  Other: {
     merchants: ['Miscellaneous', 'Various'],
     descs: ['Misc purchase', 'Other expense'],
   },
@@ -53,9 +54,14 @@ const incomeDescriptions = [
   { merchant: 'Fiverr', description: 'Gig payment' },
   { merchant: 'Etsy', description: 'Shop earnings' },
   { merchant: 'Refund', description: 'Refund' },
+  { merchant: 'Tax Return', description: 'Annual tax refund' },
+  { merchant: 'Side Gig', description: 'Freelance work' },
+  { merchant: 'Investment', description: 'Capital gains' },
 ];
 
+const currencies = ['USD', 'EUR', 'GBP', 'INR'] as const;
 const paymentMethods = ['cash', 'credit_card', 'debit_card', 'bank_transfer', 'upi', 'other'] as const;
+const expenseStatuses = ['cleared', 'cleared', 'pending', 'flagged'] as const;
 
 function randomDate(start: Date, end: Date): Date {
   return new Date(start.getTime() + Math.random() * (end.getTime() - start.getTime()));
@@ -69,100 +75,154 @@ function randomAmount(min: number, max: number): number {
   return Math.round((Math.random() * (max - min) + min) * 100) / 100;
 }
 
-function generateIncome(idCounter: { value: number }, daysBack: number): Record<string, unknown> {
-  const income = randomItem(incomeDescriptions);
-  const date = randomDate(new Date(Date.now() - daysBack * 86400000), new Date());
-  idCounter.value += 1;
-  return {
-    id: String(idCounter.value),
-    userId: 'dev-user-001',
-    type: 'income',
-    amount: randomAmount(500, 10000),
-    currency: 'USD',
-    description: income.description,
-    merchant: income.merchant,
-    categoryId: '1',
-    paymentMethod: randomItem(paymentMethods),
-    date: date.toISOString().split('T')[0],
-    notes: '',
-    status: 'cleared',
-    isRecurring: Math.random() < 0.3,
-    createdAt: date.toISOString(),
-    updatedAt: date.toISOString(),
-  };
-}
+router.post('/transactions', async (req: Request, res: Response) => {
+  const count = Math.min(Number(req.query.count) || 250, 1000);
 
-function generateExpense(idCounter: { value: number }, daysBack: number): Record<string, unknown> {
-  const date = randomDate(new Date(Date.now() - daysBack * 86400000), new Date());
-  idCounter.value += 1;
-  const catId = String(Math.floor(Math.random() * 9) + 2);
-  const catData = merchants[catId];
-  const merchant = catData ? randomItem(catData.merchants) : 'Store';
-  const desc = catData ? randomItem(catData.descs) : 'Purchase';
+  const categories = await prisma.category.findMany({ where: { userId: DEV_USER_ID } });
+  const catByName = new Map(categories.map((c) => [c.name, c.id]));
 
-  let amount: number;
-  switch (catId) {
-    case '2': amount = randomAmount(3, 200); break;
-    case '3': amount = randomAmount(10, 500); break;
-    case '4': amount = randomAmount(5, 300); break;
-    case '5': amount = randomAmount(20, 600); break;
-    case '6': amount = randomAmount(5, 100); break;
-    case '7': amount = randomAmount(10, 400); break;
-    case '8': amount = randomAmount(10, 500); break;
-    case '9': amount = randomAmount(200, 3000); break;
-    default: amount = randomAmount(5, 200);
+  const incomeCategoryId = catByName.get('Income') || categories[0]?.id;
+  if (!incomeCategoryId) {
+    return res.status(400).json({ success: false, error: 'No categories found. Seed categories first.' });
   }
 
-  return {
-    id: String(idCounter.value),
-    userId: 'dev-user-001',
-    type: 'expense',
-    amount,
-    currency: 'USD',
-    description: desc,
-    merchant,
-    categoryId: catId,
-    paymentMethod: randomItem(paymentMethods),
-    date: date.toISOString().split('T')[0],
-    notes: '',
-    status: randomItem(['cleared', 'cleared', 'cleared', 'pending', 'flagged']),
-    isRecurring: Math.random() < 0.2,
-    createdAt: date.toISOString(),
-    updatedAt: date.toISOString(),
-  };
-}
+  const expenseCatNames = ['Food & Drink', 'Shopping', 'Transport', 'Bills & Utilities', 'Entertainment', 'Healthcare', 'Education', 'Housing', 'Other'] as const;
+  const expenseCatIds = expenseCatNames.map((name) => catByName.get(name)).filter(Boolean) as string[];
 
-router.post('/', (_req: Request, res: Response) => {
-  const count = Math.min(Number(_req.query.count) || 250, 1000);
-
-  const existingIds = transactions.map((t) => Number(t.id));
-  const maxId = existingIds.length > 0 ? Math.max(...existingIds) : 0;
-  const idCounter = { value: maxId };
-
-  const seedData: Record<string, unknown>[] = [];
+  const seedData: Prisma.TransactionCreateManyInput[] = [];
 
   const incomeCount = Math.floor(count * 0.2);
   const expenseCount = count - incomeCount;
 
   for (let i = 0; i < incomeCount; i++) {
-    seedData.push(generateIncome(idCounter, 90));
-  }
-  for (let i = 0; i < expenseCount; i++) {
-    seedData.push(generateExpense(idCounter, 90));
+    const income = randomItem(incomeDescriptions);
+    const date = randomDate(new Date(Date.now() - 90 * 86400000), new Date());
+    seedData.push({
+      userId: DEV_USER_ID,
+      type: 'income',
+      amount: randomAmount(500, 10000),
+      currency: randomItem(currencies),
+      description: income.description,
+      merchant: income.merchant,
+      categoryId: incomeCategoryId,
+      paymentMethod: randomItem(paymentMethods),
+      date,
+      notes: '',
+      status: 'cleared',
+      isRecurring: Math.random() < 0.3,
+    });
   }
 
-  transactions.push(...seedData);
+  for (let i = 0; i < expenseCount; i++) {
+    const date = randomDate(new Date(Date.now() - 90 * 86400000), new Date());
+    const catId = randomItem(expenseCatIds);
+    const catName = expenseCatNames.find((n) => catByName.get(n) === catId) || 'Other';
+    const catData = merchants[catName];
+
+    let amount: number;
+    switch (catName) {
+      case 'Food & Drink': amount = randomAmount(3, 200); break;
+      case 'Shopping': amount = randomAmount(10, 500); break;
+      case 'Transport': amount = randomAmount(5, 300); break;
+      case 'Bills & Utilities': amount = randomAmount(20, 600); break;
+      case 'Entertainment': amount = randomAmount(5, 100); break;
+      case 'Healthcare': amount = randomAmount(10, 400); break;
+      case 'Education': amount = randomAmount(10, 500); break;
+      case 'Housing': amount = randomAmount(200, 3000); break;
+      default: amount = randomAmount(5, 200);
+    }
+
+    const isRecurring = Math.random() < 0.2;
+    seedData.push({
+      userId: DEV_USER_ID,
+      type: 'expense',
+      amount,
+      currency: 'USD',
+      description: catData ? randomItem(catData.descs) : 'Purchase',
+      merchant: catData ? randomItem(catData.merchants) : 'Store',
+      categoryId: catId,
+      paymentMethod: randomItem(paymentMethods),
+      date,
+      notes: isRecurring ? 'Recurring expense' : '',
+      status: isRecurring ? randomItem(['cleared', 'cleared', 'pending']) : randomItem(expenseStatuses),
+      isRecurring,
+    });
+  }
+
+  const billsCategoryId = catByName.get('Bills & Utilities');
+  if (billsCategoryId) {
+    for (let i = 0; i < 10; i++) {
+      const date = randomDate(new Date(Date.now() - 90 * 86400000), new Date());
+      seedData.push({
+        userId: DEV_USER_ID,
+        type: 'expense',
+        amount: randomAmount(50, 500),
+        currency: 'USD',
+        description: 'Monthly subscription',
+        merchant: 'Subscription Service',
+        categoryId: billsCategoryId,
+        paymentMethod: randomItem(paymentMethods),
+        date,
+        notes: 'Recurring monthly charge',
+        status: 'cleared',
+        isRecurring: true,
+      });
+    }
+  }
+
+  const foodCategoryId = catByName.get('Food & Drink');
+  if (foodCategoryId) {
+    for (let i = 0; i < 20; i++) {
+      const date = randomDate(new Date(Date.now() - 7 * 86400000), new Date());
+      seedData.push({
+        userId: DEV_USER_ID,
+        type: 'expense',
+        amount: randomAmount(5, 100),
+        currency: 'USD',
+        description: 'Daily purchase',
+        merchant: 'Retail Store',
+        categoryId: foodCategoryId,
+        paymentMethod: randomItem(paymentMethods),
+        date,
+        notes: 'Daily small purchase',
+        status: randomItem(['cleared', 'pending']),
+        isRecurring: false,
+      });
+    }
+  }
+
+  await prisma.transaction.createMany({ data: seedData });
 
   res.json({
     success: true,
-    data: { count: seedData.length, message: `Generated ${seedData.length} sample transactions` },
+    data: {
+      count: seedData.length,
+      message: `Generated ${seedData.length} sample transactions`,
+      details: { income: incomeCount, expenses: expenseCount, recurring: 10, recent: 20 },
+    },
   });
 });
 
-router.delete('/', (_req: Request, res: Response) => {
-  const count = transactions.length;
-  transactions.length = 0;
-  res.json({ success: true, data: { count, message: `Deleted ${count} transactions` } });
+router.post('/categories', async (_req: Request, res: Response) => {
+  res.json({ success: true, data: { message: 'Categories already seeded on startup' } });
+});
+
+router.delete('/transactions', async (_req: Request, res: Response) => {
+  const result = await prisma.transaction.deleteMany({ where: { userId: DEV_USER_ID } });
+  res.json({ success: true, data: { count: result.count, message: `Deleted ${result.count} transactions` } });
+});
+
+router.delete('/transactions/bulk', async (req: Request, res: Response) => {
+  const { ids } = req.body;
+  if (!Array.isArray(ids) || ids.length === 0) {
+    return res.status(400).json({ success: false, error: 'ids array is required' });
+  }
+
+  const result = await prisma.transaction.deleteMany({
+    where: { id: { in: ids }, userId: DEV_USER_ID },
+  });
+
+  res.json({ success: true, data: { deleted: result.count, message: `${result.count} transaction(s) deleted` } });
 });
 
 export default router;
