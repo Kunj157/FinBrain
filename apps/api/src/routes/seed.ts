@@ -1,6 +1,6 @@
 import { Router, type Request, type Response } from 'express';
 import { type Prisma, type Category } from '@prisma/client';
-import { prisma, DEV_USER_ID } from '../prisma';
+import { prisma } from '../prisma';
 
 const router = Router();
 
@@ -78,7 +78,7 @@ function randomAmount(min: number, max: number): number {
 router.post('/transactions', async (req: Request, res: Response) => {
   const count = Math.min(Number(req.query.count) || 250, 1000);
 
-  const categories = await prisma.category.findMany({ where: { userId: DEV_USER_ID } });
+  const categories = await prisma.category.findMany({ where: { userId: req.userId } });
   const catByName = new Map(categories.map((c: Category) => [c.name, c.id]));
 
   const incomeCategoryId = catByName.get('Income') || categories[0]?.id;
@@ -98,7 +98,7 @@ router.post('/transactions', async (req: Request, res: Response) => {
     const income = randomItem(incomeDescriptions);
     const date = randomDate(new Date(Date.now() - 90 * 86400000), new Date());
     seedData.push({
-      userId: DEV_USER_ID,
+      userId: req.userId,
       type: 'income',
       amount: randomAmount(500, 10000),
       currency: randomItem(currencies),
@@ -134,7 +134,7 @@ router.post('/transactions', async (req: Request, res: Response) => {
 
     const isRecurring = Math.random() < 0.2;
     seedData.push({
-      userId: DEV_USER_ID,
+      userId: req.userId,
       type: 'expense',
       amount,
       currency: 'USD',
@@ -154,7 +154,7 @@ router.post('/transactions', async (req: Request, res: Response) => {
     for (let i = 0; i < 10; i++) {
       const date = randomDate(new Date(Date.now() - 90 * 86400000), new Date());
       seedData.push({
-        userId: DEV_USER_ID,
+        userId: req.userId,
         type: 'expense',
         amount: randomAmount(50, 500),
         currency: 'USD',
@@ -175,7 +175,7 @@ router.post('/transactions', async (req: Request, res: Response) => {
     for (let i = 0; i < 20; i++) {
       const date = randomDate(new Date(Date.now() - 7 * 86400000), new Date());
       seedData.push({
-        userId: DEV_USER_ID,
+        userId: req.userId,
         type: 'expense',
         amount: randomAmount(5, 100),
         currency: 'USD',
@@ -203,12 +203,12 @@ router.post('/transactions', async (req: Request, res: Response) => {
   });
 });
 
-router.post('/categories', async (_req: Request, res: Response) => {
+router.post('/categories', async (req: Request, res: Response) => {
   res.json({ success: true, data: { message: 'Categories already seeded on startup' } });
 });
 
-router.delete('/transactions', async (_req: Request, res: Response) => {
-  const result = await prisma.transaction.deleteMany({ where: { userId: DEV_USER_ID } });
+router.delete('/transactions', async (req: Request, res: Response) => {
+  const result = await prisma.transaction.deleteMany({ where: { userId: req.userId } });
   res.json({ success: true, data: { count: result.count, message: `Deleted ${result.count} transactions` } });
 });
 
@@ -219,7 +219,7 @@ router.delete('/transactions/bulk', async (req: Request, res: Response) => {
   }
 
   const result = await prisma.transaction.deleteMany({
-    where: { id: { in: ids }, userId: DEV_USER_ID },
+    where: { id: { in: ids }, userId: req.userId },
   });
 
   res.json({ success: true, data: { deleted: result.count, message: `${result.count} transaction(s) deleted` } });
