@@ -18,6 +18,7 @@
     "test": "echo 'no tests yet'"
   },
   "dependencies": {
+    "@clerk/backend": "^3.11.4",
     "@finbrain/shared": "workspace:*",
     "@prisma/client": "^5.18.0",
     "cors": "^2.8.5",

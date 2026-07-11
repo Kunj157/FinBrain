@@ -5,6 +5,9 @@ import morgan from 'morgan';
 
 import { ensureDevUser } from './prisma';
 import { seedDefaultCategories } from './seed-defaults';
+import { requireAuth } from './middleware/auth';
+import './types';
+
 import plaidRoutes from './routes/plaid';
 import csvImportRoutes from './routes/import';
 import currencyRoutes from './routes/currency';
@@ -26,6 +29,14 @@ app.use(morgan('dev'));
 
 app.get('/api/v1/health', (_req, res) => {
   res.json({ status: 'ok', service: 'finbrain-api', timestamp: new Date().toISOString() });
+});
+
+app.use('/api/v1', (req, res, next) => {
+  if (req.path === '/health' || process.env.DEV_MODE === 'true') {
+    req.userId = 'dev-user-001';
+    return next();
+  }
+  return requireAuth(req, res, next);
 });
 
 app.use('/api/v1/plaid', plaidRoutes);
