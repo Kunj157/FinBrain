@@ -20,6 +20,15 @@ class TrainRequest(BaseModel):
 class BatchRequest(BaseModel):
     transactions: list[CategorizeRequest]
 
+class BulkSample(BaseModel):
+    merchant: str = ""
+    description: str = ""
+    category: str
+
+class BulkLoadRequest(BaseModel):
+    samples: list[BulkSample]
+    keep_existing: bool = False
+
 
 @router.post("")
 async def categorize(req: CategorizeRequest):
@@ -51,6 +60,17 @@ async def train(req: TrainRequest):
         raise HTTPException(status_code=400, detail="categoryName required")
     categorizer.add_sample(req.merchant, req.description, req.categoryName)
     return {"success": True, "totalSamples": categorizer.samples_count}
+
+
+@router.post("/load-bulk")
+async def load_bulk(req: BulkLoadRequest):
+    if not req.samples:
+        raise HTTPException(status_code=400, detail="samples array required")
+    result = categorizer.load_bulk(
+        [s.model_dump() for s in req.samples],
+        keep_existing=req.keep_existing,
+    )
+    return {"success": True, "data": result}
 
 
 @router.post("/retrain")

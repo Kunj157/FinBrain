@@ -71,3 +71,28 @@ export async function trainCategoryML(
     // fire-and-forget, don't block
   }
 }
+
+export interface BulkSample {
+  merchant: string;
+  description: string;
+  category: string;
+}
+
+export async function loadBulkML(
+  samples: BulkSample[],
+  keepExisting = false,
+): Promise<{ success: boolean; samplesUsed: number; accuracy?: number } | null> {
+  try {
+    const response = await fetch(`${ML_SERVICE_URL}/api/v1/categorize/load-bulk`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ samples, keep_existing: keepExisting }),
+      signal: AbortSignal.timeout(30000),
+    });
+    if (!response.ok) return null;
+    const result = await response.json() as { success: boolean; data: { success: boolean; samplesUsed: number; accuracy?: number } };
+    return result.data;
+  } catch {
+    return null;
+  }
+}

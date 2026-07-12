@@ -109,6 +109,31 @@ class Categorizer:
             writer.writerow({"merchant": merchant, "description": description, "category": category})
         self._loaded = False
 
+    def load_bulk(self, samples: list[dict], keep_existing: bool = False) -> dict:
+        self.load()
+        if not samples:
+            return {"success": False, "error": "No samples provided", "samplesUsed": 0}
+
+        if not keep_existing:
+            self._all_samples = list(samples)
+            self._loaded = False
+        else:
+            existing_ids = {(s.get("merchant", ""), s.get("description", ""), s.get("category", "")) for s in self._all_samples}
+            new_count = 0
+            for s in samples:
+                key = (s.get("merchant", ""), s.get("description", ""), s.get("category", ""))
+                if key not in existing_ids:
+                    self._all_samples.append(s)
+                    existing_ids.add(key)
+                    new_count += 1
+
+        with open(SAMPLES_PATH, "w", newline="") as f:
+            writer = csv.DictWriter(f, fieldnames=["merchant", "description", "category"])
+            writer.writeheader()
+            writer.writerows(self._all_samples)
+
+        return self.retrain()
+
     def retrain(self) -> dict:
         self.load()
         if not self._all_samples:

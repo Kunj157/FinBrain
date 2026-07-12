@@ -2,6 +2,7 @@ import { Router, type Request, type Response } from 'express';
 import { type Prisma, type Category } from '@prisma/client';
 import { prisma } from '../prisma';
 import { seedDefaultCategories } from '../seed-defaults';
+import { loadBulkML } from '../services/auto-categorize-ml';
 
 const router = Router();
 
@@ -232,6 +233,54 @@ router.delete('/transactions/bulk', async (req: Request, res: Response) => {
   });
 
   res.json({ success: true, data: { deleted: result.count, message: `${result.count} transaction(s) deleted` } });
+});
+
+router.post('/ml-categorizer', async (req: Request, res: Response) => {
+  try {
+    const transactions = await prisma.transaction.findMany({
+      where: { userId: req.userId, merchant: { not: null } },
+      include: { category: true },
+    });
+
+    if (transactions.length === 0) {
+      return res.json({ success: true, data: { message: 'No transactions to train on. Generate sample data first via POST /seed/transactions.', samplesUsed: 0 } });
+    }
+
+    const seen = new Set<string>();
+    const samples: { merchant: string; description: string; category: string }[] = [];
+
+    for (const tx of transactions) {
+      const merchant = (tx.merchant || '').trim();
+      const description = (tx.description || '').trim();
+      const categoryName = tx.category?.name || 'Other';
+      if (!merchant && !description) continue;
+      const key = `${merchant}|${description}|${categoryName}`;
+      if (seen.has(key)) continue;
+      seen.add(key);
+      samples.push({ merchant, description, category: categoryName });
+    }
+
+    if (samples.length === 0) {
+      return res.json({ success: true, data: { message: 'No unique samples found.', samplesUsed: 0 } });
+    }
+
+    const result = await loadBulkML(samples, false);
+    if (!result) {
+      return res.status(503).json({ success: false, error: 'ML service unavailable. Make sure it is running on port 8000.' });
+    }
+
+    res.json({
+      success: true,
+      data: {
+        message: `Trained categorizer on ${result.samplesUsed} unique samples from ${transactions.length} transactions`,
+        samplesUsed: result.samplesUsed,
+        accuracy: result.accuracy,
+      },
+    });
+  } catch (error) {
+    console.error('ML categorizer seed error:', error);
+    res.status(500).json({ success: false, error: 'Failed to train categorizer' });
+  }
 });
 
 export default router;
