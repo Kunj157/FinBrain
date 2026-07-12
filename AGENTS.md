@@ -27,7 +27,7 @@ FinBrain is a full-stack AI-powered personal finance tracker. Monorepo with `app
 ### Training Data
 - Generated 10,197 multilingual samples via `apps/ml-service/scripts/generate_training_data.py`
 - Created 4K balanced subset at `apps/ml-service/data/train_4k.csv`
-- 10 categories: Food & Drink, Shopping, Transport, Bills & Utilities, Entertainment, Healthcare, Education, Housing, Income and Other
+- 10 categories: Food & Drink, Shopping, Transport, Bills & Utilities, Entertainment, Healthcare, Education, Housing, Income, Other
 
 ### Trained Model
 - **XLM-RoBERTa-base** fine-tuned for transaction classification
