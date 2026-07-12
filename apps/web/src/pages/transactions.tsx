@@ -1,5 +1,5 @@
 import { useState, useMemo, useCallback, useEffect } from 'react';
-import { Plus, Search, ArrowUpDown, Pencil, Trash2, ArrowRightLeft, X, Check, Loader2, ChevronLeft, ChevronRight, Database, Trash } from 'lucide-react';
+import { Plus, Search, ArrowUpDown, Pencil, Trash2, ArrowRightLeft, X, Check, Loader2, ChevronLeft, ChevronRight, Trash } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -36,7 +36,6 @@ export default function TransactionsPage() {
   const [filters, setFilters] = useState<Filters>({ type: '', categoryId: '', paymentMethod: '', search: '', sort: 'date', order: 'desc' });
   const [page, setPage] = useState(1);
   const [showForm, setShowForm] = useState(false);
-  const [seeding, setSeeding] = useState(false);
   const [clearing, setClearing] = useState(false);
   const [formMode, setFormMode] = useState<FormMode>('create');
   const [editingTxn, setEditingTxn] = useState<Transaction | null>(null);
@@ -124,16 +123,6 @@ export default function TransactionsPage() {
     setShowForm(true);
   };
 
-  const handleSeed = useCallback(async () => {
-    setSeeding(true);
-    try {
-      await api.post('/seed/transactions', null, { params: { count: 250 } });
-      await fetchData();
-    } finally {
-      setSeeding(false);
-    }
-  }, [fetchData]);
-
   const handleClear = useCallback(async () => {
     setClearing(true);
     try {
@@ -157,10 +146,6 @@ export default function TransactionsPage() {
             {clearing ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Trash className="h-3.5 w-3.5" />}
             Clear All
           </Button>
-          <Button variant="outline" size="sm" onClick={handleSeed} disabled={seeding} className="gap-1.5">
-            {seeding ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Database className="h-3.5 w-3.5" />}
-            Generate Sample Data
-          </Button>
           <Button onClick={openCreate} className="gap-2">
             <Plus className="h-4 w-4" />
             Add Transaction
@@ -168,8 +153,8 @@ export default function TransactionsPage() {
         </div>
       </div>
 
-      <Card>
-        <CardHeader className="pb-3">
+      <Card className="p-0">
+        <CardHeader className="p-5 pb-3">
           <div className="flex flex-wrap items-center gap-3">
             <div className="relative flex-1 min-w-[200px]">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />

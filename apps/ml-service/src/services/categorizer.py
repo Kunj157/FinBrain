@@ -11,7 +11,8 @@ from sklearn.linear_model import LogisticRegression
 from sklearn.pipeline import Pipeline
 from sklearn.metrics import accuracy_score
 
-DATA_DIR = Path(os.environ.get("ML_DATA_DIR", "/app/data"))
+_default_data = "/app/data" if Path("/app/data").exists() else str(Path(__file__).resolve().parent.parent.parent / "data")
+DATA_DIR = Path(os.environ.get("ML_DATA_DIR", _default_data))
 BOOTSTRAP_PATH = DATA_DIR / "bootstrap_merchants.json"
 SAMPLES_PATH = DATA_DIR / "user_samples.csv"
 MODEL_PATH = DATA_DIR / "categorizer.pkl"

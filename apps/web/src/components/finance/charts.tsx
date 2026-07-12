@@ -178,8 +178,11 @@ export function SpendingTrend({ transactions }: { transactions: Transaction[] })
     }
 
     for (const txn of transactions) {
-      if (txn.type === 'expense' && days[txn.date] !== undefined) {
-        days[txn.date] += txn.amount;
+      if (txn.type === 'expense') {
+        const dateKey = new Date(txn.date).toISOString().split('T')[0];
+        if (days[dateKey] !== undefined) {
+          days[dateKey] += txn.amount;
+        }
       }
     }
 

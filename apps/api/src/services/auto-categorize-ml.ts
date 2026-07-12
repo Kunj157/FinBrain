@@ -4,6 +4,7 @@ interface MLPrediction {
   categoryName: string | null;
   confidence: number;
   alternatives: { categoryName: string; confidence: number }[];
+  source?: string;
 }
 
 interface MLBatchResult {
@@ -12,6 +13,7 @@ interface MLBatchResult {
   categoryName: string | null;
   confidence: number;
   alternatives: { categoryName: string; confidence: number }[];
+  source?: string;
 }
 
 export async function suggestCategoryML(
@@ -23,7 +25,27 @@ export async function suggestCategoryML(
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ merchant, description }),
-      signal: AbortSignal.timeout(3000),
+      signal: AbortSignal.timeout(5000),
+    });
+
+    if (!response.ok) return null;
+
+    const result = await response.json() as { success: boolean; data: MLPrediction };
+    return result.data;
+  } catch {
+    return null;
+  }
+}
+
+export async function suggestCategoryMLFromText(
+  text: string,
+): Promise<MLPrediction | null> {
+  try {
+    const response = await fetch(`${ML_SERVICE_URL}/api/v1/categorize/text`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ text }),
+      signal: AbortSignal.timeout(5000),
     });
 
     if (!response.ok) return null;
@@ -43,7 +65,7 @@ export async function suggestCategoryMLBatch(
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ transactions }),
-      signal: AbortSignal.timeout(5000),
+      signal: AbortSignal.timeout(10000),
     });
 
     if (!response.ok) return null;
@@ -65,7 +87,7 @@ export async function trainCategoryML(
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ merchant, description, categoryName }),
-      signal: AbortSignal.timeout(2000),
+      signal: AbortSignal.timeout(3000),
     });
   } catch {
     // fire-and-forget, don't block

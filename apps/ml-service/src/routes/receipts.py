@@ -1,13 +1,21 @@
 import io
 import re
 from datetime import datetime
+from logging import getLogger
 
 from fastapi import APIRouter, UploadFile, File, HTTPException
-import pytesseract
-from PIL import Image
+
+try:
+    import pytesseract
+    from PIL import Image
+except ImportError:
+    pytesseract = None
+    Image = None
 
 from services.pdf_parser import parse_pdf, parse_transactions
 from services.classifier import classifier
+
+logger = getLogger(__name__)
 
 router = APIRouter(prefix="/api/v1/receipts", tags=["receipts"])
 
@@ -78,6 +86,8 @@ def extract_date(text: str) -> str | None:
 
 @router.post("/ocr")
 async def ocr_receipt(file: UploadFile = File(...)):
+    if pytesseract is None:
+        raise HTTPException(status_code=501, detail="pytesseract not installed — OCR unavailable")
     if not file.content_type or not file.content_type.startswith("image/"):
         raise HTTPException(status_code=400, detail="File must be an image")
 

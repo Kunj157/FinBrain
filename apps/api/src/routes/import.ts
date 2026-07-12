@@ -3,6 +3,7 @@ import multer from 'multer';
 import { parse } from 'csv-parse/sync';
 import fs from 'fs';
 import pdfParse from 'pdf-parse';
+import { prisma } from '../prisma';
 import { suggestCategoryWithML } from '../services/auto-categorize';
 import { parsePdfText } from '../services/pdf-parser';
 
@@ -22,17 +23,18 @@ async function parseCsv(filePath: string): Promise<Record<string, string>[]> {
   }) as Record<string, string>[];
 }
 
-async function parsePdfFile(filePath: string): Promise<Record<string, string>[]> {
+async function parsePdfFile(filePath: string): Promise<{ records: Record<string, string>[]; openingBalance: number | null }> {
   const pdfBuffer = fs.readFileSync(filePath);
   const pdfData = await pdfParse(pdfBuffer);
-  const transactions = parsePdfText(pdfData.text);
-  return transactions.map((tx) => ({
+  const { transactions, openingBalance } = parsePdfText(pdfData.text);
+  const records = transactions.map((tx) => ({
     date: tx.date,
     amount: (tx.type === 'expense' ? -tx.amount : tx.amount).toString(),
     description: tx.description,
     merchant: tx.merchant,
     type: tx.type,
   }));
+  return { records, openingBalance };
 }
 
 function normalizeColumnNames(record: Record<string, string>): Record<string, string> {
@@ -66,6 +68,11 @@ async function enrichTransaction(record: Record<string, string>) {
   };
 }
 
+async function resolveCategoryId(categoryName: string | null, catByName: Map<string, string>): Promise<string | null> {
+  if (!categoryName) return null;
+  return catByName.get(categoryName) || catByName.get('Other') || null;
+}
+
 router.post('/parse', upload.single('file'), async (req: Request, res: Response) => {
   try {
     const file = req.file as Express.Multer.File | undefined;
@@ -73,13 +80,18 @@ router.post('/parse', upload.single('file'), async (req: Request, res: Response)
       return res.status(400).json({ success: false, error: 'No file uploaded' });
     }
 
+    const categories = await prisma.category.findMany({ where: { userId: req.userId } });
+    const catByName = new Map(categories.map((c) => [c.name, c.id]));
+
     let transactions: Awaited<ReturnType<typeof enrichTransaction>>[];
     let format: 'csv' | 'pdf';
 
     if (isPdf(file)) {
-      const records = await parsePdfFile(file.path);
-      transactions = await Promise.all(records.map(enrichTransaction));
+      const { records, openingBalance } = await parsePdfFile(file.path);
+      const enriched = await Promise.all(records.map(enrichTransaction));
+      transactions = enriched;
       format = 'pdf';
+      (req as any)._openingBalance = openingBalance;
     } else {
       const records = await parseCsv(file.path);
       transactions = await Promise.all(records.map(enrichTransaction));
@@ -88,12 +100,20 @@ router.post('/parse', upload.single('file'), async (req: Request, res: Response)
 
     fs.unlinkSync(file.path);
 
+    const resolved = await Promise.all(transactions.map(async (tx) => ({
+      ...tx,
+      categoryId: await resolveCategoryId(tx.category, catByName),
+    })));
+
+    const openingBalance = (req as any)._openingBalance as number | null;
+
     res.json({
       success: true,
       data: {
         format,
-        total: transactions.length,
-        preview: transactions.slice(0, 10),
+        total: resolved.length,
+        preview: resolved,
+        openingBalance,
       },
     });
   } catch (error) {
@@ -110,16 +130,24 @@ router.post('/csv', upload.single('file'), async (req: Request, res: Response) =
       return res.status(400).json({ success: false, error: 'No file uploaded' });
     }
 
+    const categories = await prisma.category.findMany({ where: { userId: req.userId } });
+    const catByName = new Map(categories.map((c) => [c.name, c.id]));
+
     const records = await parseCsv(file.path);
     const transactions = await Promise.all(records.map(enrichTransaction));
 
     fs.unlinkSync(file.path);
 
+    const resolved = await Promise.all(transactions.map(async (tx) => ({
+      ...tx,
+      categoryId: await resolveCategoryId(tx.category, catByName),
+    })));
+
     res.json({
       success: true,
       data: {
-        total: transactions.length,
-        preview: transactions.slice(0, 10),
+        total: resolved.length,
+        preview: resolved,
         columns: records.length > 0 ? Object.keys(records[0]) : [],
       },
     });

@@ -48,11 +48,21 @@ export default function Dashboard() {
   }, [fetchData]);
 
   const summary = useMemo(() => {
-    const now = new Date();
-    const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
-    const lastMonthStart = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+    if (allTransactions.length === 0) {
+      return { currentBalance: 0, monthlyIncome: 0, monthlyExpenses: 0, savings: 0, currency: user?.currency || 'USD', incomeChange: 0, expenseChange: 0 };
+    }
 
-    const monthly = allTransactions.filter((t) => new Date(t.date) >= monthStart);
+    // Find the most recent transaction date to determine "current" month
+    const sortedDates = allTransactions.map((t) => new Date(t.date).getTime()).sort((a, b) => b - a);
+    const latestDate = new Date(sortedDates[0]);
+    const monthStart = new Date(latestDate.getFullYear(), latestDate.getMonth(), 1);
+    const lastMonthStart = new Date(latestDate.getFullYear(), latestDate.getMonth() - 1, 1);
+    const monthEnd = new Date(latestDate.getFullYear(), latestDate.getMonth() + 1, 0, 23, 59, 59);
+
+    const monthly = allTransactions.filter((t) => {
+      const d = new Date(t.date);
+      return d >= monthStart && d <= monthEnd;
+    });
     const lastMonth = allTransactions.filter((t) => {
       const d = new Date(t.date);
       return d >= lastMonthStart && d < monthStart;

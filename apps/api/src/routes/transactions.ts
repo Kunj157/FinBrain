@@ -148,6 +148,7 @@ router.post('/bulk', async (req: Request, res: Response) => {
       where: { userId: req.userId },
     });
     const validCatIds = new Set(categories.map((c) => c.id));
+    const catByName = new Map(categories.map((c) => [c.name, c.id]));
     const fallbackCat = categories.find((c) => c.name === 'Other') || categories[0];
 
     const data = items.map((item: Record<string, unknown>) => ({
@@ -157,7 +158,9 @@ router.post('/bulk', async (req: Request, res: Response) => {
       currency: (item.currency || 'USD') as 'USD' | 'EUR' | 'GBP' | 'INR' | 'JPY' | 'CAD' | 'AUD',
       description: item.description as string,
       merchant: (item.merchant as string) || null,
-      categoryId: (validCatIds.has(item.categoryId as string) ? item.categoryId : fallbackCat?.id) as string,
+      categoryId: (validCatIds.has(item.categoryId as string)
+        ? item.categoryId
+        : catByName.get(item.category as string) || fallbackCat?.id) as string,
       paymentMethod: (item.paymentMethod || 'other') as 'cash' | 'credit_card' | 'debit_card' | 'bank_transfer' | 'upi' | 'other',
       date: new Date(item.date as string),
       notes: (item.notes as string) || null,
