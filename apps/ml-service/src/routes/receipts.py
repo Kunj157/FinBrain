@@ -6,6 +6,9 @@ from fastapi import APIRouter, UploadFile, File, HTTPException
 import pytesseract
 from PIL import Image
 
+from services.pdf_parser import parse_pdf, parse_transactions
+from services.classifier import classifier
+
 router = APIRouter(prefix="/api/v1/receipts", tags=["receipts"])
 
 
@@ -25,7 +28,7 @@ def extract_merchant(text: str) -> str | None:
         lower = line.lower()
         if any(kw in lower for kw in skip_keywords):
             continue
-        if re.search(r"\d+\.\d{2}", line):  # contains a price
+        if re.search(r"\d+\.\d{2}", line):
             continue
         if len(line) > 2 and len(line) < 60:
             return line
@@ -90,6 +93,10 @@ async def ocr_receipt(file: UploadFile = File(...)):
         amount = extract_total(text)
         date = extract_date(text)
 
+        category = None
+        if merchant:
+            category = classifier.predict(merchant, "")
+
         return {
             "success": True,
             "data": {
@@ -97,11 +104,42 @@ async def ocr_receipt(file: UploadFile = File(...)):
                 "merchant": merchant,
                 "amount": amount,
                 "date": date,
+                "category": category,
                 "raw": {"merchant": merchant, "amount": amount, "date": date},
             },
         }
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"OCR processing failed: {str(e)}")
+
+
+@router.post("/pdf")
+async def parse_pdf_statement(file: UploadFile = File(...)):
+    if file.content_type != "application/pdf":
+        raise HTTPException(status_code=400, detail="File must be a PDF")
+
+    try:
+        contents = await file.read()
+        text = parse_pdf(contents)
+
+        if not text:
+            return {"success": True, "data": {"text": "", "transactions": [], "message": "No text could be extracted from the PDF"}}
+
+        transactions = parse_transactions(text)
+        categorized = []
+        for tx in transactions:
+            category = classifier.predict(tx["merchant"], "")
+            categorized.append({**tx, "category": category})
+
+        return {
+            "success": True,
+            "data": {
+                "text": text,
+                "transactions": categorized,
+                "totalTransactions": len(categorized),
+            },
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"PDF processing failed: {str(e)}")
 
 
 @router.get("/health")
