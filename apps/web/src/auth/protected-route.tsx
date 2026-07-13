@@ -7,7 +7,7 @@ interface ProtectedRouteProps {
 }
 
 export function ProtectedRoute({ children }: ProtectedRouteProps) {
-  const { isSignedIn, isLoading, user } = useAuth();
+  const { isSignedIn, isLoading } = useAuth();
   const location = useLocation();
 
   if (isLoading) {
@@ -23,10 +23,6 @@ export function ProtectedRoute({ children }: ProtectedRouteProps) {
 
   if (!isSignedIn) {
     return <Navigate to="/sign-in" state={{ from: location }} replace />;
-  }
-
-  if (user && !user.username && location.pathname !== '/complete-profile') {
-    return <Navigate to="/complete-profile" replace />;
   }
 
   return <>{children}</>;

@@ -1,10 +1,12 @@
-import { Wallet, TrendingUp, TrendingDown, PiggyBank, Plus, ArrowRightLeft, Target, Brain, Sparkles, Loader2 } from 'lucide-react';
+import { Wallet, TrendingUp, TrendingDown, PiggyBank, Plus, ArrowRightLeft, Target, Brain, Sparkles, Loader2, Building2, Upload, Database, X } from 'lucide-react';
 import { useMemo, useEffect, useState, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { StatCard } from '@/components/finance/stat-card';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import { PlaidLinkButton } from '@/components/finance/plaid-link';
+import { CsvImport } from '@/components/finance/csv-import';
 import { useAuth } from '@/hooks/use-auth';
 import api from '@/lib/api';
 import { formatCurrency, formatDate } from '@/lib/utils';
@@ -18,12 +20,35 @@ const quickActions = [
   { label: 'Add Goal', icon: Target, variant: 'default' as const },
 ];
 
+const getStartedCards = [
+  {
+    icon: Building2,
+    title: 'Connect your bank',
+    desc: 'Securely import transactions from your bank via Plaid',
+    action: 'import-plaid',
+  },
+  {
+    icon: Upload,
+    title: 'Import a CSV',
+    desc: 'Upload a CSV or PDF bank statement',
+    action: 'import-csv',
+  },
+  {
+    icon: Database,
+    title: 'Try sample data',
+    desc: 'Generate realistic transactions to explore the dashboard',
+    action: 'import-sample',
+  },
+];
+
 export default function Dashboard() {
   const { user } = useAuth();
   const navigate = useNavigate();
   const [allTransactions, setAllTransactions] = useState<Transaction[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
   const [loading, setLoading] = useState(true);
+  const [seeding, setSeeding] = useState(false);
+  const [onboardingAction, setOnboardingAction] = useState<string | null>(null);
 
   const fetchData = useCallback(async () => {
     try {
@@ -46,6 +71,20 @@ export default function Dashboard() {
     document.addEventListener('visibilitychange', onVisible);
     return () => document.removeEventListener('visibilitychange', onVisible);
   }, [fetchData]);
+
+  const handleGetStarted = async (action: string) => {
+    switch (action) {
+      case 'import-sample':
+        setSeeding(true);
+        try {
+          await api.post('/seed/transactions', null, { params: { count: 250 } });
+          await fetchData();
+        } catch { /* silent */ } finally { setSeeding(false); }
+        break;
+      default:
+        setOnboardingAction(action);
+    }
+  };
 
   const summary = useMemo(() => {
     if (allTransactions.length === 0) {
@@ -111,7 +150,56 @@ export default function Dashboard() {
     );
   }
 
-  return (
+  const hasData = allTransactions.length > 0;
+
+  const emptyContent = (
+    <div className="space-y-8 animate-fade-in">
+      <div className="text-center pt-12 pb-4">
+        <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-2xl bg-emerald-500/10 border border-emerald-500/20 mb-6">
+          <Brain className="h-8 w-8 text-emerald-400" />
+        </div>
+        <h1 className="text-3xl font-bold tracking-tight">
+          Welcome to <span className="text-gradient">Fin</span>Brain
+        </h1>
+        <p className="text-muted-foreground mt-2 max-w-md mx-auto">
+          Get started by importing your financial data. You can connect your bank,
+          upload a statement, or generate sample data to explore.
+        </p>
+      </div>
+
+      <div className="grid gap-4 md:grid-cols-2 max-w-2xl mx-auto">
+        {getStartedCards.map((card) => (
+          <button
+            key={card.action}
+            onClick={() => handleGetStarted(card.action)}
+            disabled={seeding && card.action === 'import-sample'}
+            className="flex flex-col items-start gap-3 rounded-xl border border-white/[0.06] bg-white/[0.02] p-5 hover:bg-white/[0.04] hover:border-emerald-500/20 hover:shadow-lg hover:shadow-emerald-500/5 transition-all duration-200 group cursor-pointer text-left disabled:opacity-50"
+          >
+            <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-emerald-500/10 group-hover:bg-emerald-500/20 transition-colors">
+              {seeding && card.action === 'import-sample' ? (
+                <Loader2 className="h-6 w-6 text-emerald-400 animate-spin" />
+              ) : (
+                <card.icon className="h-6 w-6 text-emerald-400" />
+              )}
+            </div>
+            <div>
+              <p className="font-medium text-sm">{card.title}</p>
+              <p className="text-xs text-muted-foreground mt-0.5">{card.desc}</p>
+            </div>
+          </button>
+        ))}
+      </div>
+
+      <p className="text-center text-xs text-muted-foreground pt-4">
+        Already have data?{' '}
+        <button onClick={fetchData} className="text-emerald-400 hover:underline">
+          Refresh
+        </button>
+      </p>
+    </div>
+  );
+
+  const normalContent = (
     <div className="space-y-8 animate-fade-in">
       <div className="flex items-center justify-between">
         <div>
@@ -120,9 +208,9 @@ export default function Dashboard() {
             Welcome back, {firstName}. Here&apos;s your financial overview.
           </p>
         </div>
-        <Button className="gap-2">
-          <Brain className="h-4 w-4" />
-          AI Analysis
+        <Button className="gap-2" onClick={() => navigate('/transactions')}>
+          <Plus className="h-4 w-4" />
+          Add Transaction
         </Button>
       </div>
 
@@ -333,5 +421,41 @@ export default function Dashboard() {
         </Card>
       </div>
     </div>
+  );
+
+  return (
+    <>
+      {hasData ? normalContent : emptyContent}
+      {onboardingAction && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm" onClick={() => setOnboardingAction(null)}>
+          <div className="w-full max-w-lg mx-4 glass rounded-xl max-h-[90vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
+            <div className="flex items-center justify-between p-5 border-b border-white/[0.06]">
+              <h2 className="text-lg font-semibold">
+                {onboardingAction === 'import-plaid' ? 'Connect Your Bank' : 'Import a CSV'}
+              </h2>
+              <button onClick={() => setOnboardingAction(null)} className="p-1.5 rounded-lg hover:bg-white/[0.04]">
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+            <div className="p-5">
+              {onboardingAction === 'import-plaid' ? (
+                <div className="text-center space-y-6">
+                  <Building2 className="h-12 w-12 mx-auto text-emerald-400" />
+                  <p className="text-sm text-muted-foreground">
+                    Connect securely with Plaid to import your transactions.
+                    Sandbox mode is active — no real credentials required.
+                  </p>
+                  <div className="flex justify-center">
+                    <PlaidLinkButton userId={user?.id || 'anon'} onSuccess={() => { setOnboardingAction(null); fetchData(); }} />
+                  </div>
+                </div>
+              ) : (
+                <CsvImport onComplete={() => { setOnboardingAction(null); fetchData(); }} />
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+    </>
   );
 }

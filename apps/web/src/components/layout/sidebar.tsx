@@ -18,7 +18,7 @@ import {
 
 const navItems = [
   { icon: LayoutDashboard, label: 'Dashboard', path: '/' },
-  { icon: Database, label: 'Onboarding', path: '/onboarding' },
+
   { icon: ArrowRightLeft, label: 'Transactions', path: '/transactions' },
   { icon: Tags, label: 'Categories', path: '/categories' },
   { icon: PiggyBank, label: 'Budgets', path: '/budgets' },

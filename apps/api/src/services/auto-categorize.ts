@@ -1,4 +1,5 @@
-import { suggestCategoryML, suggestCategoryMLBatch, suggestCategoryMLFromText, trainCategoryML } from './auto-categorize-ml';
+import { prisma } from '../prisma';
+import { suggestCategoryML, trainCategoryML } from './auto-categorize-ml';
 
 const MERCHANT_CATEGORY_MAP: Record<string, string[]> = {
   'Food & Drink': [
@@ -41,22 +42,17 @@ const MERCHANT_CATEGORY_MAP: Record<string, string[]> = {
   ],
 };
 
-const CATEGORY_IDS: Record<string, string> = {
-  Income: '1',
-  'Food & Drink': '2',
-  Shopping: '3',
-  Transport: '4',
-  'Bills & Utilities': '5',
-  Entertainment: '6',
-  Healthcare: '7',
-  Education: '8',
-  Housing: '10',
-  Other: '11',
-};
+const CONFIDENCE_THRESHOLD = 0.7;
 
-const CONFIDENCE_THRESHOLD = 0.5;
+async function getCategoryIdByName(userId: string, name: string): Promise<string | null> {
+  const cat = await prisma.category.findFirst({
+    where: { userId, name },
+    select: { id: true },
+  });
+  return cat?.id || null;
+}
 
-export function suggestCategory(merchant: string, description: string): { categoryId: string; categoryName: string } | null {
+async function suggestCategory(userId: string, merchant: string, description: string): Promise<{ categoryId: string | null; categoryName: string | null } | null> {
   const merchantLower = merchant.toLowerCase().trim();
   const text = `${merchant} ${description}`.toLowerCase().trim();
   if (!text) return null;
@@ -76,52 +72,32 @@ export function suggestCategory(merchant: string, description: string): { catego
     }
   }
 
-  if (bestMatch && CATEGORY_IDS[bestMatch]) {
-    return { categoryId: CATEGORY_IDS[bestMatch], categoryName: bestMatch };
+  if (bestMatch) {
+    const categoryId = await getCategoryIdByName(userId, bestMatch);
+    return { categoryId, categoryName: bestMatch };
   }
 
   return null;
 }
 
 export async function suggestCategoryWithML(
+  userId: string,
   merchant: string,
   description: string,
 ): Promise<{ categoryId: string | null; categoryName: string | null; confidence?: number } | null> {
   const ml = await suggestCategoryML(merchant, description);
 
   if (ml && ml.categoryName && ml.confidence >= CONFIDENCE_THRESHOLD) {
-    const catId = CATEGORY_IDS[ml.categoryName] || null;
-    return { categoryId: catId, categoryName: ml.categoryName, confidence: ml.confidence };
+    const categoryId = await getCategoryIdByName(userId, ml.categoryName);
+    return { categoryId, categoryName: ml.categoryName, confidence: ml.confidence };
   }
 
-  const rule = suggestCategory(merchant, description);
+  const rule = await suggestCategory(userId, merchant, description);
   if (rule) return { ...rule, confidence: undefined };
 
   if (ml && ml.categoryName && ml.confidence > 0) {
-    const catId = CATEGORY_IDS[ml.categoryName] || null;
-    return { categoryId: catId, categoryName: ml.categoryName, confidence: ml.confidence };
-  }
-
-  return null;
-}
-
-export async function suggestCategoryFromText(
-  text: string,
-): Promise<{ categoryId: string | null; categoryName: string | null; confidence?: number } | null> {
-  const ml = await suggestCategoryMLFromText(text);
-
-  if (ml && ml.categoryName && ml.confidence >= CONFIDENCE_THRESHOLD) {
-    const catId = CATEGORY_IDS[ml.categoryName] || null;
-    return { categoryId: catId, categoryName: ml.categoryName, confidence: ml.confidence };
-  }
-
-  // Try rule-based on full text
-  const rule = suggestCategory(text, '');
-  if (rule) return { ...rule, confidence: undefined };
-
-  if (ml && ml.categoryName && ml.confidence > 0) {
-    const catId = CATEGORY_IDS[ml.categoryName] || null;
-    return { categoryId: catId, categoryName: ml.categoryName, confidence: ml.confidence };
+    const categoryId = await getCategoryIdByName(userId, ml.categoryName);
+    return { categoryId, categoryName: ml.categoryName, confidence: ml.confidence };
   }
 
   return null;

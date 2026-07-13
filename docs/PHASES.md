@@ -6,6 +6,8 @@
 ---
 
 ## Phase 1 — Foundation ✅ (Complete)
+> **Auth**: Clerk JWT verification enforced on all API routes. Frontend uses Clerk components for sign-in/sign-up. 401 responses auto-redirect to login. Dev fallback only when Clerk is unconfigured.
+> **Onboarding**: No forced profile/onboarding wizard. Dashboard is the entry point with Monarch-style empty-state cards (Connect Bank, Import CSV, Sample Data, DevBank). Sidebar Onboarding → Import.
 
 **Goal**: Secure application with working infrastructure and UI shell.
 
@@ -119,40 +121,42 @@
 
 ---
 
-## Phase 3 — Finance Core 📋
+## Phase 3 — Finance Core ✅ (Complete)
 
 **Goal**: Functional expense tracker with CRUD operations.
 
 ### Transactions
-- [ ] Full CRUD for income transactions
-- [ ] Full CRUD for expense transactions
-- [ ] Transaction form with category selector, payment method, date picker
-- [ ] Recurring transaction detection
-- [ ] Transaction detail view/modal
-- [ ] Soft delete with audit log
+- [x] Full CRUD for income transactions
+- [x] Full CRUD for expense transactions
+- [x] Transaction form with category selector, payment method, date picker
+- [ ] Recurring transaction detection *(P3 — heuristic-based, no rules)*
+- [ ] Transaction detail view/modal *(P3 — nice-to-have)*
+- [x] Soft delete with audit log *(P2 — `deletedAt`, restore endpoint, audit trail)*
 
 ### Transaction List
-- [ ] Paginated transaction list with infinite scroll
-- [ ] Search by merchant, description, amount
-- [ ] Filter by type, category, date range, payment method, status
-- [ ] Sort by date, amount, merchant
-- [ ] Bulk actions (delete, categorize, flag)
-- [ ] Export selected transactions to CSV
+- [x] Paginated transaction list with infinite scroll
+- [x] Search by merchant, description, amount
+- [x] Filter by type, category, date range, payment method, status
+- [x] Sort by date, amount, merchant
+- [x] Bulk actions (delete, categorize, flag)
+- [ ] Export selected transactions to CSV *(P3 — CSV done elsewhere)*
 
 ### Categories
-- [ ] Default category set (Food, Transport, Shopping, Bills, etc.)
-- [ ] Category CRUD (custom categories)
-- [ ] Category hierarchy (parent/child)
-- [ ] Color picker per category
-- [ ] Auto-categorization rules (merchant → category)
+- [x] Default category set (Food, Transport, Shopping, Bills, etc.)
+- [x] Category CRUD (custom categories)
+- [ ] Category hierarchy (parent/child) *(P3 — schema ready, no UI)*
+- [x] Color picker per category
+- [x] DistilBERT model fine-tuned on 68k transactions
+- [x] Model integrated into ml-service classifier (sklearn → transformer fallback)
+- [x] Auto-categorization rules (merchant → category)
 
 ### Dashboard Enhancement
-- [ ] Income vs Expenses chart (monthly bar chart)
-- [ ] Category breakdown (doughnut/pie chart)
-- [ ] Spending trend (7-day, 30-day)
-- [ ] Recent transactions list (live)
-- [ ] Cash flow summary
-- [ ] Quick-add transaction button (floating action)
+- [x] Income vs Expenses chart (monthly bar chart)
+- [x] Category breakdown (doughnut/pie chart)
+- [x] Spending trend (7-day, 30-day)
+- [x] Recent transactions list (live)
+- [x] Cash flow summary
+- [x] Quick-add transaction button
 
 ---
 

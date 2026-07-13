@@ -50,11 +50,11 @@ function normalizeColumnNames(record: Record<string, string>): Record<string, st
   return mapped;
 }
 
-async function enrichTransaction(record: Record<string, string>) {
+async function enrichTransaction(userId: string, record: Record<string, string>) {
   const mapped = normalizeColumnNames(record);
   const merchant = mapped.merchant || mapped.vendor || mapped.payee || '';
   const description = mapped.description || mapped.name || mapped.memo || '';
-  const detectedCategory = await suggestCategoryWithML(merchant, description);
+  const detectedCategory = await suggestCategoryWithML(userId, merchant, description);
   const amount = parseFloat(mapped.amount) || 0;
 
   return {
@@ -88,13 +88,12 @@ router.post('/parse', upload.single('file'), async (req: Request, res: Response)
 
     if (isPdf(file)) {
       const { records, openingBalance } = await parsePdfFile(file.path);
-      const enriched = await Promise.all(records.map(enrichTransaction));
-      transactions = enriched;
+      transactions = await Promise.all(records.map((r) => enrichTransaction(req.userId, r)));
       format = 'pdf';
       (req as any)._openingBalance = openingBalance;
     } else {
       const records = await parseCsv(file.path);
-      transactions = await Promise.all(records.map(enrichTransaction));
+      transactions = await Promise.all(records.map((r) => enrichTransaction(req.userId, r)));
       format = 'csv';
     }
 
@@ -134,7 +133,7 @@ router.post('/csv', upload.single('file'), async (req: Request, res: Response) =
     const catByName = new Map(categories.map((c) => [c.name, c.id]));
 
     const records = await parseCsv(file.path);
-    const transactions = await Promise.all(records.map(enrichTransaction));
+    const transactions = await Promise.all(records.map((r) => enrichTransaction(req.userId, r)));
 
     fs.unlinkSync(file.path);
 
@@ -163,7 +162,7 @@ router.post('/suggest-category', async (req: Request, res: Response) => {
     return res.status(400).json({ success: false, error: 'Merchant or description required' });
   }
 
-  const result = await suggestCategoryWithML(merchant || '', description || '');
+  const result = await suggestCategoryWithML(req.userId, merchant || '', description || '');
   res.json({ success: true, data: result });
 });
 
@@ -175,7 +174,7 @@ router.post('/suggest-batch', async (req: Request, res: Response) => {
 
   const suggestions = await Promise.all(transactions.map(async (tx) => ({
     ...tx,
-    suggestion: await suggestCategoryWithML(tx.merchant || '', tx.description || ''),
+    suggestion: await suggestCategoryWithML(req.userId, tx.merchant || '', tx.description || ''),
   })));
 
   res.json({ success: true, data: suggestions });

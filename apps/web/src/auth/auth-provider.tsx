@@ -7,9 +7,8 @@ interface AuthProviderProps {
 
 export function AuthProvider({ children }: AuthProviderProps) {
   const hasClerkKey = !!import.meta.env.VITE_CLERK_PUBLISHABLE_KEY;
-  const isDevMode = import.meta.env.VITE_DEV_MODE === 'true';
 
-  if (isDevMode || !hasClerkKey) {
+  if (!hasClerkKey) {
     return <DevAuthProvider>{children}</DevAuthProvider>;
   }
 
@@ -17,16 +16,31 @@ export function AuthProvider({ children }: AuthProviderProps) {
 }
 
 function ClerkLazyProvider({ children }: AuthProviderProps) {
+  const [state, setState] = useState<'loading' | 'error' | 'loaded'>('loading');
   const [Provider, setProvider] = useState<typeof import('./auth-provider-clerk').ClerkAuthProvider | null>(null);
 
   useEffect(() => {
-    import('./auth-provider-clerk').then((m) => setProvider(() => m.ClerkAuthProvider));
+    import('./auth-provider-clerk')
+      .then((m) => {
+        setProvider(() => m.ClerkAuthProvider);
+        setState('loaded');
+      })
+      .catch(() => setState('error'));
   }, []);
 
+  if (state === 'error') {
+    return <DevAuthProvider>{children}</DevAuthProvider>;
+  }
+
   if (!Provider) {
-    return <div className="flex h-screen items-center justify-center bg-background">
-      <div className="h-8 w-8 animate-spin rounded-full border-2 border-emerald-500/30 border-t-emerald-400" />
-    </div>;
+    return (
+      <div className="flex h-screen items-center justify-center bg-background">
+        <div className="text-center space-y-4">
+          <div className="h-8 w-8 animate-spin rounded-full border-2 border-emerald-500/30 border-t-emerald-400 mx-auto" />
+          <p className="text-sm text-muted-foreground">Loading...</p>
+        </div>
+      </div>
+    );
   }
 
   return <Provider>{children}</Provider>;

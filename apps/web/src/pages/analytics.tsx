@@ -74,13 +74,13 @@ export default function Analytics() {
     setLoading(true);
     try {
       const [txnRes, catRes] = await Promise.all([
-        api.get('/transactions?limit=2000'),
+        api.get('/transactions?limit=1000'),
         api.get('/categories'),
       ]);
       setTransactions(txnRes.data.data.data);
       setCategories(catRes.data.data);
-    } catch {
-      // silent
+    } catch (err) {
+      console.error('[analytics] Failed to fetch data:', err);
     } finally {
       setLoading(false);
     }

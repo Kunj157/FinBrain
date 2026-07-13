@@ -361,7 +361,7 @@ function TransactionForm({
     amount: transaction?.amount.toString() || '',
     description: transaction?.description || '',
     merchant: transaction?.merchant || '',
-    categoryId: transaction?.categoryId || '2',
+    categoryId: transaction?.categoryId || '',
     paymentMethod: transaction?.paymentMethod || 'credit_card',
     date: transaction?.date || new Date().toISOString().split('T')[0],
     status: transaction?.status || 'cleared',

@@ -11,7 +11,6 @@ import numpy as np
 from transformers import (
     AutoModelForSequenceClassification,
     AutoTokenizer,
-    pipeline,
 )
 
 logger = logging.getLogger(__name__)
@@ -73,13 +72,6 @@ class TransactionClassifier:
                 self.tokenizer = AutoTokenizer.from_pretrained(str(MODEL_PATH))
                 self.model.to(self._device)
                 self.model.eval()
-                self.classifier = pipeline(
-                    "text-classification",
-                    model=self.model,
-                    tokenizer=self.tokenizer,
-                    device=0 if self._device == "cuda" else -1,
-                    top_k=None,
-                )
                 self._loaded = True
                 logger.info(f"Model loaded on {self._device}")
                 return
@@ -97,24 +89,31 @@ class TransactionClassifier:
         if not text:
             return {"categoryName": None, "confidence": 0.0, "alternatives": []}
 
-        if self.classifier is not None:
-            try:
-                results = self.classifier(text)
-                sorted_results = sorted(results[0], key=lambda x: x["score"], reverse=True)
-                top = sorted_results[0]
-                alternatives = [
-                    {"categoryName": r["label"], "confidence": round(r["score"], 4)}
-                    for r in sorted_results[:5]
-                    if r["score"] > 0.01
-                ]
-                return {
-                    "categoryName": top["label"],
-                    "confidence": round(top["score"], 4),
-                    "alternatives": alternatives,
-                }
-            except Exception as e:
-                logger.error(f"Prediction failed: {e}")
-                return {"categoryName": None, "confidence": 0.0, "alternatives": []}
+        if self.model is not None and self.tokenizer is not None:
+            inputs = self.tokenizer(
+                text,
+                truncation=True,
+                padding=True,
+                max_length=64,
+                return_tensors="pt",
+            )
+            inputs = {k: v.to(self._device) for k, v in inputs.items() if k != "token_type_ids"}
+            with torch.no_grad():
+                outputs = self.model(**inputs)
+            probs = torch.nn.functional.softmax(outputs.logits, dim=-1)
+            scores = probs[0].cpu().numpy()
+            sorted_indices = np.argsort(scores)[::-1]
+            alternatives = [
+                {"categoryName": ID2LABEL[int(i)], "confidence": round(float(scores[i]), 4)}
+                for i in sorted_indices[:5]
+                if scores[i] > 0.01
+            ]
+            top_idx = int(sorted_indices[0])
+            return {
+                "categoryName": ID2LABEL[top_idx],
+                "confidence": round(float(scores[top_idx]), 4),
+                "alternatives": alternatives,
+            }
 
         return {"categoryName": None, "confidence": 0.0, "alternatives": []}
 
@@ -141,7 +140,7 @@ class TransactionClassifier:
 
     @property
     def is_loaded(self) -> bool:
-        return self._loaded and self.classifier is not None
+        return self._loaded and self.model is not None
 
 
 classifier = TransactionClassifier()

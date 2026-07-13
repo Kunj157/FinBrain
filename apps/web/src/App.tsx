@@ -8,7 +8,6 @@ import { AppLayout } from '@/components/layout/app-layout';
 
 import SignIn from '@/auth/sign-in';
 import SignUp from '@/auth/sign-up';
-import CompleteProfile from '@/auth/complete-profile';
 import Dashboard from '@/pages/dashboard';
 import Transactions from '@/pages/transactions';
 import Budgets from '@/pages/budgets';
@@ -20,8 +19,6 @@ import Reports from '@/pages/reports';
 import Insights from '@/pages/insights';
 import SettingsPage from '@/pages/settings';
 import HelpPage from '@/pages/help';
-import Onboarding from '@/pages/onboarding';
-
 export default function App() {
   return (
     <QueryClientProvider client={queryClient}>
@@ -31,7 +28,6 @@ export default function App() {
           <Routes>
             <Route path="/sign-in" element={<SignIn />} />
             <Route path="/sign-up" element={<SignUp />} />
-            <Route path="/complete-profile" element={<CompleteProfile />} />
 
             <Route
               element={
@@ -40,7 +36,6 @@ export default function App() {
                 </ProtectedRoute>
               }
             >
-              <Route path="/onboarding" element={<Onboarding />} />
             <Route path="/" element={<Dashboard />} />
               <Route path="/transactions" element={<Transactions />} />
               <Route path="/categories" element={<Categories />} />

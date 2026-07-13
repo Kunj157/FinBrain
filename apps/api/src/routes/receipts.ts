@@ -36,7 +36,7 @@ router.post('/ocr', upload.single('file'), async (req: Request, res: Response) =
 
     let category = null;
     if (data.merchant) {
-      category = await suggestCategoryWithML(data.merchant, data.text || '');
+      category = await suggestCategoryWithML(req.userId, data.merchant, data.text || '');
     }
 
     res.json({

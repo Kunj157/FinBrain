@@ -96,6 +96,7 @@ async def categorize_batch(req: BatchRequest):
             "description": tx.description,
             "categoryName": pred["categoryName"],
             "confidence": pred["confidence"],
+            "routing": pred.get("routing", "unknown"),
             "alternatives": pred["alternatives"],
             "source": pred.get("source", "none"),
         })
@@ -162,6 +163,9 @@ async def status():
         with open(metrics_path) as f:
             training_info = json.load(f)
 
+    auto_conf = sklearn_categorizer.AUTO_CONFIDENCE if hasattr(sklearn_categorizer, 'AUTO_CONFIDENCE') else 0.0
+    suggest_conf = sklearn_categorizer.SUGGEST_CONFIDENCE if hasattr(sklearn_categorizer, 'SUGGEST_CONFIDENCE') else 0.0
+
     return {
         "success": True,
         "data": {
@@ -170,5 +174,10 @@ async def status():
             "totalSamples": sklearn_categorizer.samples_count,
             "classes": sklearn_categorizer.classes_,
             "training": training_info,
+            "confidenceRouting": {
+                "autoThreshold": auto_conf,
+                "suggestThreshold": suggest_conf,
+            },
+
         },
     }

@@ -39,32 +39,35 @@ export function DOBSelector({ value, onChange }: DOBSelectorProps) {
   const day = parts[2] || '';
 
   const days = useMemo(() => {
-    if (!month || !year) return [];
-    const numDays = getDaysInMonth(parseInt(month), parseInt(year));
+    if (!month) return [];
+    const y = parseInt(year) || currentYear;
+    const numDays = getDaysInMonth(parseInt(month), y);
     return Array.from({ length: numDays }, (_, i) => ({
       value: String(i + 1).padStart(2, '0'),
       label: String(i + 1),
     }));
   }, [month, year]);
 
+  function toIso(y: string, m: string, d: string) {
+    return `${y || ''}-${m || ''}-${d || ''}`;
+  }
+
   const handleMonth = (m: string) => {
     const newDay = day && parseInt(day) > getDaysInMonth(parseInt(m), parseInt(year || String(currentYear)))
       ? ''
       : day;
-    const iso = [year, m, newDay].filter(Boolean).join('-');
-    onChange(iso || '');
+    onChange(toIso(year, m, newDay));
   };
 
   const handleDay = (d: string) => {
-    onChange([year, month, d].filter(Boolean).join('-'));
+    onChange(toIso(year, month, d));
   };
 
   const handleYear = (y: string) => {
     const newDay = day && parseInt(day) > getDaysInMonth(parseInt(month || '1'), parseInt(y))
       ? ''
       : day;
-    const iso = [y, month, newDay].filter(Boolean).join('-');
-    onChange(iso || '');
+    onChange(toIso(y, month, newDay));
   };
 
   return (

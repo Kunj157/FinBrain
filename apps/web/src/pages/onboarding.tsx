@@ -26,15 +26,10 @@ const options = [
 
 export default function Onboarding() {
   const navigate = useNavigate();
-  const { user, isLoading } = useAuth();
+  const { user } = useAuth();
   const currency = user?.currency || 'USD';
   const [step, setStep] = useState<Step>('welcome');
   const [selected, setSelected] = useState<string | null>(null);
-
-  if (!isLoading && user && !user.username) {
-    navigate('/complete-profile', { replace: true });
-    return null;
-  }
 
   const handleComplete = () => {
     navigate('/');

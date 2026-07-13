@@ -15,6 +15,7 @@ _default_data = "/app/data" if Path("/app/data").exists() else str(Path(__file__
 DATA_DIR = Path(os.environ.get("ML_DATA_DIR", _default_data))
 BOOTSTRAP_PATH = DATA_DIR / "bootstrap_merchants.json"
 SAMPLES_PATH = DATA_DIR / "user_samples.csv"
+MERGED_PATH = DATA_DIR / "merged_training_data.csv"
 MODEL_PATH = DATA_DIR / "categorizer.pkl"
 
 
@@ -37,6 +38,13 @@ class Categorizer:
 
         if SAMPLES_PATH.exists():
             with open(SAMPLES_PATH, newline="") as f:
+                reader = csv.DictReader(f)
+                for row in reader:
+                    if row.get("merchant") and row.get("category"):
+                        self._all_samples.append(row)
+
+        if MERGED_PATH.exists():
+            with open(MERGED_PATH, newline="") as f:
                 reader = csv.DictReader(f)
                 for row in reader:
                     if row.get("merchant") and row.get("category"):
@@ -74,17 +82,21 @@ class Categorizer:
         with open(MODEL_PATH, "wb") as f:
             pickle.dump(self.pipeline, f)
 
+    AUTO_CONFIDENCE = 0.80
+    SUGGEST_CONFIDENCE = 0.60
+
     def predict(self, merchant: str, description: str) -> dict:
         self.load()
         text = self._preprocess(merchant, description)
 
         if self.pipeline is None:
-            return {"categoryName": None, "confidence": 0.0, "alternatives": []}
+            return {"categoryName": None, "confidence": 0.0, "alternatives": [], "routing": "uncertain"}
 
         probs = self.pipeline.predict_proba([text])[0]
         top_idx = np.argmax(probs)
         top_class = self.classes_[top_idx]
         top_conf = float(probs[top_idx])
+        margin = float(probs[top_idx] - probs[np.argsort(probs)[-2]])
 
         sorted_idx = np.argsort(probs)[::-1]
         alternatives = [
@@ -93,9 +105,19 @@ class Categorizer:
             if float(probs[i]) > 0.01
         ]
 
+        # Confidence routing
+        if top_conf >= self.AUTO_CONFIDENCE and margin >= 0.10:
+            routing = "auto"
+        elif top_conf >= self.SUGGEST_CONFIDENCE:
+            routing = "suggest"
+        else:
+            routing = "uncertain"
+
         return {
             "categoryName": top_class,
             "confidence": top_conf,
+            "confidenceMargin": round(margin, 4),
+            "routing": routing,
             "alternatives": alternatives,
         }
 

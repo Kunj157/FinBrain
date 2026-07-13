@@ -90,7 +90,6 @@ function ClerkSignInPage() {
 }
 
 export default function SignIn() {
-  const isDevMode = import.meta.env.VITE_DEV_MODE === 'true';
   const hasClerkKey = !!import.meta.env.VITE_CLERK_PUBLISHABLE_KEY;
 
   return (
@@ -110,7 +109,7 @@ export default function SignIn() {
           </p>
         </div>
 
-        {!isDevMode && hasClerkKey ? <ClerkSignInPage /> : <DevSignIn />}
+        {hasClerkKey ? <ClerkSignInPage /> : <DevSignIn />}
 
         <p className="text-center text-xs text-muted-foreground">
           By signing in, you agree to our Terms of Service and Privacy Policy

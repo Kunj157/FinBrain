@@ -111,6 +111,7 @@ model Transaction {
   receiptUrl  String?
   status      TransactionStatus @default(cleared)
   isRecurring Boolean         @default(false)
+  deletedAt   DateTime?
 
   userId String
   user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
@@ -122,6 +123,7 @@ model Transaction {
 
   @@index([userId, date])
   @@index([userId, categoryId])
+  @@index([userId, deletedAt])
   @@map("transactions")
 }
 

@@ -3,7 +3,7 @@ import cors from 'cors';
 import helmet from 'helmet';
 import morgan from 'morgan';
 
-import { ensureDevUser } from './prisma';
+import { ensureDevUser, prisma } from './prisma';
 import { seedDefaultCategories } from './seed-defaults';
 import { requireAuth } from './middleware/auth';
 import './types';
@@ -32,8 +32,10 @@ app.get('/api/v1/health', (_req, res) => {
 });
 
 app.use('/api/v1', (req, res, next) => {
-  if (req.path === '/health' || process.env.DEV_MODE === 'true' || !process.env.CLERK_SECRET_KEY) {
-    req.userId = 'dev-user-001';
+  if (req.path === '/health' || !process.env.CLERK_SECRET_KEY) {
+    if (!process.env.CLERK_SECRET_KEY) {
+      req.userId = 'dev-user-001';
+    }
     return next();
   }
   return requireAuth(req, res, next);
@@ -49,6 +51,16 @@ app.use('/api/v1/seed', seedRoutes);
 app.use('/api/v1/budgets', budgetsRoutes);
 app.use('/api/v1/goals', goalsRoutes);
 app.use('/api/v1/auth', authRoutes);
+
+app.get('/api/v1/audit-logs', async (req, res) => {
+  const { entity, limit: l } = req.query;
+  const logs = await prisma.auditLog.findMany({
+    where: entity ? { entity: entity as string, userId: req.userId } : { userId: req.userId },
+    orderBy: { createdAt: 'desc' },
+    take: Math.min(Number(l) || 20, 100),
+  });
+  res.json({ success: true, data: logs });
+});
 
 app.use((_req, res) => {
   res.status(404).json({ success: false, error: 'Not found' });
