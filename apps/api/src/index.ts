@@ -18,6 +18,8 @@ import seedRoutes from './routes/seed';
 import budgetsRoutes from './routes/budgets';
 import goalsRoutes from './routes/goals';
 import authRoutes from './routes/auth';
+import accountsRoutes from './routes/accounts';
+import rulesRoutes from './routes/rules';
 
 const app = express();
 const PORT = process.env.PORT || 4000;
@@ -51,6 +53,8 @@ app.use('/api/v1/seed', seedRoutes);
 app.use('/api/v1/budgets', budgetsRoutes);
 app.use('/api/v1/goals', goalsRoutes);
 app.use('/api/v1/auth', authRoutes);
+app.use('/api/v1/accounts', accountsRoutes);
+app.use('/api/v1/rules', rulesRoutes);
 
 app.get('/api/v1/audit-logs', async (req, res) => {
   const { entity, limit: l } = req.query;

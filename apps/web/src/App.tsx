@@ -19,6 +19,8 @@ import Reports from '@/pages/reports';
 import Insights from '@/pages/insights';
 import SettingsPage from '@/pages/settings';
 import HelpPage from '@/pages/help';
+import AccountsPage from '@/pages/accounts';
+import RulesPage from '@/pages/rules';
 export default function App() {
   return (
     <QueryClientProvider client={queryClient}>
@@ -47,6 +49,8 @@ export default function App() {
               <Route path="/insights" element={<Insights />} />
               <Route path="/settings" element={<SettingsPage />} />
               <Route path="/help" element={<HelpPage />} />
+              <Route path="/accounts" element={<AccountsPage />} />
+              <Route path="/rules" element={<RulesPage />} />
             </Route>
           </Routes>
         </AuthProvider>

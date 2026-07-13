@@ -80,11 +80,38 @@ async function suggestCategory(userId: string, merchant: string, description: st
   return null;
 }
 
+async function suggestCategoryByRule(
+  userId: string, merchant: string, description: string,
+): Promise<{ categoryId: string | null; categoryName: string | null } | null> {
+  const rules = await prisma.categorizationRule.findMany({
+    where: { userId, isActive: true },
+    include: { category: { select: { id: true, name: true } } },
+    orderBy: { priority: 'desc' },
+  });
+
+  const text = `${merchant} ${description}`.toLowerCase().trim();
+  if (!text) return null;
+
+  for (const rule of rules) {
+    if (rule.merchantPattern && text.includes(rule.merchantPattern.toLowerCase())) {
+      return { categoryId: rule.categoryId, categoryName: rule.category.name };
+    }
+    if (rule.descriptionPattern && text.includes(rule.descriptionPattern.toLowerCase())) {
+      return { categoryId: rule.categoryId, categoryName: rule.category.name };
+    }
+  }
+
+  return null;
+}
+
 export async function suggestCategoryWithML(
   userId: string,
   merchant: string,
   description: string,
 ): Promise<{ categoryId: string | null; categoryName: string | null; confidence?: number } | null> {
+  const byRule = await suggestCategoryByRule(userId, merchant, description);
+  if (byRule) return { ...byRule, confidence: 1.0 };
+
   const ml = await suggestCategoryML(merchant, description);
 
   if (ml && ml.categoryName && ml.confidence >= CONFIDENCE_THRESHOLD) {

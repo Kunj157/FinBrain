@@ -49,15 +49,18 @@ export default function Dashboard() {
   const [loading, setLoading] = useState(true);
   const [seeding, setSeeding] = useState(false);
   const [onboardingAction, setOnboardingAction] = useState<string | null>(null);
+  const [netWorth, setNetWorth] = useState<{ netWorth: number } | null>(null);
 
   const fetchData = useCallback(async () => {
     try {
-      const [txnRes, catRes] = await Promise.all([
+      const [txnRes, catRes, nwRes] = await Promise.all([
         api.get('/transactions?limit=100'),
         api.get('/categories'),
+        api.get('/accounts/net-worth').catch(() => null),
       ]);
       setAllTransactions(txnRes.data.data.data);
       setCategories(catRes.data.data);
+      if (nwRes?.data?.data) setNetWorth(nwRes.data.data);
     } catch {
       // silent
     } finally {
@@ -214,7 +217,16 @@ export default function Dashboard() {
         </Button>
       </div>
 
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-5">
+        {netWorth && (
+          <StatCard
+            title="Net Worth"
+            value={netWorth.netWorth}
+            icon={Wallet}
+            variant={netWorth.netWorth >= 0 ? 'positive' : 'negative'}
+            currency={currency}
+          />
+        )}
         <StatCard
           title="Current Balance"
           value={summary.currentBalance}

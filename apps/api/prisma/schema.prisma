@@ -37,6 +37,16 @@ enum TransactionStatus {
   flagged
 }
 
+enum AccountType {
+  checking
+  savings
+  credit
+  loan
+  investment
+  real_estate
+  other
+}
+
 enum BudgetPeriod {
   weekly
   monthly
@@ -60,16 +70,18 @@ model User {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  transactions      Transaction[]
-  categories        Category[]
-  budgets           Budget[]
-  goals             Goal[]
-  forecasts         Forecast[]
-  recommendations   Recommendation[]
-  financialHealth   FinancialHealth?
-  receipts          Receipt[]
-  notifications     Notification[]
-  auditLogs         AuditLog[]
+  transactions        Transaction[]
+  accounts            Account[]
+  categorizationRules CategorizationRule[]
+  categories          Category[]
+  budgets             Budget[]
+  goals               Goal[]
+  forecasts           Forecast[]
+  recommendations     Recommendation[]
+  financialHealth     FinancialHealth?
+  receipts            Receipt[]
+  notifications       Notification[]
+  auditLogs           AuditLog[]
 
   @@map("users")
 }
@@ -87,14 +99,36 @@ model Category {
 
   parent      Category?   @relation("CategoryHierarchy", fields: [parentId], references: [id])
   children    Category[]  @relation("CategoryHierarchy")
-  transactions Transaction[]
-  budgets     Budget[]
-  goals       Goal[]
+  transactions       Transaction[]
+  categorizationRules CategorizationRule[]
+  budgets            Budget[]
+  goals              Goal[]
 
   createdAt DateTime @default(now())
 
   @@unique([userId, name])
   @@map("categories")
+}
+
+model Account {
+  id        String      @id @default(cuid())
+  name      String
+  type      AccountType
+  balance   Float       @default(0)
+  currency  Currency    @default(USD)
+  institution String?
+  isActive  Boolean     @default(true)
+
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  transactions Transaction[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([userId])
+  @@map("accounts")
 }
 
 model Transaction {
@@ -116,7 +150,9 @@ model Transaction {
   userId String
   user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-  category Category @relation(fields: [categoryId], references: [id])
+  category  Category @relation(fields: [categoryId], references: [id])
+  accountId String?
+  account   Account? @relation(fields: [accountId], references: [id])
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -301,4 +337,23 @@ model AuditLog {
   createdAt DateTime @default(now())
 
   @@map("audit_logs")
+}
+
+model CategorizationRule {
+  id                 String   @id @default(cuid())
+  priority           Int      @default(0)
+  merchantPattern    String?
+  descriptionPattern String?
+  isActive           Boolean  @default(true)
+
+  userId     String
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  categoryId String
+  category   Category @relation(fields: [categoryId], references: [id])
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([userId, priority])
+  @@map("categorization_rules")
 }

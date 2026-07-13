@@ -111,6 +111,41 @@ export interface UserProfile {
   createdAt: string;
 }
 
+export type AccountType = 'checking' | 'savings' | 'credit' | 'loan' | 'investment' | 'real_estate' | 'other';
+
+export interface Account {
+  id: string;
+  userId: string;
+  name: string;
+  type: AccountType;
+  balance: number;
+  currency: Currency;
+  institution?: string;
+  isActive: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface NetWorthData {
+  netWorth: number;
+  totalAssets: number;
+  totalLiabilities: number;
+  accounts: { id: string; name: string; type: AccountType; balance: number; currency: Currency }[];
+}
+
+export interface CategorizationRule {
+  id: string;
+  userId: string;
+  priority: number;
+  merchantPattern?: string;
+  descriptionPattern?: string;
+  categoryId: string;
+  isActive: boolean;
+  category?: { id: string; name: string; color: string };
+  createdAt: string;
+  updatedAt: string;
+}
+
 export interface DashboardSummary {
   currentBalance: number;
   monthlyIncome: number;

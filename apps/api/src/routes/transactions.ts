@@ -21,6 +21,7 @@ const createTransactionSchema = z.object({
   description: z.string().min(1).max(255),
   merchant: z.string().max(255).optional(),
   categoryId: z.string(),
+  accountId: z.string().optional(),
   paymentMethod: z.enum(['cash', 'credit_card', 'debit_card', 'bank_transfer', 'upi', 'other']).default('other'),
   date: z.string(),
   notes: z.string().optional(),
@@ -101,7 +102,8 @@ router.post('/', async (req: Request, res: Response) => {
     return res.status(400).json({ success: false, error: 'Invalid input', details: parsed.error.format() });
   }
 
-  let { date, categoryId, ...rest } = parsed.data;
+  const { date, ...rest } = parsed.data;
+  let categoryId = parsed.data.categoryId;
 
   const validCat = await prisma.category.findFirst({ where: { id: categoryId, userId: req.userId } });
   if (!validCat) {
@@ -180,7 +182,6 @@ router.post('/bulk', async (req: Request, res: Response) => {
       where: { userId: req.userId },
     });
     const validCatIds = new Set(categories.map((c) => c.id));
-    const catByName = new Map(categories.map((c) => [c.name, c.id]));
     const fallbackCat = categories.find((c) => c.name === 'Other') || categories[0];
 
     const data = await Promise.all(items.map(async (item: Record<string, unknown>) => {

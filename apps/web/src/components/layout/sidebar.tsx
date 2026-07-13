@@ -14,13 +14,17 @@ import {
   Settings,
   HelpCircle,
   Database,
+  Building2,
+  ScrollText,
 } from 'lucide-react';
 
 const navItems = [
   { icon: LayoutDashboard, label: 'Dashboard', path: '/' },
 
+  { icon: Building2, label: 'Accounts', path: '/accounts' },
   { icon: ArrowRightLeft, label: 'Transactions', path: '/transactions' },
   { icon: Tags, label: 'Categories', path: '/categories' },
+  { icon: ScrollText, label: 'Rules', path: '/rules' },
   { icon: PiggyBank, label: 'Budgets', path: '/budgets' },
   { icon: Target, label: 'Goals', path: '/goals' },
   { icon: BarChart3, label: 'Analytics', path: '/analytics' },
