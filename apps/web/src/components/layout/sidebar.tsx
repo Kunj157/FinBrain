@@ -20,7 +20,7 @@ import {
 } from 'lucide-react';
 
 const navItems = [
-  { icon: LayoutDashboard, label: 'Dashboard', path: '/' },
+  { icon: LayoutDashboard, label: 'Dashboard', path: '/dashboard' },
 
   { icon: Building2, label: 'Accounts', path: '/accounts' },
   { icon: ArrowRightLeft, label: 'Transactions', path: '/transactions' },

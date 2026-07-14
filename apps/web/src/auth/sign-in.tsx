@@ -11,7 +11,7 @@ function DevSignIn() {
   const [loading, setLoading] = useState(false);
 
   if (isSignedIn) {
-    navigate('/', { replace: true });
+    navigate('/dashboard', { replace: true });
     return null;
   }
 
@@ -22,7 +22,7 @@ function DevSignIn() {
     await new Promise((r) => setTimeout(r, 600));
     const name = email.split('@')[0].replace(/[^a-zA-Z ]/g, ' ');
     signIn(email, name);
-    navigate('/');
+    navigate('/dashboard');
   };
 
   return (
@@ -72,7 +72,7 @@ function ClerkSignInPage() {
   }, []);
 
   if (isSignedIn) {
-    navigate('/', { replace: true });
+    navigate('/dashboard', { replace: true });
     return null;
   }
 
@@ -84,7 +84,7 @@ function ClerkSignInPage() {
 
   return (
     <div className="flex justify-center">
-      <ClerkSignIn routing="hash" signUpUrl="/sign-up" afterSignInUrl="/" />
+      <ClerkSignIn routing="hash" signUpUrl="/sign-up" afterSignInUrl="/dashboard" />
     </div>
   );
 }

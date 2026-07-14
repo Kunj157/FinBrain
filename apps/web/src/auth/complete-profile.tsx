@@ -86,7 +86,7 @@ export default function CompleteProfile() {
   }
 
   if (!user) return <Navigate to="/sign-in" replace />;
-  if (user.username) return <Navigate to="/" replace />;
+  if (user.username) return <Navigate to="/dashboard" replace />;
 
   return (
     <div className="flex min-h-screen flex-col items-center justify-center bg-background">
