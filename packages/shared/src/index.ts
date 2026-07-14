@@ -146,6 +146,33 @@ export interface CategorizationRule {
   updatedAt: string;
 }
 
+export type RecurringFrequency = 'weekly' | 'biweekly' | 'monthly' | 'quarterly' | 'yearly';
+
+export interface RecurringPattern {
+  id: string;
+  merchant: string;
+  description: string;
+  amount: number;
+  avgAmount: number;
+  frequency: RecurringFrequency;
+  nextExpectedDate: string;
+  lastDate: string;
+  transactionCount: number;
+  totalSpent: number;
+  monthlyCost: number;
+  categoryId: string;
+  categoryName: string;
+  categoryColor: string;
+  transactions: { id: string; date: string; amount: number }[];
+}
+
+export interface RecurringSummary {
+  totalMonthlyCost: number;
+  activeCount: number;
+  upcomingThisMonth: number;
+  totalTransactions: number;
+}
+
 export interface DashboardSummary {
   currentBalance: number;
   monthlyIncome: number;

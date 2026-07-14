@@ -16,6 +16,7 @@ import {
   Database,
   Building2,
   ScrollText,
+  Repeat,
 } from 'lucide-react';
 
 const navItems = [
@@ -26,6 +27,7 @@ const navItems = [
   { icon: Tags, label: 'Categories', path: '/categories' },
   { icon: ScrollText, label: 'Rules', path: '/rules' },
   { icon: PiggyBank, label: 'Budgets', path: '/budgets' },
+  { icon: Repeat, label: 'Recurring', path: '/recurring' },
   { icon: Target, label: 'Goals', path: '/goals' },
   { icon: BarChart3, label: 'Analytics', path: '/analytics' },
   { icon: Receipt, label: 'Receipts', path: '/receipts' },
