@@ -31,7 +31,7 @@ docker-data/
 .vscode/
 
 # AI agent instructions (local only - never push to dev or main)
-# AGENTS.md
+AGENTS.md
 .idea/
 *.swp
 *.swo
