@@ -13,7 +13,7 @@ function DevSignUp() {
   const [loading, setLoading] = useState(false);
 
   if (isSignedIn) {
-    navigate('/', { replace: true });
+    navigate('/dashboard', { replace: true });
     return null;
   }
 
@@ -97,7 +97,7 @@ function ClerkSignUpPage() {
   }, []);
 
   if (isSignedIn) {
-    navigate('/', { replace: true });
+    navigate('/dashboard', { replace: true });
     return null;
   }
 
@@ -109,7 +109,7 @@ function ClerkSignUpPage() {
 
   return (
     <div className="flex justify-center">
-      <ClerkSignUp routing="hash" signInUrl="/sign-in" afterSignUpUrl="/" />
+      <ClerkSignUp routing="hash" signInUrl="/sign-in" afterSignUpUrl="/dashboard" />
     </div>
   );
 }

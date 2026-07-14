@@ -8,6 +8,7 @@ import { AppLayout } from '@/components/layout/app-layout';
 
 import SignIn from '@/auth/sign-in';
 import SignUp from '@/auth/sign-up';
+import HomePage from '@/pages/home';
 import Dashboard from '@/pages/dashboard';
 import Transactions from '@/pages/transactions';
 import Budgets from '@/pages/budgets';
@@ -29,6 +30,7 @@ export default function App() {
         <ThemeProvider>
         <AuthProvider>
           <Routes>
+            <Route path="/" element={<HomePage />} />
             <Route path="/sign-in" element={<SignIn />} />
             <Route path="/sign-up" element={<SignUp />} />
 
@@ -39,7 +41,7 @@ export default function App() {
                 </ProtectedRoute>
               }
             >
-            <Route path="/" element={<Dashboard />} />
+              <Route path="/dashboard" element={<Dashboard />} />
               <Route path="/transactions" element={<Transactions />} />
               <Route path="/categories" element={<Categories />} />
               <Route path="/budgets" element={<Budgets />} />

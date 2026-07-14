@@ -32,7 +32,7 @@ export default function Onboarding() {
   const [selected, setSelected] = useState<string | null>(null);
 
   const handleComplete = () => {
-    navigate('/');
+    navigate('/dashboard');
   };
 
   if (step === 'done') {
