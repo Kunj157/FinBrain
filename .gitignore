@@ -15,7 +15,11 @@ __pycache__/
 *.pyc
 .venv/
 venv/
+ml-venv/
 *.egg-info/
+
+# ML model files (too large for git)
+apps/ml-service/data/xlmr_model/model.safetensors
 
 # Prisma
 apps/api/prisma/migrations/
@@ -26,8 +30,8 @@ docker-data/
 # IDE
 .vscode/
 
-# AI agent instructions (local only)
-AGENTS.md
+# AI agent instructions (local only - never push to dev or main)
+# AGENTS.md
 .idea/
 *.swp
 *.swo

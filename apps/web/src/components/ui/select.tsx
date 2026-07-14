@@ -37,7 +37,7 @@ export function Select({
   placeholder?: string;
 }) {
   return (
-    <SelectPrimitive.Root value={value} onValueChange={onValueChange}>
+    <SelectPrimitive.Root value={value || undefined} onValueChange={onValueChange}>
       <SelectPrimitive.Trigger
         className={cn(
           'flex h-10 w-full items-center justify-between rounded-lg border border-white/[0.08] bg-white/[0.02] px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:ring-offset-1 disabled:cursor-not-allowed disabled:opacity-50 cursor-pointer hover:bg-white/[0.04] hover:border-white/[0.12] transition-colors [&>span]:line-clamp-1',

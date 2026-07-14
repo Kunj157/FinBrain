@@ -1,6 +1,7 @@
 import { Router, type Request, type Response } from 'express';
 import { z } from 'zod';
 import { prisma } from '../prisma';
+import { seedDefaultCategories } from '../seed-defaults';
 
 const router = Router();
 
@@ -14,10 +15,17 @@ const createSchema = z.object({
 const updateSchema = createSchema.partial();
 
 router.get('/', async (req: Request, res: Response) => {
-  const categories = await prisma.category.findMany({
+  let categories = await prisma.category.findMany({
     where: { userId: req.userId },
     orderBy: { name: 'asc' },
   });
+  if (categories.length === 0) {
+    await seedDefaultCategories(req.userId);
+    categories = await prisma.category.findMany({
+      where: { userId: req.userId },
+      orderBy: { name: 'asc' },
+    });
+  }
   res.json({ success: true, data: categories });
 });
 

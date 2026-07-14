@@ -1,0 +1,107 @@
+{
+  "model": "xlm-roberta-base",
+  "device": "cpu",
+  "fp16": false,
+  "epochs": 2,
+  "batch_size": 16,
+  "learning_rate": 3e-05,
+  "max_length": 64,
+  "total_samples": 4000,
+  "train_samples": 3240,
+  "val_samples": 360,
+  "test_samples": 400,
+  "best_val_acc": 0.8611,
+  "best_val_f1": 0.8529,
+  "test_acc": 0.865,
+  "test_f1": 0.8634,
+  "categories": [
+    "Food & Drink",
+    "Shopping",
+    "Transport",
+    "Bills & Utilities",
+    "Entertainment",
+    "Healthcare",
+    "Education",
+    "Housing",
+    "Income",
+    "Other"
+  ],
+  "per_category": {
+    "Food & Drink": {
+      "precision": 0.973,
+      "recall": 0.9,
+      "f1": 0.9351,
+      "support": 40
+    },
+    "Shopping": {
+      "precision": 0.9231,
+      "recall": 0.9,
+      "f1": 0.9114,
+      "support": 40
+    },
+    "Transport": {
+      "precision": 0.9048,
+      "recall": 0.95,
+      "f1": 0.9268,
+      "support": 40
+    },
+    "Bills & Utilities": {
+      "precision": 0.7812,
+      "recall": 0.625,
+      "f1": 0.6944,
+      "support": 40
+    },
+    "Entertainment": {
+      "precision": 0.8947,
+      "recall": 0.85,
+      "f1": 0.8718,
+      "support": 40
+    },
+    "Healthcare": {
+      "precision": 0.9756,
+      "recall": 1.0,
+      "f1": 0.9877,
+      "support": 40
+    },
+    "Education": {
+      "precision": 0.9286,
+      "recall": 0.975,
+      "f1": 0.9512,
+      "support": 40
+    },
+    "Housing": {
+      "precision": 0.8571,
+      "recall": 0.9,
+      "f1": 0.878,
+      "support": 40
+    },
+    "Income": {
+      "precision": 0.6491,
+      "recall": 0.925,
+      "f1": 0.7629,
+      "support": 40
+    },
+    "Other": {
+      "precision": 0.8333,
+      "recall": 0.625,
+      "f1": 0.7143,
+      "support": 40
+    }
+  },
+  "history": [
+    {
+      "epoch": 1,
+      "train_loss": 1.722,
+      "train_acc": 0.4401,
+      "val_acc": 0.7444,
+      "val_f1": 0.7233
+    },
+    {
+      "epoch": 2,
+      "train_loss": 0.7474,
+      "train_acc": 0.8037,
+      "val_acc": 0.8611,
+      "val_f1": 0.8529
+    }
+  ]
+}

@@ -23,6 +23,12 @@ api.interceptors.request.use(async (config) => {
 api.interceptors.response.use(
   (response) => response,
   (error) => {
+    if (error.response?.status === 401) {
+      const currentPath = window.location.pathname;
+      if (currentPath !== '/sign-in' && currentPath !== '/sign-up') {
+        window.location.href = '/sign-in';
+      }
+    }
     return Promise.reject(error);
   },
 );

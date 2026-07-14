@@ -109,13 +109,12 @@ function ClerkSignUpPage() {
 
   return (
     <div className="flex justify-center">
-      <ClerkSignUp routing="hash" signInUrl="/sign-in" afterSignUpUrl="/complete-profile" />
+      <ClerkSignUp routing="hash" signInUrl="/sign-in" afterSignUpUrl="/" />
     </div>
   );
 }
 
 export default function SignUp() {
-  const isDevMode = import.meta.env.VITE_DEV_MODE === 'true';
   const hasClerkKey = !!import.meta.env.VITE_CLERK_PUBLISHABLE_KEY;
 
   return (
@@ -135,7 +134,7 @@ export default function SignUp() {
           </p>
         </div>
 
-        {!isDevMode && hasClerkKey ? <ClerkSignUpPage /> : <DevSignUp />}
+        {hasClerkKey ? <ClerkSignUpPage /> : <DevSignUp />}
       </div>
     </div>
   );

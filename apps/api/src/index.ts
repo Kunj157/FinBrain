@@ -3,7 +3,7 @@ import cors from 'cors';
 import helmet from 'helmet';
 import morgan from 'morgan';
 
-import { ensureDevUser } from './prisma';
+import { ensureDevUser, prisma } from './prisma';
 import { seedDefaultCategories } from './seed-defaults';
 import { requireAuth } from './middleware/auth';
 import './types';
@@ -12,13 +12,14 @@ import plaidRoutes from './routes/plaid';
 import csvImportRoutes from './routes/import';
 import currencyRoutes from './routes/currency';
 import receiptsRoutes from './routes/receipts';
-import devbankRoutes from './routes/devbank';
 import transactionsRoutes from './routes/transactions';
 import categoriesRoutes from './routes/categories';
 import seedRoutes from './routes/seed';
 import budgetsRoutes from './routes/budgets';
 import goalsRoutes from './routes/goals';
 import authRoutes from './routes/auth';
+import accountsRoutes from './routes/accounts';
+import rulesRoutes from './routes/rules';
 
 const app = express();
 const PORT = process.env.PORT || 4000;
@@ -33,8 +34,10 @@ app.get('/api/v1/health', (_req, res) => {
 });
 
 app.use('/api/v1', (req, res, next) => {
-  if (req.path === '/health' || process.env.DEV_MODE === 'true' || !process.env.CLERK_SECRET_KEY) {
-    req.userId = 'dev-user-001';
+  if (req.path === '/health' || !process.env.CLERK_SECRET_KEY) {
+    if (!process.env.CLERK_SECRET_KEY) {
+      req.userId = 'dev-user-001';
+    }
     return next();
   }
   return requireAuth(req, res, next);
@@ -44,13 +47,24 @@ app.use('/api/v1/plaid', plaidRoutes);
 app.use('/api/v1/import', csvImportRoutes);
 app.use('/api/v1/currency', currencyRoutes);
 app.use('/api/v1/receipts', receiptsRoutes);
-app.use('/api/v1/devbank', devbankRoutes);
 app.use('/api/v1/transactions', transactionsRoutes);
 app.use('/api/v1/categories', categoriesRoutes);
 app.use('/api/v1/seed', seedRoutes);
 app.use('/api/v1/budgets', budgetsRoutes);
 app.use('/api/v1/goals', goalsRoutes);
 app.use('/api/v1/auth', authRoutes);
+app.use('/api/v1/accounts', accountsRoutes);
+app.use('/api/v1/rules', rulesRoutes);
+
+app.get('/api/v1/audit-logs', async (req, res) => {
+  const { entity, limit: l } = req.query;
+  const logs = await prisma.auditLog.findMany({
+    where: entity ? { entity: entity as string, userId: req.userId } : { userId: req.userId },
+    orderBy: { createdAt: 'desc' },
+    take: Math.min(Number(l) || 20, 100),
+  });
+  res.json({ success: true, data: logs });
+});
 
 app.use((_req, res) => {
   res.status(404).json({ success: false, error: 'Not found' });
