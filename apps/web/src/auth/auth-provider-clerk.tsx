@@ -67,7 +67,7 @@ export function ClerkAuthProvider({ children }: { children: ReactNode }) {
   }, [clerkLoaded, clerkUser, getToken]);
 
   const signOut = useCallback(() => {
-    clerkSignOut({ redirectUrl: '/sign-in' });
+    clerkSignOut({ redirectUrl: '/' });
     setUser(null);
     setProfileReady(false);
   }, [clerkSignOut]);

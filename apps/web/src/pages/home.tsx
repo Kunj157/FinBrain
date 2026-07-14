@@ -1,5 +1,7 @@
 import { Brain, ArrowRight, TrendingUp, PiggyBank, Repeat, Zap, BarChart3, Github, Twitter } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { useAuth } from '@/hooks/use-auth';
+import { Navigate } from 'react-router-dom';
 
 const features = [
   {
@@ -46,6 +48,11 @@ const steps = [
 ];
 
 export default function HomePage() {
+  const { isSignedIn, isLoading } = useAuth();
+
+  if (isLoading) return null;
+  if (isSignedIn) return <Navigate to="/dashboard" replace />;
+
   return (
     <div className="min-h-screen bg-background">
       {/* Navbar */}
