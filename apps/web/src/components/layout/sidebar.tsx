@@ -40,9 +40,9 @@ const bottomItems = [
   { icon: HelpCircle, label: 'Help', path: '/help' },
 ];
 
-export function Sidebar() {
+export function Sidebar({ onNavigate }: { onNavigate?: () => void }) {
   return (
-    <aside className="fixed left-0 top-0 z-40 h-screen w-[240px]">
+    <aside className="h-full w-[240px]">
       <div className="flex h-full flex-col glass-strong">
         <div className="flex h-16 items-center gap-3 px-6 border-b border-white/[0.04]">
           <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-emerald-500/10 border border-emerald-500/20">
@@ -64,6 +64,7 @@ export function Sidebar() {
             <NavLink
               key={item.path}
               to={item.path}
+              onClick={onNavigate}
               className={({ isActive }) =>
                 cn(
                   'nav-link group',
@@ -88,6 +89,7 @@ export function Sidebar() {
             <NavLink
               key={item.path}
               to={item.path}
+              onClick={onNavigate}
               className={({ isActive }) =>
                 cn(
                   'nav-link',
