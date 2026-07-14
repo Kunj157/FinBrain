@@ -4,8 +4,12 @@ import {
   Check, AlertTriangle, Home, Car, GraduationCap, Plane, PiggyBank,
   Briefcase, Heart, CircleDollarSign, Coins,
 } from 'lucide-react';
+import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
+import { Select } from '@/components/ui/select';
+import { GridSkeleton } from '@/components/ui/skeleton';
 import { Badge } from '@/components/ui/badge';
 import { useAuth } from '@/hooks/use-auth';
 import api from '@/lib/api';
@@ -104,6 +108,8 @@ export default function Goals() {
   const [saving, setSaving] = useState(false);
   const [deleting, setDeleting] = useState<string | null>(null);
   const [expandedGoal, setExpandedGoal] = useState<string | null>(null);
+  const [formError, setFormError] = useState('');
+  const [contributionError, setContributionError] = useState('');
 
   const fetchData = useCallback(async () => {
     setLoading(true);
@@ -111,7 +117,7 @@ export default function Goals() {
       const res = await api.get('/goals');
       setGoals(res.data.data);
     } catch {
-      // silent
+      toast.error('Failed to load goals');
     } finally {
       setLoading(false);
     }
@@ -128,6 +134,7 @@ export default function Goals() {
     setEditingGoal(null);
     setFormMode('create');
     setFormData({ name: '', targetAmount: '', deadline: '', goalType: 'custom', icon: 'target' });
+    setFormError('');
     setShowForm(true);
   };
 
@@ -141,6 +148,7 @@ export default function Goals() {
       goalType: goal.goalType,
       icon: goal.icon,
     });
+    setFormError('');
     setShowForm(true);
   };
 
@@ -148,16 +156,30 @@ export default function Goals() {
     setContributeGoal(goal);
     setFormMode('contribute');
     setContributionData({ amount: '', date: new Date().toISOString().split('T')[0], notes: '' });
+    setContributionError('');
     setShowForm(true);
   };
 
   const handleSave = async () => {
-    if (!formData.name || !formData.targetAmount) return;
+    setFormError('');
+    if (!formData.name) {
+      setFormError('Goal name is required');
+      return;
+    }
+    if (!formData.targetAmount) {
+      setFormError('Target amount is required');
+      return;
+    }
+    const target = parseFloat(formData.targetAmount);
+    if (isNaN(target) || target <= 0) {
+      setFormError('Please enter a valid target amount');
+      return;
+    }
     setSaving(true);
     try {
       const payload = {
         name: formData.name,
-        targetAmount: parseFloat(formData.targetAmount),
+        targetAmount: target,
         currency,
         deadline: formData.deadline || undefined,
         goalType: formData.goalType,
@@ -167,31 +189,44 @@ export default function Goals() {
       if (formMode === 'edit' && editingGoal) {
         const res = await api.put(`/goals/${editingGoal.id}`, payload);
         setGoals((prev) => prev.map((g) => (g.id === editingGoal.id ? res.data.data : g)));
+        toast.success('Goal updated');
       } else {
         const res = await api.post('/goals', payload);
         setGoals((prev) => [res.data.data, ...prev]);
+        toast.success('Goal created');
       }
       setShowForm(false);
     } catch {
-      // silent
+      toast.error('Failed to save goal');
     } finally {
       setSaving(false);
     }
   };
 
   const handleContribute = async () => {
-    if (!contributeGoal || !contributionData.amount) return;
+    setContributionError('');
+    if (!contributeGoal) return;
+    if (!contributionData.amount) {
+      setContributionError('Amount is required');
+      return;
+    }
+    const amt = parseFloat(contributionData.amount);
+    if (isNaN(amt) || amt <= 0) {
+      setContributionError('Please enter a valid amount');
+      return;
+    }
     setSaving(true);
     try {
       const res = await api.post(`/goals/${contributeGoal.id}/contributions`, {
-        amount: parseFloat(contributionData.amount),
+        amount: amt,
         date: contributionData.date,
         notes: contributionData.notes || undefined,
       });
       setGoals((prev) => prev.map((g) => (g.id === contributeGoal.id ? res.data.data.goal : g)));
+      toast.success('Contribution added');
       setShowForm(false);
     } catch {
-      // silent
+      toast.error('Failed to add contribution');
     } finally {
       setSaving(false);
     }
@@ -202,8 +237,9 @@ export default function Goals() {
     try {
       await api.delete(`/goals/${goalId}`);
       setGoals((prev) => prev.filter((g) => g.id !== goalId));
+      toast.success('Goal deleted');
     } catch {
-      // silent
+      toast.error('Failed to delete goal');
     } finally {
       setDeleting(null);
     }
@@ -213,16 +249,17 @@ export default function Goals() {
     try {
       const res = await api.delete(`/goals/${goalId}/contributions/${contributionId}`);
       setGoals((prev) => prev.map((g) => (g.id === goalId ? res.data.data.goal : g)));
+      toast.success('Contribution removed');
     } catch {
-      // silent
+      toast.error('Failed to remove contribution');
     }
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 animate-fade-in">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight">Goals</h1>
+          <h1 className="text-2xl font-semibold tracking-tight">Goals</h1>
           <p className="text-sm text-muted-foreground">Track your savings goals and milestones</p>
         </div>
         <Button onClick={openCreate} size="sm">
@@ -240,7 +277,7 @@ export default function Goals() {
               </div>
               <div>
                 <p className="text-xs text-muted-foreground">Total Saved</p>
-                <p className="text-lg font-bold">{formatCurrency(totalSaved, currency)}</p>
+                <p className="text-lg font-semibold">{formatCurrency(totalSaved, currency)}</p>
               </div>
             </div>
           </CardContent>
@@ -253,7 +290,7 @@ export default function Goals() {
               </div>
               <div>
                 <p className="text-xs text-muted-foreground">Total Target</p>
-                <p className="text-lg font-bold">{formatCurrency(totalTarget, currency)}</p>
+                <p className="text-lg font-semibold">{formatCurrency(totalTarget, currency)}</p>
               </div>
             </div>
           </CardContent>
@@ -266,7 +303,7 @@ export default function Goals() {
               </div>
               <div>
                 <p className="text-xs text-muted-foreground">Completed</p>
-                <p className="text-lg font-bold">{completedGoals}</p>
+                <p className="text-lg font-semibold">{completedGoals}</p>
               </div>
             </div>
           </CardContent>
@@ -279,7 +316,7 @@ export default function Goals() {
               </div>
               <div>
                 <p className="text-xs text-muted-foreground">On Track</p>
-                <p className="text-lg font-bold">{onTrackGoals}</p>
+                <p className="text-lg font-semibold">{onTrackGoals}</p>
               </div>
             </div>
           </CardContent>
@@ -287,9 +324,7 @@ export default function Goals() {
       </div>
 
       {loading ? (
-        <div className="flex items-center justify-center py-20">
-          <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
-        </div>
+        <GridSkeleton count={4} cols={2} />
       ) : goals.length === 0 ? (
         <Card>
           <CardContent className="flex flex-col items-center justify-center py-20">
@@ -321,11 +356,11 @@ export default function Goals() {
                         <p className="text-xs text-muted-foreground capitalize">{goal.goalType.replace(/([A-Z])/g, ' $1')}</p>
                       </div>
                     </div>
-                    <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                      <Button variant="ghost" size="sm" onClick={() => openEdit(goal)} className="h-7 w-7 p-0">
+                    <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 focus-within:opacity-100 transition-opacity">
+                      <Button variant="ghost" size="sm" onClick={() => openEdit(goal)} className="h-7 w-7 p-0" aria-label={`Edit ${goal.name}`}>
                         <Pencil className="h-3.5 w-3.5" />
                       </Button>
-                      <Button variant="ghost" size="sm" onClick={() => handleDelete(goal.id)} disabled={deleting === goal.id} className="h-7 w-7 p-0 text-red-400 hover:text-red-300">
+                      <Button variant="ghost" size="sm" onClick={() => handleDelete(goal.id)} disabled={deleting === goal.id} className="h-7 w-7 p-0 text-red-400 hover:text-red-300" aria-label={`Delete ${goal.name}`}>
                         {deleting === goal.id ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Trash2 className="h-3.5 w-3.5" />}
                       </Button>
                     </div>
@@ -333,7 +368,7 @@ export default function Goals() {
 
                   <div className="mb-3">
                     <div className="flex items-baseline justify-between mb-1.5">
-                      <span className="text-2xl font-bold">{formatCurrency(goal.currentAmount, currency as SharedCurrency)}</span>
+                      <span className="text-2xl font-semibold">{formatCurrency(goal.currentAmount, currency as SharedCurrency)}</span>
                       <span className="text-sm text-muted-foreground">of {formatCurrency(goal.targetAmount, currency as SharedCurrency)}</span>
                     </div>
                     <div className="relative h-2 bg-white/5 rounded-full overflow-hidden">
@@ -391,7 +426,8 @@ export default function Goals() {
                           </div>
                           <button
                             onClick={() => handleDeleteContribution(goal.id, c.id)}
-                            className="opacity-0 group-hover:opacity-100 transition-opacity text-red-400 hover:text-red-300 p-0.5"
+                            className="opacity-0 group-hover:opacity-100 focus-within:opacity-100 transition-opacity text-red-400 hover:text-red-300 p-0.5"
+                            aria-label="Remove contribution"
                           >
                             <Trash2 className="h-3 w-3" />
                           </button>
@@ -412,13 +448,13 @@ export default function Goals() {
       )}
 
       {showForm && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm" onClick={() => setShowForm(false)}>
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm" onClick={() => setShowForm(false)} role="dialog" aria-modal="true" aria-labelledby="goal-form-title">
           <Card className="w-full max-w-md mx-4" onClick={(e) => e.stopPropagation()}>
             <CardHeader className="flex flex-row items-center justify-between pb-4">
-              <CardTitle className="text-lg">
+              <CardTitle id="goal-form-title" className="text-lg">
                 {formMode === 'contribute' ? `Add Funds to ${contributeGoal?.name}` : formMode === 'edit' ? 'Edit Goal' : 'New Goal'}
               </CardTitle>
-              <Button variant="ghost" size="sm" onClick={() => setShowForm(false)} className="h-8 w-8 p-0">
+              <Button variant="ghost" size="sm" onClick={() => setShowForm(false)} className="h-8 w-8 p-0" aria-label="Close">
                 <X className="h-4 w-4" />
               </Button>
             </CardHeader>
@@ -427,33 +463,31 @@ export default function Goals() {
                 <div className="space-y-4">
                   <div>
                     <label className="text-xs font-medium text-muted-foreground mb-1 block">Amount *</label>
-                    <input
+                    <Input
                       type="number"
                       value={contributionData.amount}
                       onChange={(e) => setContributionData({ ...contributionData, amount: e.target.value })}
                       placeholder="0.00"
                       min="0.01"
                       step="0.01"
-                      className="w-full h-9 px-3 rounded-lg bg-white/5 border border-white/10 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/50"
                     />
+                    {contributionError && <p className="text-xs text-rose-400 mt-1">{contributionError}</p>}
                   </div>
                   <div>
                     <label className="text-xs font-medium text-muted-foreground mb-1 block">Date</label>
-                    <input
+                    <Input
                       type="date"
                       value={contributionData.date}
                       onChange={(e) => setContributionData({ ...contributionData, date: e.target.value })}
-                      className="w-full h-9 px-3 rounded-lg bg-white/5 border border-white/10 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/50"
                     />
                   </div>
                   <div>
                     <label className="text-xs font-medium text-muted-foreground mb-1 block">Notes</label>
-                    <input
+                    <Input
                       type="text"
                       value={contributionData.notes}
                       onChange={(e) => setContributionData({ ...contributionData, notes: e.target.value })}
                       placeholder="Optional note"
-                      className="w-full h-9 px-3 rounded-lg bg-white/5 border border-white/10 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/50"
                     />
                   </div>
                   <div className="flex justify-end gap-2 pt-2">
@@ -468,45 +502,38 @@ export default function Goals() {
                 <div className="space-y-4">
                   <div>
                     <label className="text-xs font-medium text-muted-foreground mb-1 block">Goal Name *</label>
-                    <input
+                    <Input
                       type="text"
                       value={formData.name}
                       onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                       placeholder="e.g., Emergency Fund"
-                      className="w-full h-9 px-3 rounded-lg bg-white/5 border border-white/10 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/50"
                     />
                   </div>
                   <div>
                     <label className="text-xs font-medium text-muted-foreground mb-1 block">Target Amount *</label>
-                    <input
+                    <Input
                       type="number"
                       value={formData.targetAmount}
                       onChange={(e) => setFormData({ ...formData, targetAmount: e.target.value })}
                       placeholder="0.00"
                       min="1"
                       step="0.01"
-                      className="w-full h-9 px-3 rounded-lg bg-white/5 border border-white/10 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/50"
                     />
                   </div>
                   <div>
                     <label className="text-xs font-medium text-muted-foreground mb-1 block">Goal Type</label>
-                    <select
+                    <Select
                       value={formData.goalType}
-                      onChange={(e) => setFormData({ ...formData, goalType: e.target.value })}
-                      className="w-full h-9 px-3 rounded-lg bg-white/5 border border-white/10 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/50"
-                    >
-                      {GOAL_TYPES.map((t) => (
-                        <option key={t.value} value={t.value}>{t.label}</option>
-                      ))}
-                    </select>
+                      onValueChange={(value) => setFormData({ ...formData, goalType: value })}
+                      options={GOAL_TYPES.map((t) => ({ value: t.value, label: t.label }))}
+                    />
                   </div>
                   <div>
                     <label className="text-xs font-medium text-muted-foreground mb-1 block">Deadline</label>
-                    <input
+                    <Input
                       type="date"
                       value={formData.deadline}
                       onChange={(e) => setFormData({ ...formData, deadline: e.target.value })}
-                      className="w-full h-9 px-3 rounded-lg bg-white/5 border border-white/10 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/50"
                     />
                   </div>
                   <div>
@@ -522,12 +549,19 @@ export default function Goals() {
                               : 'bg-white/5 border-white/10 text-muted-foreground hover:border-white/20'
                           }`}
                           title={opt.label}
+                          aria-label={opt.label}
                         >
                           <opt.Icon className="h-4 w-4" />
                         </button>
                       ))}
                     </div>
                   </div>
+                  {formError && (
+                    <div className="flex items-center gap-2 text-sm text-rose-400 bg-rose-500/10 rounded-lg px-3 py-2">
+                      <AlertTriangle className="h-4 w-4 flex-shrink-0" />
+                      {formError}
+                    </div>
+                  )}
                   <div className="flex justify-end gap-2 pt-2">
                     <Button variant="outline" size="sm" onClick={() => setShowForm(false)}>Cancel</Button>
                     <Button size="sm" onClick={handleSave} disabled={!formData.name || !formData.targetAmount || saving}>

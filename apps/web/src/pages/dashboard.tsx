@@ -1,10 +1,11 @@
-import { Wallet, TrendingUp, TrendingDown, PiggyBank, Plus, ArrowRightLeft, Target, Brain, Sparkles, Loader2, Building2, Upload, Database, X } from 'lucide-react';
+import { Wallet, TrendingUp, TrendingDown, PiggyBank, Plus, ArrowRightLeft, Target, Brain, Sparkles, Building2, Upload, X } from 'lucide-react';
 import { useMemo, useEffect, useState, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { StatCard } from '@/components/finance/stat-card';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import { StatCardSkeleton, CardSkeleton, Skeleton } from '@/components/ui/skeleton';
 import { PlaidLinkButton } from '@/components/finance/plaid-link';
 import { CsvImport } from '@/components/finance/csv-import';
 import { useAuth } from '@/hooks/use-auth';
@@ -33,12 +34,6 @@ const getStartedCards = [
     desc: 'Upload a CSV or PDF bank statement',
     action: 'import-csv',
   },
-  {
-    icon: Database,
-    title: 'Try sample data',
-    desc: 'Generate realistic transactions to explore the dashboard',
-    action: 'import-sample',
-  },
 ];
 
 export default function Dashboard() {
@@ -47,7 +42,6 @@ export default function Dashboard() {
   const [allTransactions, setAllTransactions] = useState<Transaction[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
   const [loading, setLoading] = useState(true);
-  const [seeding, setSeeding] = useState(false);
   const [onboardingAction, setOnboardingAction] = useState<string | null>(null);
   const [netWorth, setNetWorth] = useState<{ netWorth: number } | null>(null);
 
@@ -75,18 +69,8 @@ export default function Dashboard() {
     return () => document.removeEventListener('visibilitychange', onVisible);
   }, [fetchData]);
 
-  const handleGetStarted = async (action: string) => {
-    switch (action) {
-      case 'import-sample':
-        setSeeding(true);
-        try {
-          await api.post('/seed/transactions', null, { params: { count: 250 } });
-          await fetchData();
-        } catch { /* silent */ } finally { setSeeding(false); }
-        break;
-      default:
-        setOnboardingAction(action);
-    }
+  const handleGetStarted = (action: string) => {
+    setOnboardingAction(action);
   };
 
   const summary = useMemo(() => {
@@ -147,8 +131,21 @@ export default function Dashboard() {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center min-h-[60vh]">
-        <Loader2 className="h-8 w-8 text-muted-foreground animate-spin" />
+      <div className="space-y-6 animate-fade-in">
+        <div className="flex items-center justify-between">
+          <div className="space-y-2">
+            <Skeleton className="h-8 w-48" />
+            <Skeleton className="h-4 w-64" />
+          </div>
+          <Skeleton className="h-10 w-36 rounded-lg" />
+        </div>
+        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-5">
+          {Array.from({ length: 5 }).map((_, i) => <StatCardSkeleton key={i} />)}
+        </div>
+        <div className="grid gap-6 lg:grid-cols-2">
+          <CardSkeleton lines={4} />
+          <CardSkeleton lines={4} />
+        </div>
       </div>
     );
   }
@@ -175,15 +172,10 @@ export default function Dashboard() {
           <button
             key={card.action}
             onClick={() => handleGetStarted(card.action)}
-            disabled={seeding && card.action === 'import-sample'}
-            className="flex flex-col items-start gap-3 rounded-xl border border-white/[0.06] bg-white/[0.02] p-5 hover:bg-white/[0.04] hover:border-emerald-500/20 hover:shadow-lg hover:shadow-emerald-500/5 transition-all duration-200 group cursor-pointer text-left disabled:opacity-50"
+            className="flex flex-col items-start gap-3 rounded-xl border border-white/[0.06] bg-white/[0.02] p-5 hover:bg-white/[0.04] hover:border-emerald-500/20 hover:shadow-lg hover:shadow-emerald-500/5 transition-all duration-200 group cursor-pointer text-left"
           >
             <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-emerald-500/10 group-hover:bg-emerald-500/20 transition-colors">
-              {seeding && card.action === 'import-sample' ? (
-                <Loader2 className="h-6 w-6 text-emerald-400 animate-spin" />
-              ) : (
-                <card.icon className="h-6 w-6 text-emerald-400" />
-              )}
+              <card.icon className="h-6 w-6 text-emerald-400" />
             </div>
             <div>
               <p className="font-medium text-sm">{card.title}</p>
@@ -439,13 +431,13 @@ export default function Dashboard() {
     <>
       {hasData ? normalContent : emptyContent}
       {onboardingAction && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm" onClick={() => setOnboardingAction(null)}>
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm" onClick={() => setOnboardingAction(null)} role="dialog" aria-modal="true" aria-labelledby="onboarding-modal-title">
           <div className="w-full max-w-lg mx-4 glass rounded-xl max-h-[90vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
             <div className="flex items-center justify-between p-5 border-b border-white/[0.06]">
-              <h2 className="text-lg font-semibold">
+              <h2 id="onboarding-modal-title" className="text-lg font-semibold">
                 {onboardingAction === 'import-plaid' ? 'Connect Your Bank' : 'Import a CSV'}
               </h2>
-              <button onClick={() => setOnboardingAction(null)} className="p-1.5 rounded-lg hover:bg-white/[0.04]">
+              <button onClick={() => setOnboardingAction(null)} className="p-1.5 rounded-lg hover:bg-white/[0.04]" aria-label="Close">
                 <X className="h-5 w-5" />
               </button>
             </div>

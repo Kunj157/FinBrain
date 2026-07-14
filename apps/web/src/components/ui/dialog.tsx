@@ -1,4 +1,4 @@
-import { useEffect, useRef, type ReactNode } from 'react';
+import { useEffect, useRef, useCallback, type ReactNode } from 'react';
 import { X } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -11,19 +11,70 @@ interface DialogProps {
 
 export function Dialog({ open, onClose, children, className }: DialogProps) {
   const overlayRef = useRef<HTMLDivElement>(null);
+  const contentRef = useRef<HTMLDivElement>(null);
+  const previousFocusRef = useRef<HTMLElement | null>(null);
+
+  const getFocusableElements = useCallback(() => {
+    if (!contentRef.current) return [];
+    return Array.from(
+      contentRef.current.querySelectorAll<HTMLElement>(
+        'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])',
+      ),
+    ).filter((el) => !el.hasAttribute('disabled'));
+  }, []);
 
   useEffect(() => {
     if (!open) return;
-    const handleEscape = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') onClose();
-    };
-    document.addEventListener('keydown', handleEscape);
+
+    previousFocusRef.current = document.activeElement as HTMLElement;
+
+    const timer = setTimeout(() => {
+      const focusable = getFocusableElements();
+      if (focusable.length > 0) {
+        focusable[0].focus();
+      } else {
+        contentRef.current?.focus();
+      }
+    }, 50);
+
     document.body.style.overflow = 'hidden';
-    return () => {
-      document.removeEventListener('keydown', handleEscape);
-      document.body.style.overflow = '';
+
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        onClose();
+        return;
+      }
+
+      if (e.key === 'Tab') {
+        const focusable = getFocusableElements();
+        if (focusable.length === 0) return;
+
+        const first = focusable[0];
+        const last = focusable[focusable.length - 1];
+
+        if (e.shiftKey) {
+          if (document.activeElement === first) {
+            e.preventDefault();
+            last.focus();
+          }
+        } else {
+          if (document.activeElement === last) {
+            e.preventDefault();
+            first.focus();
+          }
+        }
+      }
     };
-  }, [open, onClose]);
+
+    document.addEventListener('keydown', handleKeyDown);
+
+    return () => {
+      clearTimeout(timer);
+      document.removeEventListener('keydown', handleKeyDown);
+      document.body.style.overflow = '';
+      previousFocusRef.current?.focus();
+    };
+  }, [open, onClose, getFocusableElements]);
 
   if (!open) return null;
 
@@ -34,12 +85,17 @@ export function Dialog({ open, onClose, children, className }: DialogProps) {
       onClick={(e) => {
         if (e.target === overlayRef.current) onClose();
       }}
+      role="presentation"
     >
       <div
+        ref={contentRef}
         className={cn(
           'relative w-full max-w-lg rounded-xl border border-white/[0.08] bg-card shadow-2xl animate-in fade-in zoom-in-95 duration-200',
           className,
         )}
+        role="dialog"
+        aria-modal="true"
+        tabIndex={-1}
       >
         {children}
       </div>
@@ -76,6 +132,7 @@ export function DialogClose({ onClose }: { onClose: () => void }) {
     <button
       onClick={onClose}
       className="absolute top-4 right-4 p-1.5 rounded-lg text-muted-foreground hover:text-foreground hover:bg-white/[0.04] transition-colors"
+      aria-label="Close"
     >
       <X className="h-4 w-4" />
     </button>

@@ -1,8 +1,11 @@
 import { useState, useMemo, useCallback, useEffect } from 'react';
 import { Plus, PiggyBank, Pencil, Trash2, X, Check, Loader2, AlertTriangle } from 'lucide-react';
+import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
 import { Select } from '@/components/ui/select';
+import { GridSkeleton } from '@/components/ui/skeleton';
 import { Badge } from '@/components/ui/badge';
 import { useAuth } from '@/hooks/use-auth';
 import api from '@/lib/api';
@@ -53,7 +56,7 @@ export default function Budgets() {
       setBudgets(budgetRes.data.data);
       if (!categories.length) setCategories(catRes.data.data);
     } catch {
-      // silent
+      toast.error('Failed to load budgets');
     } finally {
       setLoading(false);
     }
@@ -87,8 +90,13 @@ export default function Budgets() {
   };
 
   const handleDelete = useCallback(async (id: string) => {
-    await api.delete(`/budgets/${id}`);
-    fetchData();
+    try {
+      await api.delete(`/budgets/${id}`);
+      toast.success('Budget deleted');
+      fetchData();
+    } catch {
+      toast.error('Failed to delete budget');
+    }
   }, [fetchData]);
 
   return (
@@ -138,9 +146,7 @@ export default function Budgets() {
       )}
 
       {loading ? (
-        <div className="py-16 text-center">
-          <Loader2 className="h-10 w-10 text-muted-foreground/30 mx-auto animate-spin" />
-        </div>
+        <GridSkeleton count={6} cols={3} />
       ) : budgets.length === 0 ? (
         <div className="py-16 text-center">
           <PiggyBank className="h-10 w-10 text-muted-foreground/30 mx-auto" />
@@ -163,11 +169,11 @@ export default function Budgets() {
                   <CardHeader className="pb-2">
                     <div className="flex items-center justify-between">
                       <CardTitle className="text-sm font-medium">{b.category?.name || 'Unknown'}</CardTitle>
-                      <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                        <button onClick={() => openEdit(b)} className="p-1.5 rounded-lg hover:bg-white/[0.04] text-muted-foreground hover:text-foreground transition-colors">
+                      <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 focus-within:opacity-100 transition-opacity">
+                        <button onClick={() => openEdit(b)} className="p-1.5 rounded-lg hover:bg-white/[0.04] text-muted-foreground hover:text-foreground transition-colors" aria-label={`Edit ${b.category?.name} budget`}>
                           <Pencil className="h-3.5 w-3.5" />
                         </button>
-                        <button onClick={() => handleDelete(b.id)} className="p-1.5 rounded-lg hover:bg-white/[0.04] text-muted-foreground hover:text-rose-400 transition-colors">
+                        <button onClick={() => handleDelete(b.id)} className="p-1.5 rounded-lg hover:bg-white/[0.04] text-muted-foreground hover:text-rose-400 transition-colors" aria-label={`Delete ${b.category?.name} budget`}>
                           <Trash2 className="h-3.5 w-3.5" />
                         </button>
                       </div>
@@ -276,8 +282,10 @@ function BudgetForm({
       };
       if (mode === 'edit' && budget) {
         await api.put(`/budgets/${budget.id}`, payload);
+        toast.success('Budget updated');
       } else {
         await api.post('/budgets', payload);
+        toast.success('Budget created');
       }
       onSave();
     } catch (err: unknown) {
@@ -289,11 +297,11 @@ function BudgetForm({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm" onClick={onClose} onKeyDown={(e) => { if (e.key === 'Escape') onClose(); }}>
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm" onClick={onClose} onKeyDown={(e) => { if (e.key === 'Escape') onClose(); }} role="dialog" aria-modal="true" aria-labelledby="budget-form-title">
       <div className="w-full max-w-md mx-4 glass rounded-xl" onClick={(e) => e.stopPropagation()}>
         <div className="flex items-center justify-between p-5 border-b border-white/[0.06]">
-          <h2 className="text-lg font-semibold">{mode === 'create' ? 'Set Budget' : 'Edit Budget'}</h2>
-          <button onClick={onClose} className="p-1.5 rounded-lg hover:bg-white/[0.04]">
+          <h2 id="budget-form-title" className="text-lg font-semibold">{mode === 'create' ? 'Set Budget' : 'Edit Budget'}</h2>
+          <button onClick={onClose} className="p-1.5 rounded-lg hover:bg-white/[0.04]" aria-label="Close">
             <X className="h-5 w-5" />
           </button>
         </div>
@@ -311,7 +319,7 @@ function BudgetForm({
           <div className="grid grid-cols-2 gap-4">
             <div>
               <label className="text-xs text-muted-foreground block mb-1">Budget Amount *</label>
-              <input
+              <Input
                 type="number"
                 step="0.01"
                 min="0.01"
@@ -319,7 +327,6 @@ function BudgetForm({
                 value={form.amount}
                 onChange={(e) => setForm((f) => ({ ...f, amount: e.target.value }))}
                 placeholder="0.00"
-                className="w-full h-10 px-3 rounded-lg bg-white/[0.02] border border-white/[0.08] text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/20"
               />
             </div>
             <div>
@@ -334,12 +341,11 @@ function BudgetForm({
 
           <div>
             <label className="text-xs text-muted-foreground block mb-1">Start Date *</label>
-            <input
+            <Input
               type="date"
               required
               value={form.startDate}
               onChange={(e) => setForm((f) => ({ ...f, startDate: e.target.value }))}
-              className="w-full h-10 px-3 rounded-lg bg-white/[0.02] border border-white/[0.08] text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/20"
             />
           </div>
 

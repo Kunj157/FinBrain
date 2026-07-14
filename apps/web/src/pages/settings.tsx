@@ -4,8 +4,10 @@ import { Select } from '@/components/ui/select';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Dialog, DialogHeader, DialogTitle, DialogDescription, DialogContent, DialogFooter, DialogClose } from '@/components/ui/dialog';
 import { useNavigate } from 'react-router-dom';
+import { toast } from 'sonner';
 import { ArrowLeft, User, Mail, Calendar, Shield, Trash2, Loader2, Download, AlertTriangle, FileText, PiggyBank, Target, Building2, Receipt } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
 import api from '@/lib/api';
 import type { Currency } from '@finbrain/shared';
 
@@ -67,8 +69,9 @@ export default function SettingsPage() {
       a.download = `finbrain-export-${new Date().toISOString().slice(0, 10)}.csv`;
       a.click();
       URL.revokeObjectURL(url);
+      toast.success('Data exported successfully');
     } catch {
-      // silent
+      toast.error('Failed to export data');
     } finally {
       setExporting(false);
     }
@@ -82,6 +85,7 @@ export default function SettingsPage() {
       signOut();
       navigate('/');
     } catch {
+      toast.error('Failed to delete account');
       setDeleting(false);
       setConfirmEmail('');
       setShowDeleteModal(false);
@@ -91,7 +95,7 @@ export default function SettingsPage() {
   return (
     <div className="space-y-6 animate-fade-in max-w-2xl">
       <div className="flex items-center gap-4">
-        <Button variant="ghost" size="icon" onClick={() => navigate('/dashboard')}>
+        <Button variant="ghost" size="icon" onClick={() => navigate('/dashboard')} aria-label="Back to dashboard">
           <ArrowLeft className="h-5 w-5" />
         </Button>
         <div>
@@ -253,12 +257,12 @@ export default function SettingsPage() {
             <label className="text-sm font-medium">
               Type your email (<span className="text-muted-foreground">{user?.email}</span>) to confirm:
             </label>
-            <input
+            <Input
               type="email"
               value={confirmEmail}
               onChange={(e) => setConfirmEmail(e.target.value)}
               placeholder="your@email.com"
-              className="w-full h-10 px-3 rounded-lg bg-white/[0.03] border border-white/[0.06] text-sm text-foreground placeholder:text-muted-foreground/50 focus:outline-none focus:ring-2 focus:ring-red-500/20 focus:border-red-500/30 transition-all"
+              className="focus:ring-red-500/20 focus:border-red-500/30"
             />
           </div>
         </DialogContent>

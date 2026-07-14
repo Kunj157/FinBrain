@@ -85,22 +85,24 @@ export function IncomeExpenseChart({ transactions }: { transactions: Transaction
   }, [transactions]);
 
   return (
-    <Bar
-      data={data}
-      options={{
-        ...chartDefaults,
-        scales: {
-          x: {
-            grid: { display: false },
-            ticks: { color: '#64748b' },
+    <div role="img" aria-label="Income vs Expenses bar chart for the last 6 months">
+      <Bar
+        data={data}
+        options={{
+          ...chartDefaults,
+          scales: {
+            x: {
+              grid: { display: false },
+              ticks: { color: '#64748b' },
+            },
+            y: {
+              grid: { color: 'rgba(255,255,255,0.03)' },
+              ticks: { color: '#64748b' },
+            },
           },
-          y: {
-            grid: { color: 'rgba(255,255,255,0.03)' },
-            ticks: { color: '#64748b' },
-          },
-        },
-      }}
-    />
+        }}
+      />
+    </div>
   );
 }
 
@@ -144,26 +146,28 @@ export function CategoryChart({ transactions, categories }: { transactions: Tran
   }, [transactions, categories]);
 
   return (
-    <Doughnut
-      data={data}
-      options={{
-        ...chartDefaults,
-        plugins: {
-          ...chartDefaults.plugins,
-          legend: {
-            display: true,
-            position: 'bottom',
-            labels: {
-              color: '#64748b',
-              padding: 16,
-              usePointStyle: true,
-              pointStyle: 'circle',
+    <div role="img" aria-label="Spending by category doughnut chart">
+      <Doughnut
+        data={data}
+        options={{
+          ...chartDefaults,
+          plugins: {
+            ...chartDefaults.plugins,
+            legend: {
+              display: true,
+              position: 'bottom',
+              labels: {
+                color: '#64748b',
+                padding: 16,
+                usePointStyle: true,
+                pointStyle: 'circle',
+              },
             },
           },
-        },
-        cutout: '70%',
-      }}
-    />
+          cutout: '70%',
+        }}
+      />
+    </div>
   );
 }
 
@@ -208,22 +212,24 @@ export function SpendingTrend({ transactions }: { transactions: Transaction[] })
   }, [transactions]);
 
   return (
-    <Line
-      data={data}
-      options={{
-        ...chartDefaults,
-        scales: {
-          x: {
-            grid: { display: false },
-            ticks: { color: '#64748b', maxRotation: 0 },
+    <div role="img" aria-label="30-day spending trend line chart">
+      <Line
+        data={data}
+        options={{
+          ...chartDefaults,
+          scales: {
+            x: {
+              grid: { display: false },
+              ticks: { color: '#64748b', maxRotation: 0 },
+            },
+            y: {
+              grid: { color: 'rgba(255,255,255,0.03)' },
+              ticks: { color: '#64748b' },
+            },
           },
-          y: {
-            grid: { color: 'rgba(255,255,255,0.03)' },
-            ticks: { color: '#64748b' },
-          },
-        },
-        interaction: { intersect: false, mode: 'index' },
-      }}
-    />
+          interaction: { intersect: false, mode: 'index' },
+        }}
+      />
+    </div>
   );
 }

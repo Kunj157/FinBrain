@@ -43,6 +43,8 @@ const SECTION_CONFIG = [
 export function SearchModal({ open, onClose }: { open: boolean; onClose: () => void }) {
   const navigate = useNavigate();
   const inputRef = useRef<HTMLInputElement>(null);
+  const overlayRef = useRef<HTMLDivElement>(null);
+  const previousFocusRef = useRef<HTMLElement | null>(null);
   const [query, setQuery] = useState('');
   const [results, setResults] = useState<SearchResults | null>(null);
   const [loading, setLoading] = useState(false);
@@ -78,11 +80,17 @@ export function SearchModal({ open, onClose }: { open: boolean; onClose: () => v
 
   useEffect(() => {
     if (open) {
+      previousFocusRef.current = document.activeElement as HTMLElement;
       setQuery('');
       setResults(null);
       setSelectedIndex(0);
+      document.body.style.overflow = 'hidden';
       setTimeout(() => inputRef.current?.focus(), 50);
+    } else {
+      document.body.style.overflow = '';
+      previousFocusRef.current?.focus();
     }
+    return () => { document.body.style.overflow = ''; };
   }, [open]);
 
   useEffect(() => {
@@ -102,6 +110,8 @@ export function SearchModal({ open, onClose }: { open: boolean; onClose: () => v
       onClose();
     } else if (e.key === 'Escape') {
       onClose();
+    } else if (e.key === 'Tab') {
+      onClose();
     }
   };
 
@@ -117,14 +127,21 @@ export function SearchModal({ open, onClose }: { open: boolean; onClose: () => v
   let flatIndex = -1;
 
   return (
-    <div className="fixed inset-0 z-[100] flex items-start justify-center pt-[10vh] md:pt-[15vh] bg-black/60 backdrop-blur-sm" onClick={onClose}>
+    <div
+      ref={overlayRef}
+      className="fixed inset-0 z-[100] flex items-start justify-center pt-[10vh] md:pt-[15vh] bg-black/60 backdrop-blur-sm animate-in fade-in duration-150"
+      onClick={onClose}
+      role="dialog"
+      aria-modal="true"
+      aria-label="Search"
+    >
       <div
         className="w-full max-w-lg mx-2 md:mx-4 glass rounded-xl overflow-hidden shadow-2xl md:max-h-[70vh]"
         onClick={(e) => e.stopPropagation()}
         onKeyDown={handleKeyDown}
       >
         <div className="flex items-center gap-3 px-4 py-3 border-b border-white/[0.06]">
-          <Search className="h-4 w-4 text-muted-foreground flex-shrink-0" />
+          <Search className="h-4 w-4 text-muted-foreground flex-shrink-0" aria-hidden="true" />
           <input
             ref={inputRef}
             type="text"
@@ -132,14 +149,18 @@ export function SearchModal({ open, onClose }: { open: boolean; onClose: () => v
             onChange={(e) => setQuery(e.target.value)}
             placeholder="Search transactions, categories, accounts..."
             className="flex-1 bg-transparent text-sm outline-none placeholder:text-muted-foreground/50"
+            aria-label="Search"
+            role="combobox"
+            aria-expanded={allResults.length > 0}
+            aria-controls="search-results"
           />
-          {loading && <Loader2 className="h-4 w-4 text-muted-foreground animate-spin" />}
-          <button onClick={onClose} className="p-1 rounded hover:bg-white/[0.06] text-muted-foreground">
+          {loading && <Loader2 className="h-4 w-4 text-muted-foreground animate-spin" aria-hidden="true" />}
+          <button onClick={onClose} className="p-1 rounded hover:bg-white/[0.06] text-muted-foreground" aria-label="Close search">
             <X className="h-4 w-4" />
           </button>
         </div>
 
-        <div ref={listRef} className="max-h-[50vh] overflow-y-auto">
+        <div ref={listRef} id="search-results" className="max-h-[50vh] overflow-y-auto" role="listbox" aria-label="Search results">
           {query.length < 2 ? (
             <div className="py-8 text-center text-sm text-muted-foreground/50">
               Type at least 2 characters to search
@@ -155,9 +176,9 @@ export function SearchModal({ open, onClose }: { open: boolean; onClose: () => v
               const SectionIcon = section.icon;
 
               return (
-                <div key={section.key}>
+                <div key={section.key} role="group" aria-label={section.label}>
                   <div className="px-4 py-2 text-[10px] font-medium text-muted-foreground uppercase tracking-wider flex items-center gap-1.5">
-                    <SectionIcon className={`h-3 w-3 ${section.color}`} />
+                    <SectionIcon className={`h-3 w-3 ${section.color}`} aria-hidden="true" />
                     {section.label}
                   </div>
                   {items.map((item) => {
@@ -167,15 +188,17 @@ export function SearchModal({ open, onClose }: { open: boolean; onClose: () => v
                       <button
                         key={item.id}
                         data-index={idx}
+                        role="option"
+                        aria-selected={idx === selectedIndex}
                         onClick={() => { navigate(item.navigateTo); onClose(); }}
                         className={`w-full px-4 py-2.5 flex items-center gap-3 text-left transition-colors ${
                           idx === selectedIndex ? 'bg-white/[0.06]' : 'hover:bg-white/[0.03]'
                         }`}
                       >
                         {item.color ? (
-                          <span className="w-3 h-3 rounded-full flex-shrink-0" style={{ backgroundColor: item.color }} />
+                          <span className="w-3 h-3 rounded-full flex-shrink-0" style={{ backgroundColor: item.color }} aria-hidden="true" />
                         ) : (
-                          <SectionIcon className={`h-4 w-4 flex-shrink-0 ${section.color}`} />
+                          <SectionIcon className={`h-4 w-4 flex-shrink-0 ${section.color}`} aria-hidden="true" />
                         )}
                         <div className="flex-1 min-w-0">
                           <p className="text-sm font-medium truncate">{item.label}</p>
@@ -186,7 +209,7 @@ export function SearchModal({ open, onClose }: { open: boolean; onClose: () => v
                             {formatCurrency(item.amount)}
                           </span>
                         )}
-                        <ArrowUpRight className="h-3.5 w-3.5 text-muted-foreground/30 flex-shrink-0" />
+                        <ArrowUpRight className="h-3.5 w-3.5 text-muted-foreground/30 flex-shrink-0" aria-hidden="true" />
                       </button>
                     );
                   })}

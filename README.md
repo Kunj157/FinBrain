@@ -47,7 +47,7 @@ FinBrain helps users manage their finances while leveraging AI to forecast futur
 | CSV/QFX/OFX Data Import | ✅ Phase 2 |
 | Receipt OCR | ✅ Phase 2 |
 | Multi-Currency Support | ✅ Phase 2 |
-| Transaction CRUD & Search | 📋 Phase 3 |
+| Transaction CRUD & Search | ✅ Phase 3 |
 | Adaptive Budget Engine | 📋 Phase 4 |
 | Financial Goals | 📋 Phase 4 |
 | Analytics & Reports | 📋 Phase 5 |
@@ -56,6 +56,7 @@ FinBrain helps users manage their finances while leveraging AI to forecast futur
 | ML Forecasting (Prophet, ARIMA) | 📋 Phase 7 |
 | AI Assistant (Chat) | 📋 Phase 7 |
 | What-If Simulator | 📋 Phase 7 |
+| Quality & Accessibility Polish | ✅ In Progress |
 
 ---
 
@@ -191,11 +192,12 @@ All feature branches are created from and merged into `dev`.
 |-------|-------|--------|
 | 1 | Foundation: Monorepo, Auth, Docker, CI/CD, UI Shell | ✅ Complete |
 | 2 | Data Ingestion: Plaid, CSV, OCR, Multi-Currency | ✅ Complete |
-| 3 | Finance Core: Transactions, Categories, Dashboard | 📋 Planned |
+| 3 | Finance Core: Transactions, Categories, Dashboard | ✅ Complete |
 | 4 | Adaptive Budgeting & Goals | 📋 Planned |
 | 5 | Analytics & Reports | 📋 Planned |
 | 6 | Cloud-Native & Offline | 📋 Planned |
 | 7 | ML, AI Assistant & What-If Simulator | 📋 Planned |
+| Q | Quality & Accessibility Polish (toasts, skeletons, ARIA, focus traps, validation) | 🔄 In Progress |
 
 See [PHASES.md](./docs/PHASES.md) for the complete detailed plan.
 
