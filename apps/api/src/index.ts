@@ -21,6 +21,7 @@ import authRoutes from './routes/auth';
 import accountsRoutes from './routes/accounts';
 import rulesRoutes from './routes/rules';
 import recurringRoutes from './routes/recurring';
+import searchRoutes from './routes/search';
 
 const app = express();
 const PORT = process.env.PORT || 4000;
@@ -57,6 +58,7 @@ app.use('/api/v1/auth', authRoutes);
 app.use('/api/v1/accounts', accountsRoutes);
 app.use('/api/v1/rules', rulesRoutes);
 app.use('/api/v1/recurring', recurringRoutes);
+app.use('/api/v1/search', searchRoutes);
 
 app.get('/api/v1/audit-logs', async (req, res) => {
   const { entity, limit: l } = req.query;
