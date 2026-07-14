@@ -21,6 +21,7 @@ import SettingsPage from '@/pages/settings';
 import HelpPage from '@/pages/help';
 import AccountsPage from '@/pages/accounts';
 import RulesPage from '@/pages/rules';
+import RecurringPage from '@/pages/recurring';
 export default function App() {
   return (
     <QueryClientProvider client={queryClient}>
@@ -51,6 +52,7 @@ export default function App() {
               <Route path="/help" element={<HelpPage />} />
               <Route path="/accounts" element={<AccountsPage />} />
               <Route path="/rules" element={<RulesPage />} />
+              <Route path="/recurring" element={<RecurringPage />} />
             </Route>
           </Routes>
         </AuthProvider>
