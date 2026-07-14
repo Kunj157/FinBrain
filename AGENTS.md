@@ -3,6 +3,7 @@
 - Always kill dev servers after testing (`kill $(lsof -t -i :4000) 2>/dev/null; kill $(lsof -t -i :5173) 2>/dev/null`). Never leave them running.
 
 - AGENTS.md is local-only and must NEVER be pushed to `dev` or `main` branches. It belongs only on feature branches for agent context.
+- **Before merging any PR to `dev` or `main`**: delete AGENTS.md from the branch first (`git rm AGENTS.md`).
 
 ---
 
