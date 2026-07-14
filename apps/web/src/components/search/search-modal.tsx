@@ -117,9 +117,9 @@ export function SearchModal({ open, onClose }: { open: boolean; onClose: () => v
   let flatIndex = -1;
 
   return (
-    <div className="fixed inset-0 z-[100] flex items-start justify-center pt-[15vh] bg-black/60 backdrop-blur-sm" onClick={onClose}>
+    <div className="fixed inset-0 z-[100] flex items-start justify-center pt-[10vh] md:pt-[15vh] bg-black/60 backdrop-blur-sm" onClick={onClose}>
       <div
-        className="w-full max-w-lg mx-4 glass rounded-xl overflow-hidden shadow-2xl"
+        className="w-full max-w-lg mx-2 md:mx-4 glass rounded-xl overflow-hidden shadow-2xl md:max-h-[70vh]"
         onClick={(e) => e.stopPropagation()}
         onKeyDown={handleKeyDown}
       >
