@@ -3,8 +3,10 @@ import { Plus, Building2, Wallet, CreditCard, PiggyBank, TrendingUp, Home, Loade
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Select } from '@/components/ui/select';
+import { NetWorthTrend } from '@/components/finance/net-worth-trend';
+import { useAuth } from '@/hooks/use-auth';
 import api from '@/lib/api';
-import type { Account, NetWorthData } from '@finbrain/shared';
+import type { Account, NetWorthData, Currency as SharedCurrency } from '@finbrain/shared';
 
 const ACCOUNT_TYPE_ICONS: Record<string, React.ComponentType<{ className?: string }>> = {
   checking: Wallet,
@@ -37,6 +39,8 @@ const ACCOUNT_TYPE_OPTIONS = [
 ];
 
 export default function AccountsPage() {
+  const { user } = useAuth();
+  const currency = (user?.currency || 'USD') as SharedCurrency;
   const [accounts, setAccounts] = useState<Account[]>([]);
   const [netWorth, setNetWorth] = useState<NetWorthData | null>(null);
   const [loading, setLoading] = useState(true);
@@ -121,6 +125,12 @@ export default function AccountsPage() {
           </Card>
         </div>
       )}
+
+      <Card>
+        <CardContent className="p-5">
+          <NetWorthTrend currency={currency} />
+        </CardContent>
+      </Card>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
         {accounts.map((acct) => {

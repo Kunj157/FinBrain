@@ -55,6 +55,60 @@ router.get('/net-worth', async (req: Request, res: Response) => {
   });
 });
 
+router.get('/net-worth/history', async (req: Request, res: Response) => {
+  const months = Math.min(Math.max(parseInt(req.query.months as string) || 12, 1), 60);
+
+  const accounts = await prisma.account.findMany({ where: { userId: req.userId } });
+  const currentNetWorth = accounts
+    .filter((a) => ['checking', 'savings', 'investment', 'real_estate'].includes(a.type))
+    .reduce((s, a) => s + a.balance, 0) -
+    accounts
+      .filter((a) => ['credit', 'loan'].includes(a.type))
+      .reduce((s, a) => s + a.balance, 0);
+
+  const now = new Date();
+  const startDate = new Date(now.getFullYear(), now.getMonth() - months, 1);
+
+  const transactions = await prisma.transaction.findMany({
+    where: {
+      userId: req.userId,
+      deletedAt: null,
+      date: { gte: startDate },
+    },
+    select: { type: true, amount: true, date: true },
+  });
+
+  const monthlyDelta: Record<string, number> = {};
+  for (let i = 0; i < months; i++) {
+    const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+    const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+    monthlyDelta[key] = 0;
+  }
+
+  for (const txn of transactions) {
+    const d = txn.date;
+    const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+    if (monthlyDelta[key] !== undefined) {
+      monthlyDelta[key] += txn.type === 'income' ? txn.amount : -txn.amount;
+    }
+  }
+
+  const sortedKeys = Object.keys(monthlyDelta).sort();
+  const history: { month: string; netWorth: number }[] = [];
+  let running = currentNetWorth;
+
+  for (let i = sortedKeys.length - 1; i >= 0; i--) {
+    running -= monthlyDelta[sortedKeys[i]];
+  }
+
+  for (const key of sortedKeys) {
+    running += monthlyDelta[key];
+    history.push({ month: key, netWorth: Math.round(running * 100) / 100 });
+  }
+
+  res.json({ success: true, data: history });
+});
+
 router.get('/:id', async (req: Request, res: Response) => {
   const account = await prisma.account.findFirst({
     where: { id: req.params.id, userId: req.userId },
