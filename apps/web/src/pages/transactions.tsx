@@ -1,7 +1,11 @@
 import { useState, useMemo, useCallback, useEffect } from 'react';
-import { Plus, Search, ArrowUpDown, Pencil, Trash2, ArrowRightLeft, X, Check, Loader2, ChevronLeft, ChevronRight, Trash } from 'lucide-react';
+import { Plus, Search, ArrowUpDown, Pencil, Trash2, ArrowRightLeft, X, Check, Loader2, ChevronLeft, ChevronRight, Trash, AlertTriangle } from 'lucide-react';
+import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
+import { TableSkeleton } from '@/components/ui/skeleton';
 import { Badge } from '@/components/ui/badge';
 import { Select } from '@/components/ui/select';
 import { useAuth } from '@/hooks/use-auth';
@@ -68,7 +72,7 @@ export default function TransactionsPage() {
       setTotal(txnRes.data.data.total);
       if (!categories.length) setCategories(catRes.data.data);
     } catch {
-      // silent
+      toast.error('Failed to load transactions');
     } finally {
       setLoading(false);
     }
@@ -92,15 +96,69 @@ export default function TransactionsPage() {
   };
 
   const handleDelete = useCallback(async (id: string) => {
-    await api.delete(`/transactions/${id}`);
-    fetchData();
-  }, [fetchData]);
+    const txn = txns.find((t) => t.id === id);
+    if (!txn) return;
+    setTxns((prev) => prev.filter((t) => t.id !== id));
+    setTotal((prev) => prev - 1);
+    toast.success('Transaction deleted', {
+      action: {
+        label: 'Undo',
+        onClick: async () => {
+          try {
+            await api.post(`/transactions/${id}/restore`);
+            fetchData();
+            toast.success('Transaction restored');
+          } catch {
+            toast.error('Failed to restore');
+          }
+        },
+      },
+      duration: 5000,
+    });
+    try {
+      await api.delete(`/transactions/${id}`);
+    } catch {
+      setTxns((prev) => {
+        const next = [...prev];
+        next.splice(txns.indexOf(txn), 0, txn);
+        return next;
+      });
+      setTotal((prev) => prev + 1);
+      toast.error('Failed to delete transaction');
+    }
+  }, [txns, fetchData]);
 
   const handleBulkDelete = useCallback(async () => {
-    await api.delete('/transactions/bulk', { data: { ids: Array.from(selected) } });
+    const ids = Array.from(selected);
+    const deletedTxns = txns.filter((t) => ids.includes(t.id));
+    setTxns((prev) => prev.filter((t) => !selected.has(t.id)));
+    setTotal((prev) => prev - ids.length);
     setSelected(new Set());
-    fetchData();
-  }, [selected, fetchData]);
+    toast.success(`${ids.length} transaction${ids.length > 1 ? 's' : ''} deleted`, {
+      action: {
+        label: 'Undo',
+        onClick: async () => {
+          try {
+            for (const txn of deletedTxns) {
+              await api.post(`/transactions/${txn.id}/restore`);
+            }
+            fetchData();
+            toast.success('Transactions restored');
+          } catch {
+            toast.error('Failed to restore');
+          }
+        },
+      },
+      duration: 5000,
+    });
+    try {
+      await api.delete('/transactions/bulk', { data: { ids } });
+    } catch {
+      setTxns((prev) => [...prev, ...deletedTxns]);
+      setTotal((prev) => prev + ids.length);
+      toast.error('Failed to delete transactions');
+    }
+  }, [selected, txns, fetchData]);
 
   const toggleSelect = (id: string) => {
     setSelected((prev) => {
@@ -123,12 +181,28 @@ export default function TransactionsPage() {
     setShowForm(true);
   };
 
+  const handleFormSave = (savedTxn?: Transaction) => {
+    if (savedTxn) {
+      if (formMode === 'edit' && editingTxn) {
+        setTxns((prev) => prev.map((t) => (t.id === savedTxn.id ? savedTxn : t)));
+      } else {
+        setTxns((prev) => [savedTxn, ...prev]);
+        setTotal((prev) => prev + 1);
+      }
+    }
+    setShowForm(false);
+    fetchData();
+  };
+
   const handleClear = useCallback(async () => {
     setClearing(true);
     try {
       await api.delete('/seed/transactions');
+      toast.success('All transactions cleared');
       setSelected(new Set());
       await fetchData();
+    } catch {
+      toast.error('Failed to clear transactions');
     } finally {
       setClearing(false);
     }
@@ -158,12 +232,12 @@ export default function TransactionsPage() {
           <div className="flex flex-wrap items-center gap-3">
             <div className="relative flex-1 min-w-[200px]">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-              <input
+              <Input
                 type="text"
                 placeholder="Search transactions..."
                 value={filters.search}
                 onChange={(e) => { setFilters((f) => ({ ...f, search: e.target.value })); setPage(1); }}
-                className="w-full h-10 pl-9 pr-3 rounded-lg bg-white/[0.02] border border-white/[0.08] text-sm text-foreground placeholder:text-muted-foreground/50 focus:outline-none focus:ring-2 focus:ring-emerald-500/20"
+                className="pl-9"
               />
             </div>
             <Select
@@ -201,9 +275,7 @@ export default function TransactionsPage() {
         </CardHeader>
         <CardContent className="p-0">
           {loading ? (
-            <div className="py-16 text-center">
-              <Loader2 className="h-10 w-10 text-muted-foreground/30 mx-auto animate-spin" />
-            </div>
+            <TableSkeleton rows={8} cols={8} />
           ) : txns.length === 0 ? (
             <div className="py-16 text-center">
               <ArrowRightLeft className="h-10 w-10 text-muted-foreground/30 mx-auto" />
@@ -226,18 +298,25 @@ export default function TransactionsPage() {
                           else setSelected(new Set(txns.map((t) => t.id)));
                         }}
                         className="rounded border-white/[0.08] bg-white/[0.02]"
+                        aria-label="Select all"
                       />
                     </th>
-                    <th className="text-left px-3 py-3 text-muted-foreground font-medium cursor-pointer hover:text-foreground" onClick={() => toggleSort('date')}>
-                      <span className="flex items-center gap-1">Date <ArrowUpDown className="h-3 w-3" /></span>
+                    <th className="text-left px-3 py-3 text-muted-foreground font-medium">
+                      <button className="flex items-center gap-1 hover:text-foreground transition-colors" onClick={() => toggleSort('date')} onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); toggleSort('date'); } }}>
+                        Date <ArrowUpDown className="h-3 w-3" />
+                      </button>
                     </th>
-                    <th className="text-left px-3 py-3 text-muted-foreground font-medium cursor-pointer hover:text-foreground" onClick={() => toggleSort('merchant')}>
-                      <span className="flex items-center gap-1">Merchant <ArrowUpDown className="h-3 w-3" /></span>
+                    <th className="text-left px-3 py-3 text-muted-foreground font-medium">
+                      <button className="flex items-center gap-1 hover:text-foreground transition-colors" onClick={() => toggleSort('merchant')} onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); toggleSort('merchant'); } }}>
+                        Merchant <ArrowUpDown className="h-3 w-3" />
+                      </button>
                     </th>
                     <th className="text-left px-3 py-3 text-muted-foreground font-medium">Description</th>
                     <th className="text-left px-3 py-3 text-muted-foreground font-medium">Category</th>
-                    <th className="text-right px-3 py-3 text-muted-foreground font-medium cursor-pointer hover:text-foreground" onClick={() => toggleSort('amount')}>
-                      <span className="flex items-center justify-end gap-1">Amount <ArrowUpDown className="h-3 w-3" /></span>
+                    <th className="text-right px-3 py-3 text-muted-foreground font-medium">
+                      <button className="flex items-center justify-end gap-1 hover:text-foreground transition-colors" onClick={() => toggleSort('amount')} onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); toggleSort('amount'); } }}>
+                        Amount <ArrowUpDown className="h-3 w-3" />
+                      </button>
                     </th>
                     <th className="text-center px-3 py-3 text-muted-foreground font-medium">Status</th>
                     <th className="w-20 px-3 py-3 text-muted-foreground font-medium">Actions</th>
@@ -252,6 +331,7 @@ export default function TransactionsPage() {
                           checked={selected.has(txn.id)}
                           onChange={() => toggleSelect(txn.id)}
                           className="rounded border-white/[0.08] bg-white/[0.02]"
+                          aria-label={`Select transaction ${txn.merchant || txn.description}`}
                         />
                       </td>
                       <td className="px-3 py-3 text-muted-foreground">{formatDate(txn.date)}</td>
@@ -275,10 +355,10 @@ export default function TransactionsPage() {
                       </td>
                       <td className="px-3 py-3">
                         <div className="flex items-center gap-1">
-                          <button onClick={() => openEdit(txn)} className="p-1.5 rounded-lg hover:bg-white/[0.04] text-muted-foreground hover:text-foreground transition-colors">
+                          <button onClick={() => openEdit(txn)} className="p-1.5 rounded-lg hover:bg-white/[0.04] text-muted-foreground hover:text-foreground transition-colors" aria-label={`Edit transaction ${txn.merchant || txn.description}`}>
                             <Pencil className="h-3.5 w-3.5" />
                           </button>
-                          <button onClick={() => handleDelete(txn.id)} className="p-1.5 rounded-lg hover:bg-white/[0.04] text-muted-foreground hover:text-rose-400 transition-colors">
+                          <button onClick={() => handleDelete(txn.id)} className="p-1.5 rounded-lg hover:bg-white/[0.04] text-muted-foreground hover:text-rose-400 transition-colors" aria-label={`Delete transaction ${txn.merchant || txn.description}`}>
                             <Trash2 className="h-3.5 w-3.5" />
                           </button>
                         </div>
@@ -334,7 +414,7 @@ export default function TransactionsPage() {
           categories={categories}
           currency={currency}
           onClose={() => setShowForm(false)}
-          onSave={() => setShowForm(false)}
+          onSave={handleFormSave}
         />
       )}
     </div>
@@ -354,7 +434,7 @@ function TransactionForm({
   categories: { id: string; name: string; color: string }[];
   currency: SharedCurrency;
   onClose: () => void;
-  onSave: () => void;
+  onSave: (txn?: Transaction) => void;
 }) {
   const [form, setForm] = useState({
     type: transaction?.type || 'expense',
@@ -369,16 +449,27 @@ function TransactionForm({
     notes: transaction?.notes || '',
   });
   const [saving, setSaving] = useState(false);
+  const [formError, setFormError] = useState('');
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setSaving(true);
+    setFormError('');
 
     const amount = parseFloat(form.amount);
     if (isNaN(amount) || amount <= 0) {
-      setSaving(false);
+      setFormError('Please enter a valid amount');
       return;
     }
+    if (!form.description.trim()) {
+      setFormError('Description is required');
+      return;
+    }
+    if (!form.categoryId) {
+      setFormError('Please select a category');
+      return;
+    }
+
+    setSaving(true);
 
     const payload = {
       type: form.type as 'income' | 'expense',
@@ -396,12 +487,18 @@ function TransactionForm({
 
     try {
       if (mode === 'edit' && transaction) {
-        await api.put(`/transactions/${transaction.id}`, payload);
+        const res = await api.put(`/transactions/${transaction.id}`, payload);
+        toast.success('Transaction updated');
+        onSave(res.data.data);
       } else {
-        await api.post('/transactions', payload);
+        const res = await api.post('/transactions', payload);
+        toast.success('Transaction created');
+        onSave(res.data.data);
       }
     } catch {
-      // silent
+      toast.error('Failed to save transaction');
+      setSaving(false);
+      return;
     }
 
     setSaving(false);
@@ -409,11 +506,11 @@ function TransactionForm({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm" onClick={onClose} onKeyDown={(e) => { if (e.key === 'Escape') onClose(); }}>
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm" onClick={onClose} onKeyDown={(e) => { if (e.key === 'Escape') onClose(); }} role="dialog" aria-modal="true" aria-labelledby="txn-form-title">
       <div className="w-full max-w-lg mx-4 glass rounded-xl" onClick={(e) => e.stopPropagation()}>
         <div className="flex items-center justify-between p-5 border-b border-white/[0.06]">
-          <h2 className="text-lg font-semibold">{mode === 'create' ? 'Add Transaction' : 'Edit Transaction'}</h2>
-          <button onClick={onClose} className="p-1.5 rounded-lg hover:bg-white/[0.04]">
+          <h2 id="txn-form-title" className="text-lg font-semibold">{mode === 'create' ? 'Add Transaction' : 'Edit Transaction'}</h2>
+          <button onClick={onClose} className="p-1.5 rounded-lg hover:bg-white/[0.04]" aria-label="Close">
             <X className="h-5 w-5" />
           </button>
         </div>
@@ -438,7 +535,7 @@ function TransactionForm({
           <div className="grid grid-cols-2 gap-4">
             <div>
               <label className="text-xs text-muted-foreground block mb-1">Amount *</label>
-              <input
+              <Input
                 type="number"
                 step="0.01"
                 min="0.01"
@@ -446,42 +543,38 @@ function TransactionForm({
                 value={form.amount}
                 onChange={(e) => setForm((f) => ({ ...f, amount: e.target.value }))}
                 placeholder="0.00"
-                className="w-full h-10 px-3 rounded-lg bg-white/[0.02] border border-white/[0.08] text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/20"
               />
             </div>
             <div>
               <label className="text-xs text-muted-foreground block mb-1">Date *</label>
-              <input
+              <Input
                 type="date"
                 required
                 value={form.date}
                 onChange={(e) => setForm((f) => ({ ...f, date: e.target.value }))}
-                className="w-full h-10 px-3 rounded-lg bg-white/[0.02] border border-white/[0.08] text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/20"
               />
             </div>
           </div>
 
           <div>
             <label className="text-xs text-muted-foreground block mb-1">Description *</label>
-            <input
+            <Input
               type="text"
               required
               value={form.description}
               onChange={(e) => setForm((f) => ({ ...f, description: e.target.value }))}
               placeholder="Coffee, Groceries, etc."
-              className="w-full h-10 px-3 rounded-lg bg-white/[0.02] border border-white/[0.08] text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/20"
             />
           </div>
 
           <div className="grid grid-cols-2 gap-4">
             <div>
               <label className="text-xs text-muted-foreground block mb-1">Merchant</label>
-              <input
+              <Input
                 type="text"
                 value={form.merchant}
                 onChange={(e) => setForm((f) => ({ ...f, merchant: e.target.value }))}
                 placeholder="Starbucks, Amazon, etc."
-                className="w-full h-10 px-3 rounded-lg bg-white/[0.02] border border-white/[0.08] text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/20"
               />
             </div>
             <div>
@@ -519,12 +612,11 @@ function TransactionForm({
 
           <div>
             <label className="text-xs text-muted-foreground block mb-1">Notes</label>
-            <textarea
+            <Textarea
               value={form.notes}
               onChange={(e) => setForm((f) => ({ ...f, notes: e.target.value }))}
               placeholder="Optional notes..."
               rows={2}
-              className="w-full px-3 py-2 rounded-lg bg-white/[0.02] border border-white/[0.08] text-sm resize-none focus:outline-none focus:ring-2 focus:ring-emerald-500/20"
             />
           </div>
 
@@ -538,6 +630,13 @@ function TransactionForm({
             />
             <label htmlFor="isRecurring" className="text-sm text-muted-foreground">Recurring transaction</label>
           </div>
+
+          {formError && (
+            <div className="flex items-center gap-2 text-sm text-rose-400 bg-rose-500/10 rounded-lg px-3 py-2">
+              <AlertTriangle className="h-4 w-4 flex-shrink-0" />
+              {formError}
+            </div>
+          )}
 
           <div className="flex gap-3 pt-2">
             <Button type="button" variant="outline" className="flex-1" onClick={onClose}>Cancel</Button>

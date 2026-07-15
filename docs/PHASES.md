@@ -160,6 +160,49 @@
 
 ---
 
+## Quality & Accessibility Polish 🔄 (In Progress)
+
+**Goal**: Match Monarch Money's UX quality — every interaction should feel polished, accessible, and delightful.
+
+### Phase 1 — Foundation Quality ✅
+- [x] Toast notification system (`sonner`) — replaced all silent `catch {}` blocks with `toast.error()`/`toast.success()`
+- [x] Shared `Input` and `Textarea` components — consistent styling across all forms
+- [x] Fix hover-only action buttons — edit/delete buttons now visible + keyboard-accessible on budgets, goals, categories
+- [x] Fix hardcoded `$` in accounts — uses `formatCurrency()` with user's currency preference
+- [x] Form validation with inline error messages — all forms show clear error state
+- [x] Dashboard dead code removal — removed stale "Try sample data" CTA
+
+### Phase 2 — Modal & Accessibility ✅
+- [x] Dialog focus trap — Tab cycling, Escape close, `aria-modal`, focus restore
+- [x] Search modal ARIA — `role="dialog"`, `role="listbox"`, `aria-selected`, focus trap
+- [x] Icon button ARIA — `aria-label` on all header buttons (theme, sign out, menu, notifications)
+- [x] Charts accessibility — all charts wrapped in `role="img"` with descriptive `aria-label`
+- [x] Sidebar duplication removed — removed redundant "Ask FinBrain" CTA
+- [x] Notification bell fixed — removed false-positive red dot
+
+### Phase 3 — Perceived Performance 🔄
+- [x] Skeleton loaders — dashboard, transactions, budgets, goals pages
+- [ ] Optimistic updates across all pages
+- [ ] Page transitions (framer-motion)
+- [ ] Notification bell with real unread count
+
+### Phase 4 — Feature Parity (Monarch gaps) 📋
+- [ ] Rollover budgets
+- [ ] Spending forecast
+- [ ] Calendar view
+- [ ] Dashboard customization (widget reorder)
+- [ ] Transaction review queue
+- [ ] Goal → account linking
+- [ ] Investment detail view
+- [ ] Monthly review card
+
+### Phase 5 — Landing Page Polish 📋
+- [ ] Scroll-reveal animations (framer-motion)
+- [ ] Fix dead CTA links
+- [ ] Remove dead code
+
+---
+
 ## Phase 4 — Adaptive Budgeting & Goals 📋
 
 **Goal**: Budgets that learn the user, not the other way around.
