@@ -90,14 +90,36 @@ export default function Budgets() {
   };
 
   const handleDelete = useCallback(async (id: string) => {
+    const budget = budgets.find((b) => b.id === id);
+    if (!budget) return;
+    setBudgets((prev) => prev.filter((b) => b.id !== id));
+    toast.success('Budget deleted', {
+      action: {
+        label: 'Undo',
+        onClick: async () => {
+          try {
+            await api.post('/budgets', {
+              categoryId: budget.categoryId,
+              amount: budget.amount,
+              period: budget.period,
+              startDate: budget.startDate,
+            });
+            fetchData();
+            toast.success('Budget restored');
+          } catch {
+            toast.error('Failed to restore');
+          }
+        },
+      },
+      duration: 5000,
+    });
     try {
       await api.delete(`/budgets/${id}`);
-      toast.success('Budget deleted');
-      fetchData();
     } catch {
+      setBudgets((prev) => [...prev, budget]);
       toast.error('Failed to delete budget');
     }
-  }, [fetchData]);
+  }, [budgets, fetchData]);
 
   return (
     <div className="space-y-6 animate-fade-in">

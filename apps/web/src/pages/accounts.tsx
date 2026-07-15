@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { Plus, Building2, Wallet, CreditCard, PiggyBank, TrendingUp, Home, Loader2, X, Check } from 'lucide-react';
+import { Plus, Building2, Wallet, CreditCard, PiggyBank, TrendingUp, Home, Loader2, X, Check, Pencil, ArrowRightLeft } from 'lucide-react';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -8,8 +8,8 @@ import { Select } from '@/components/ui/select';
 import { NetWorthTrend } from '@/components/finance/net-worth-trend';
 import { useAuth } from '@/hooks/use-auth';
 import api from '@/lib/api';
-import { formatCurrency } from '@/lib/utils';
-import type { Account, NetWorthData, Currency as SharedCurrency } from '@finbrain/shared';
+import { formatCurrency, formatDate } from '@/lib/utils';
+import type { Account, Category, Transaction, NetWorthData, Currency as SharedCurrency } from '@finbrain/shared';
 
 const ACCOUNT_TYPE_ICONS: Record<string, React.ComponentType<{ className?: string }>> = {
   checking: Wallet,
@@ -51,15 +51,22 @@ export default function AccountsPage() {
   const [form, setForm] = useState({ name: '', type: 'checking', balance: 0, institution: '' });
   const [saving, setSaving] = useState(false);
   const [formError, setFormError] = useState('');
+  const [editingAccount, setEditingAccount] = useState<Account | null>(null);
+  const [selectedAccount, setSelectedAccount] = useState<Account | null>(null);
+  const [accountTxns, setAccountTxns] = useState<Transaction[]>([]);
+  const [loadingTxns, setLoadingTxns] = useState(false);
+  const [categories, setCategories] = useState<Category[]>([]);
 
   const fetchData = useCallback(async () => {
     try {
-      const [acctsRes, nwRes] = await Promise.all([
+      const [acctsRes, nwRes, catsRes] = await Promise.all([
         api.get('/accounts'),
         api.get('/accounts/net-worth'),
+        api.get('/categories'),
       ]);
       setAccounts(acctsRes.data.data);
       setNetWorth(nwRes.data.data);
+      setCategories(catsRes.data.data);
     } catch {
       toast.error('Failed to load accounts');
     } finally {
@@ -76,16 +83,50 @@ export default function AccountsPage() {
       return;
     }
     setSaving(true);
+    const payload = { ...form, balance: Number(form.balance), currency: 'USD' as SharedCurrency };
     try {
-      await api.post('/accounts', { ...form, balance: Number(form.balance) });
-      toast.success('Account added');
+      if (editingAccount) {
+        const res = await api.put(`/accounts/${editingAccount.id}`, payload);
+        setAccounts((prev) => prev.map((a) => (a.id === editingAccount.id ? res.data.data : a)));
+        toast.success('Account updated');
+      } else {
+        const res = await api.post('/accounts', payload);
+        setAccounts((prev) => [res.data.data, ...prev]);
+        toast.success('Account added');
+      }
       await fetchData();
       setShowForm(false);
+      setEditingAccount(null);
       setForm({ name: '', type: 'checking', balance: 0, institution: '' });
     } catch {
-      toast.error('Failed to add account');
+      toast.error(editingAccount ? 'Failed to update account' : 'Failed to add account');
     } finally {
       setSaving(false);
+    }
+  };
+
+  const openEdit = (account: Account) => {
+    setEditingAccount(account);
+    setForm({ name: account.name, type: account.type, balance: account.balance, institution: account.institution || '' });
+    setShowForm(true);
+  };
+
+  const openCreate = () => {
+    setEditingAccount(null);
+    setForm({ name: '', type: 'checking', balance: 0, institution: '' });
+    setShowForm(true);
+  };
+
+  const viewAccount = async (account: Account) => {
+    setSelectedAccount(account);
+    setLoadingTxns(true);
+    try {
+      const res = await api.get(`/accounts/${account.id}`);
+      setAccountTxns(res.data.data.transactions || []);
+    } catch {
+      toast.error('Failed to load account transactions');
+    } finally {
+      setLoadingTxns(false);
     }
   };
 
@@ -104,7 +145,7 @@ export default function AccountsPage() {
           <h1 className="text-2xl font-semibold tracking-tight">Accounts</h1>
           <p className="text-sm text-muted-foreground mt-1">{accounts.length} accounts</p>
         </div>
-        <Button onClick={() => setShowForm(true)} className="gap-2">
+        <Button onClick={openCreate} className="gap-2">
           <Plus className="h-4 w-4" />
           Add Account
         </Button>
@@ -151,7 +192,7 @@ export default function AccountsPage() {
         <div className="py-16 text-center">
           <Building2 className="h-10 w-10 text-muted-foreground/30 mx-auto" />
           <p className="text-sm text-muted-foreground mt-3">No accounts yet</p>
-          <Button variant="outline" size="sm" className="mt-4" onClick={() => setShowForm(true)}>
+          <Button variant="outline" size="sm" className="mt-4" onClick={openCreate}>
             <Plus className="h-4 w-4 mr-1" /> Add your first account
           </Button>
         </div>
@@ -160,7 +201,7 @@ export default function AccountsPage() {
           {accounts.map((acct) => {
             const Icon = ACCOUNT_TYPE_ICONS[acct.type] || Building2;
             return (
-              <Card key={acct.id} className="group">
+              <Card key={acct.id} className="group cursor-pointer hover:border-white/[0.1] transition-colors" onClick={() => viewAccount(acct)}>
                 <CardHeader className="pb-2">
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-3">
@@ -172,6 +213,13 @@ export default function AccountsPage() {
                         <p className="text-xs text-muted-foreground">{ACCOUNT_TYPE_LABELS[acct.type]}</p>
                       </div>
                     </div>
+                    <button
+                      onClick={(e) => { e.stopPropagation(); openEdit(acct); }}
+                      className="p-1.5 rounded-lg hover:bg-white/[0.04] text-muted-foreground hover:text-foreground opacity-0 group-hover:opacity-100 focus-within:opacity-100 transition-all"
+                      aria-label={`Edit ${acct.name}`}
+                    >
+                      <Pencil className="h-3.5 w-3.5" />
+                    </button>
                   </div>
                 </CardHeader>
                 <CardContent>
@@ -189,11 +237,11 @@ export default function AccountsPage() {
       )}
 
       {showForm && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm" onClick={() => setShowForm(false)} role="dialog" aria-modal="true" aria-labelledby="add-account-title">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm" onClick={() => { setShowForm(false); setEditingAccount(null); }} role="dialog" aria-modal="true" aria-labelledby="account-form-title">
           <div className="w-full max-w-md mx-4 glass rounded-xl" onClick={(e) => e.stopPropagation()}>
             <div className="flex items-center justify-between p-5 border-b border-white/[0.06]">
-              <h2 id="add-account-title" className="text-lg font-semibold">Add Account</h2>
-              <button onClick={() => setShowForm(false)} className="p-1.5 rounded-lg hover:bg-white/[0.04]" aria-label="Close">
+              <h2 id="account-form-title" className="text-lg font-semibold">{editingAccount ? 'Edit Account' : 'Add Account'}</h2>
+              <button onClick={() => { setShowForm(false); setEditingAccount(null); }} className="p-1.5 rounded-lg hover:bg-white/[0.04]" aria-label="Close">
                 <X className="h-5 w-5" />
               </button>
             </div>
@@ -236,12 +284,57 @@ export default function AccountsPage() {
                 />
               </div>
               <div className="flex gap-3 pt-2">
-                <Button type="button" variant="outline" className="flex-1" onClick={() => setShowForm(false)}>Cancel</Button>
+                <Button type="button" variant="outline" className="flex-1" onClick={() => { setShowForm(false); setEditingAccount(null); }}>Cancel</Button>
                 <Button type="button" className="flex-1 gap-2" onClick={handleSave} disabled={!form.name.trim() || saving}>
                   {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Check className="h-4 w-4" />}
-                  Add Account
+                  {editingAccount ? 'Save Changes' : 'Add Account'}
                 </Button>
               </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {selectedAccount && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm" onClick={() => setSelectedAccount(null)} role="dialog" aria-modal="true" aria-labelledby="account-txns-title">
+          <div className="w-full max-w-2xl mx-4 glass rounded-xl max-h-[80vh] flex flex-col" onClick={(e) => e.stopPropagation()}>
+            <div className="flex items-center justify-between p-5 border-b border-white/[0.06]">
+              <div className="flex items-center gap-3">
+                <ArrowRightLeft className="h-5 w-5 text-emerald-400" />
+                <div>
+                  <h2 id="account-txns-title" className="text-lg font-semibold">{selectedAccount.name}</h2>
+                  <p className="text-xs text-muted-foreground">{ACCOUNT_TYPE_LABELS[selectedAccount.type]} — {formatCurrency(selectedAccount.balance, currency)}</p>
+                </div>
+              </div>
+              <button onClick={() => setSelectedAccount(null)} className="p-1.5 rounded-lg hover:bg-white/[0.04]" aria-label="Close">
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+            <div className="flex-1 overflow-auto p-5">
+              {loadingTxns ? (
+                <div className="py-12 text-center">
+                  <Loader2 className="h-6 w-6 text-muted-foreground animate-spin mx-auto" />
+                  <p className="text-sm text-muted-foreground mt-2">Loading transactions...</p>
+                </div>
+              ) : accountTxns.length === 0 ? (
+                <div className="py-12 text-center">
+                  <p className="text-sm text-muted-foreground">No transactions for this account</p>
+                </div>
+              ) : (
+                <div className="space-y-2">
+                  {accountTxns.map((txn) => (
+                    <div key={txn.id} className="flex items-center justify-between py-2 px-3 rounded-lg hover:bg-white/[0.04] transition-colors">
+                      <div>
+                        <p className="text-sm font-medium">{txn.description}</p>
+                        <p className="text-xs text-muted-foreground">{formatDate(txn.date)} — {categories.find((c) => c.id === txn.categoryId)?.name || 'Other'}</p>
+                      </div>
+                      <p className={`text-sm font-semibold ${txn.amount < 0 ? 'text-rose-400' : 'text-emerald-400'}`}>
+                        {formatCurrency(txn.amount, currency)}
+                      </p>
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
           </div>
         </div>

@@ -96,25 +96,69 @@ export default function TransactionsPage() {
   };
 
   const handleDelete = useCallback(async (id: string) => {
+    const txn = txns.find((t) => t.id === id);
+    if (!txn) return;
+    setTxns((prev) => prev.filter((t) => t.id !== id));
+    setTotal((prev) => prev - 1);
+    toast.success('Transaction deleted', {
+      action: {
+        label: 'Undo',
+        onClick: async () => {
+          try {
+            await api.post(`/transactions/${id}/restore`);
+            fetchData();
+            toast.success('Transaction restored');
+          } catch {
+            toast.error('Failed to restore');
+          }
+        },
+      },
+      duration: 5000,
+    });
     try {
       await api.delete(`/transactions/${id}`);
-      toast.success('Transaction deleted');
-      fetchData();
     } catch {
+      setTxns((prev) => {
+        const next = [...prev];
+        next.splice(txns.indexOf(txn), 0, txn);
+        return next;
+      });
+      setTotal((prev) => prev + 1);
       toast.error('Failed to delete transaction');
     }
-  }, [fetchData]);
+  }, [txns, fetchData]);
 
   const handleBulkDelete = useCallback(async () => {
+    const ids = Array.from(selected);
+    const deletedTxns = txns.filter((t) => ids.includes(t.id));
+    setTxns((prev) => prev.filter((t) => !selected.has(t.id)));
+    setTotal((prev) => prev - ids.length);
+    setSelected(new Set());
+    toast.success(`${ids.length} transaction${ids.length > 1 ? 's' : ''} deleted`, {
+      action: {
+        label: 'Undo',
+        onClick: async () => {
+          try {
+            for (const txn of deletedTxns) {
+              await api.post(`/transactions/${txn.id}/restore`);
+            }
+            fetchData();
+            toast.success('Transactions restored');
+          } catch {
+            toast.error('Failed to restore');
+          }
+        },
+      },
+      duration: 5000,
+    });
     try {
-      await api.delete('/transactions/bulk', { data: { ids: Array.from(selected) } });
-      toast.success(`${selected.size} transaction${selected.size > 1 ? 's' : ''} deleted`);
-      setSelected(new Set());
-      fetchData();
+      await api.delete('/transactions/bulk', { data: { ids } });
     } catch {
+      setTxns((prev) => [...prev, ...deletedTxns]);
+      setTotal((prev) => prev + ids.length);
       toast.error('Failed to delete transactions');
     }
-  }, [selected, fetchData]);
+  }, [selected, txns, fetchData]);
 
   const toggleSelect = (id: string) => {
     setSelected((prev) => {
@@ -135,6 +179,19 @@ export default function TransactionsPage() {
     setEditingTxn(null);
     setFormMode('create');
     setShowForm(true);
+  };
+
+  const handleFormSave = (savedTxn?: Transaction) => {
+    if (savedTxn) {
+      if (formMode === 'edit' && editingTxn) {
+        setTxns((prev) => prev.map((t) => (t.id === savedTxn.id ? savedTxn : t)));
+      } else {
+        setTxns((prev) => [savedTxn, ...prev]);
+        setTotal((prev) => prev + 1);
+      }
+    }
+    setShowForm(false);
+    fetchData();
   };
 
   const handleClear = useCallback(async () => {
@@ -357,7 +414,7 @@ export default function TransactionsPage() {
           categories={categories}
           currency={currency}
           onClose={() => setShowForm(false)}
-          onSave={() => setShowForm(false)}
+          onSave={handleFormSave}
         />
       )}
     </div>
@@ -377,7 +434,7 @@ function TransactionForm({
   categories: { id: string; name: string; color: string }[];
   currency: SharedCurrency;
   onClose: () => void;
-  onSave: () => void;
+  onSave: (txn?: Transaction) => void;
 }) {
   const [form, setForm] = useState({
     type: transaction?.type || 'expense',
@@ -430,11 +487,13 @@ function TransactionForm({
 
     try {
       if (mode === 'edit' && transaction) {
-        await api.put(`/transactions/${transaction.id}`, payload);
+        const res = await api.put(`/transactions/${transaction.id}`, payload);
         toast.success('Transaction updated');
+        onSave(res.data.data);
       } else {
-        await api.post('/transactions', payload);
+        const res = await api.post('/transactions', payload);
         toast.success('Transaction created');
+        onSave(res.data.data);
       }
     } catch {
       toast.error('Failed to save transaction');

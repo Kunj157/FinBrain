@@ -1,18 +1,29 @@
 import { Bell, Search, Sun, Moon, LogOut, Menu } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Avatar } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/hooks/use-auth';
 import { useTheme } from '@/hooks/use-theme';
+import api from '@/lib/api';
 
 export function Header({ onSearchOpen, onMenuToggle }: { onSearchOpen: () => void; onMenuToggle: () => void }) {
   const { user, signOut } = useAuth();
   const { theme, toggle } = useTheme();
+  const navigate = useNavigate();
   const isDark = theme === 'dark';
+  const [unreadCount, setUnreadCount] = useState(0);
   const initials = user?.name
     ?.split(' ')
     .map((n) => n[0])
     .join('')
     .toUpperCase() || '?';
+
+  useEffect(() => {
+    api.get('/notifications/unread-count')
+      .then((res) => setUnreadCount(res.data.data.count))
+      .catch(() => {});
+  }, []);
 
   return (
     <header className="sticky top-0 z-30 flex h-14 md:h-16 items-center justify-between border-b border-white/[0.04] bg-background/60 backdrop-blur-xl px-4 md:px-6">
@@ -39,8 +50,13 @@ export function Header({ onSearchOpen, onMenuToggle }: { onSearchOpen: () => voi
       </div>
 
       <div className="flex items-center gap-1 md:gap-2">
-        <Button variant="ghost" size="icon" aria-label="Notifications">
+        <Button variant="ghost" size="icon" aria-label={`Notifications${unreadCount > 0 ? ` (${unreadCount} unread)` : ''}`} onClick={() => navigate('/insights')} className="relative">
           <Bell className="h-4 w-4" />
+          {unreadCount > 0 && (
+            <span className="absolute -top-0.5 -right-0.5 flex h-4 w-4 items-center justify-center rounded-full bg-rose-500 text-[9px] font-bold text-white">
+              {unreadCount > 9 ? '9+' : unreadCount}
+            </span>
+          )}
         </Button>
 
         <Button variant="ghost" size="icon" onClick={toggle} aria-label={isDark ? 'Switch to light mode' : 'Switch to dark mode'}>

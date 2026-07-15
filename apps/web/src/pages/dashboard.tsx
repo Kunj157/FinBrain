@@ -1,6 +1,7 @@
-import { Wallet, TrendingUp, TrendingDown, PiggyBank, Plus, ArrowRightLeft, Target, Brain, Sparkles, Building2, Upload, X } from 'lucide-react';
-import { useMemo, useEffect, useState, useCallback } from 'react';
+import { Wallet, TrendingUp, TrendingDown, PiggyBank, Plus, ArrowRightLeft, Target, Brain, Sparkles, Building2, Upload, X, Send, Loader2 } from 'lucide-react';
+import { useMemo, useEffect, useState, useCallback, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { toast } from 'sonner';
 import { StatCard } from '@/components/finance/stat-card';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -12,7 +13,8 @@ import { useAuth } from '@/hooks/use-auth';
 import api from '@/lib/api';
 import { formatCurrency, formatDate } from '@/lib/utils';
 import { IncomeExpenseChart, CategoryChart, SpendingTrend } from '@/components/finance/charts';
-import type { Transaction, Category } from '@finbrain/shared';
+import { generateInsights, generateAnswer } from '@/lib/insights';
+import type { Transaction, Category, Budget, Goal, Currency as SharedCurrency } from '@finbrain/shared';
 
 const quickActions = [
   { label: 'Add Income', icon: TrendingUp, variant: 'positive' as const },
@@ -41,22 +43,36 @@ export default function Dashboard() {
   const navigate = useNavigate();
   const [allTransactions, setAllTransactions] = useState<Transaction[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
+  const [budgets, setBudgets] = useState<Budget[]>([]);
+  const [goals, setGoals] = useState<Goal[]>([]);
   const [loading, setLoading] = useState(true);
   const [onboardingAction, setOnboardingAction] = useState<string | null>(null);
   const [netWorth, setNetWorth] = useState<{ netWorth: number } | null>(null);
+  const [chatInput, setChatInput] = useState('');
+  const [chatMessages, setChatMessages] = useState<{ role: 'user' | 'assistant'; content: string }[]>([]);
+  const [isThinking, setIsThinking] = useState(false);
+  const chatEndRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    chatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  }, [chatMessages]);
 
   const fetchData = useCallback(async () => {
     try {
-      const [txnRes, catRes, nwRes] = await Promise.all([
+      const [txnRes, catRes, nwRes, budgetRes, goalRes] = await Promise.all([
         api.get('/transactions?limit=100'),
         api.get('/categories'),
         api.get('/accounts/net-worth').catch(() => null),
+        api.get('/budgets').catch(() => ({ data: { data: [] } })),
+        api.get('/goals').catch(() => ({ data: { data: [] } })),
       ]);
       setAllTransactions(txnRes.data.data.data);
       setCategories(catRes.data.data);
+      setBudgets(budgetRes.data.data);
+      setGoals(goalRes.data.data);
       if (nwRes?.data?.data) setNetWorth(nwRes.data.data);
     } catch {
-      // silent
+      toast.error('Failed to load dashboard data');
     } finally {
       setLoading(false);
     }
@@ -126,8 +142,32 @@ export default function Dashboard() {
     return map;
   }, [categories]);
 
-  const currency = user?.currency || 'USD';
+  const currency = (user?.currency || 'USD') as SharedCurrency;
   const firstName = user?.name?.split(' ')[0] || 'there';
+
+  const insights = useMemo(
+    () => generateInsights(allTransactions, categories, budgets, goals, currency),
+    [allTransactions, categories, budgets, goals, currency],
+  );
+
+  const handleChatSend = async () => {
+    if (!chatInput.trim() || isThinking) return;
+    const question = chatInput.trim();
+    setChatInput('');
+    setChatMessages((prev) => [...prev, { role: 'user', content: question }]);
+    setIsThinking(true);
+    await new Promise((r) => setTimeout(r, 400 + Math.random() * 600));
+    const answer = generateAnswer(question, allTransactions, categories, budgets, goals, currency);
+    setChatMessages((prev) => [...prev, { role: 'assistant', content: answer }]);
+    setIsThinking(false);
+  };
+
+  const handleChatKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      handleChatSend();
+    }
+  };
 
   if (loading) {
     return (
@@ -382,42 +422,78 @@ export default function Dashboard() {
               </div>
             ) : (
               <>
-                <div className="rounded-xl bg-gradient-to-br from-emerald-500/5 to-teal-500/5 border border-emerald-500/10 p-4">
-                  <div className="flex items-start gap-3">
-                    <Brain className="h-5 w-5 text-emerald-400 mt-0.5 flex-shrink-0" />
-                    <div>
-                      <p className="text-sm font-medium text-emerald-400">Spending Alert</p>
-                      <p className="text-sm text-muted-foreground mt-1">
-                        You spent 19% more on restaurants this month. Consider reducing dining out to stay within budget.
-                      </p>
+                {insights.slice(0, 2).map((insight) => {
+                  const Icon = insight.icon;
+                  return (
+                    <div
+                      key={insight.id}
+                      className={`rounded-xl p-4 ${
+                        insight.type === 'alert' ? 'bg-gradient-to-br from-rose-500/5 to-orange-500/5 border border-rose-500/10' :
+                        insight.type === 'suggestion' ? 'bg-gradient-to-br from-amber-500/5 to-orange-500/5 border border-amber-500/10' :
+                        'bg-gradient-to-br from-emerald-500/5 to-teal-500/5 border border-emerald-500/10'
+                      }`}
+                    >
+                      <div className="flex items-start gap-3">
+                        <Icon className={`h-5 w-5 mt-0.5 flex-shrink-0 ${insight.color}`} />
+                        <div>
+                          <p className={`text-sm font-medium ${insight.color}`}>{insight.title}</p>
+                          <p className="text-sm text-muted-foreground mt-1">{insight.description}</p>
+                        </div>
+                      </div>
                     </div>
-                  </div>
-                </div>
-
-                <div className="rounded-xl bg-gradient-to-br from-amber-500/5 to-orange-500/5 border border-amber-500/10 p-4">
-                  <div className="flex items-start gap-3">
-                    <Sparkles className="h-5 w-5 text-amber-400 mt-0.5 flex-shrink-0" />
-                    <div>
-                      <p className="text-sm font-medium text-amber-400">Goal Progress</p>
-                      <p className="text-sm text-muted-foreground mt-1">
-                        You&apos;re 68% toward your Emergency Fund goal. At your current savings rate, you&apos;ll reach it in 4 months.
-                      </p>
-                    </div>
-                  </div>
-                </div>
+                  );
+                })}
+                {insights.length > 2 && (
+                  <button
+                    onClick={() => navigate('/insights')}
+                    className="w-full text-center text-xs text-emerald-400 hover:text-emerald-300 transition-colors py-1"
+                  >
+                    View all {insights.length} insights →
+                  </button>
+                )}
               </>
             )}
 
             <div className="rounded-lg bg-white/[0.02] border border-white/[0.06] p-4">
               <p className="text-xs text-muted-foreground uppercase tracking-wider font-medium">Ask FinBrain</p>
+              {chatMessages.length > 0 && (
+                <div className="mt-3 max-h-[160px] overflow-y-auto space-y-2 scrollbar-thin">
+                  {chatMessages.map((msg, i) => (
+                    <div key={i} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
+                      <div className={`max-w-[85%] rounded-lg px-3 py-2 text-xs ${
+                        msg.role === 'user'
+                          ? 'bg-emerald-500/15 text-emerald-50'
+                          : 'bg-white/[0.04] text-foreground'
+                      }`}>
+                        <p className="whitespace-pre-wrap leading-relaxed">{msg.content}</p>
+                      </div>
+                    </div>
+                  ))}
+                  {isThinking && (
+                    <div className="flex justify-start">
+                      <div className="rounded-lg px-3 py-2 bg-white/[0.04]">
+                        <div className="flex items-center gap-1.5">
+                          <Brain className="h-3 w-3 text-emerald-400 animate-pulse" />
+                          <span className="text-[10px] text-muted-foreground">Thinking...</span>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                  <div ref={chatEndRef} />
+                </div>
+              )}
               <div className="mt-3 flex gap-2">
                 <input
                   type="text"
+                  value={chatInput}
+                  onChange={(e) => setChatInput(e.target.value)}
+                  onKeyDown={handleChatKeyDown}
                   placeholder="Ask anything about your finances..."
                   className="flex-1 h-10 px-3 rounded-lg bg-white/[0.03] border border-white/[0.06] text-sm text-foreground placeholder:text-muted-foreground/50 focus:outline-none focus:ring-2 focus:ring-emerald-500/20"
+                  disabled={isThinking}
                 />
-                <Button size="sm">
-                  <Brain className="h-4 w-4" />
+                <Button size="sm" onClick={handleChatSend} disabled={!chatInput.trim() || isThinking} className="h-10 px-4">
+                  {isThinking ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
                 </Button>
               </div>
             </div>

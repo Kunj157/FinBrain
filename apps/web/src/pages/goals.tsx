@@ -233,15 +233,36 @@ export default function Goals() {
   };
 
   const handleDelete = async (goalId: string) => {
-    setDeleting(goalId);
+    const goal = goals.find((g) => g.id === goalId);
+    if (!goal) return;
+    setGoals((prev) => prev.filter((g) => g.id !== goalId));
+    setDeleting(null);
+    toast.success('Goal deleted', {
+      action: {
+        label: 'Undo',
+        onClick: async () => {
+          try {
+            await api.post('/goals', {
+              name: goal.name,
+              targetAmount: goal.targetAmount,
+              deadline: goal.deadline,
+              goalType: goal.goalType,
+              icon: goal.icon,
+            });
+            fetchData();
+            toast.success('Goal restored');
+          } catch {
+            toast.error('Failed to restore');
+          }
+        },
+      },
+      duration: 5000,
+    });
     try {
       await api.delete(`/goals/${goalId}`);
-      setGoals((prev) => prev.filter((g) => g.id !== goalId));
-      toast.success('Goal deleted');
     } catch {
+      setGoals((prev) => [...prev, goal]);
       toast.error('Failed to delete goal');
-    } finally {
-      setDeleting(null);
     }
   };
 

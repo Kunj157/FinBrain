@@ -133,11 +133,28 @@ export default function CategoriesPage() {
   };
 
   const handleDelete = async (id: string) => {
+    const cat = categories.find((c) => c.id === id);
+    if (!cat) return;
+    setCategories((prev) => prev.filter((c) => c.id !== id));
+    toast.success('Category deleted', {
+      action: {
+        label: 'Undo',
+        onClick: async () => {
+          try {
+            await api.post('/categories', { name: cat.name, color: cat.color, icon: cat.icon });
+            fetchCategories();
+            toast.success('Category restored');
+          } catch {
+            toast.error('Failed to restore');
+          }
+        },
+      },
+      duration: 5000,
+    });
     try {
       await api.delete(`/categories/${id}`);
-      toast.success('Category deleted');
-      await fetchCategories();
     } catch {
+      setCategories((prev) => [...prev, cat]);
       toast.error('Failed to delete category');
     }
   };
