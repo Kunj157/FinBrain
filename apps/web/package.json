@@ -39,6 +39,7 @@
     "class-variance-authority": "^0.7.0",
     "clsx": "^2.1.0",
     "date-fns": "^3.6.0",
+    "framer-motion": "^12.42.2",
     "lucide-react": "^0.400.0",
     "react": "^19.0.0",
     "react-chartjs-2": "^5.2.0",

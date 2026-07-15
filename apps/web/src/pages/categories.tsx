@@ -107,26 +107,26 @@ export default function CategoriesPage() {
     }
 
     setSaving(true);
+    const payload = { name: form.name.trim(), icon: form.icon, color: form.color };
     try {
       if (formMode === 'edit' && editingCat) {
-        await api.put(`/categories/${editingCat.id}`, {
-          name: form.name.trim(),
-          icon: form.icon,
-          color: form.color,
-        });
+        const res = await api.put(`/categories/${editingCat.id}`, payload);
+        setCategories((prev) => prev.map((c) => (c.id === editingCat.id ? res.data.data : c)));
         toast.success('Category updated');
       } else {
-        await api.post('/categories', {
-          name: form.name.trim(),
-          icon: form.icon,
-          color: form.color,
-        });
+        const res = await api.post('/categories', payload);
+        setCategories((prev) => [...prev, res.data.data]);
         toast.success('Category created');
       }
-      await fetchCategories();
       setShowForm(false);
     } catch {
       toast.error('Failed to save category');
+      if (formMode === 'edit' && editingCat) {
+        setCategories((prev) => {
+          const exists = prev.some((c) => c.id === editingCat.id);
+          return exists ? prev : [...prev, editingCat];
+        });
+      }
     } finally {
       setSaving(false);
     }

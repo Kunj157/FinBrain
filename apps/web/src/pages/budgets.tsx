@@ -243,7 +243,14 @@ export default function Budgets() {
           existingBudgetIds={new Set(budgets.map((b) => b.categoryId))}
           currency={currency}
           onClose={() => setShowForm(false)}
-          onSave={() => { setShowForm(false); fetchData(); }}
+          onSave={(savedBudget) => {
+            if (formMode === 'edit' && editingBudget) {
+              setBudgets((prev) => prev.map((b) => (b.id === editingBudget.id ? savedBudget : b)));
+            } else {
+              setBudgets((prev) => [...prev, savedBudget]);
+            }
+            setShowForm(false);
+          }}
         />
       )}
     </div>
@@ -265,7 +272,7 @@ function BudgetForm({
   existingBudgetIds: Set<string>;
   currency: SharedCurrency;
   onClose: () => void;
-  onSave: () => void;
+  onSave: (budget: Budget) => void;
 }) {
   const [form, setForm] = useState({
     categoryId: budget?.categoryId || '',
@@ -303,13 +310,14 @@ function BudgetForm({
         startDate: form.startDate,
       };
       if (mode === 'edit' && budget) {
-        await api.put(`/budgets/${budget.id}`, payload);
+        const res = await api.put(`/budgets/${budget.id}`, payload);
         toast.success('Budget updated');
+        onSave(res.data.data);
       } else {
-        await api.post('/budgets', payload);
+        const res = await api.post('/budgets', payload);
         toast.success('Budget created');
+        onSave(res.data.data);
       }
-      onSave();
     } catch (err: unknown) {
       const msg = (err as { response?: { data?: { error?: string } } })?.response?.data?.error || 'Failed to save budget';
       setError(msg);
