@@ -2,6 +2,7 @@
 
 > **Date**: July 2026
 > **Purpose**: Comprehensive audit of where FinBrain falls short of Monarch Money's standard and quality, with prioritized remediation plan.
+> **Last Updated**: July 15, 2026 — Phases A+B + Quality Polish Phases 1-3 complete
 
 ---
 
@@ -13,7 +14,7 @@ FinBrain has a solid foundation with **16 pages**, **ML-powered categorization**
 2. **Quality/UX gaps** — Existing features that aren't polished enough
 3. **Infrastructure gaps** — Missing foundational capabilities
 
-**Estimated effort to reach Monarch parity**: ~6-8 weeks of focused development.
+**Estimated effort to reach Monarch parity**: ~4-6 weeks of focused development (reduced from 6-8 after completed work).
 
 ---
 
@@ -31,9 +32,10 @@ FinBrain has a solid foundation with **16 pages**, **ML-powered categorization**
 | Credit score widget | ✅ | ❌ N/A | LOW |
 | Investment performance widget | ✅ | ❌ | MEDIUM |
 | Transaction review/flagged items widget | ✅ | ❌ | MEDIUM |
-| Real AI insights (not hardcoded) | ✅ AI assistant | ❌ Hardcoded text | **CRITICAL** |
-| "Ask FinBrain" chat actually working | ✅ | ❌ Decorative input | **CRITICAL** |
-| Notification count on bell | ✅ | ❌ Always zero | HIGH |
+| Real AI insights (not hardcoded) | ✅ AI assistant | ✅ **DONE** | ~~CRITICAL~~ |
+| "Ask FinBrain" chat actually working | ✅ | ✅ **DONE** | ~~CRITICAL~~ |
+| Notification count on bell | ✅ | ✅ **DONE** | ~~HIGH~~ |
+| Notification dropdown with mark-as-read | ✅ | ✅ **DONE** | HIGH |
 
 ### What to Build
 - [ ] **Dashboard widget system**: Draggable grid with `react-beautiful-dnd` or `@dnd-kit`. Each widget is a card that can be reordered, shown/hidden. Save layout to user preferences.
@@ -41,10 +43,9 @@ FinBrain has a solid foundation with **16 pages**, **ML-powered categorization**
 - [ ] **Budget summary widget**: Show top 3-5 budgets with progress bars.
 - [ ] **Goal progress widget**: Show goals nearing deadline with progress.
 - [ ] **Recurring/bills upcoming widget**: Next 5 upcoming bills with amounts.
-- [ ] **Monthly review card**: AI-generated summary of last month's income, expenses, savings, top changes.
-- [ ] **Connect real AI insights**: Wire the `insights.tsx` backend to dashboard instead of hardcoded text.
-- [ ] **Wire "Ask FinBrain"**: Connect the chat input to the `/insights/ask` API endpoint.
-- [ ] **Notification bell**: Use `Notification` model to show real unread count.
+- [x] **Connect real AI insights**: ✅ Wired `lib/insights.ts` shared utility to dashboard. Generated dynamically from transactions, categories, budgets, goals.
+- [x] **Wire "Ask FinBrain"**: ✅ Connected chat input to `generateAnswer()` with message history, thinking state, keyboard handler.
+- [x] **Notification bell**: ✅ Queries `/notifications/unread-count`, shows red badge. Dropdown panel with list, mark-all-read, individual read.
 
 ---
 
@@ -60,8 +61,8 @@ FinBrain has a solid foundation with **16 pages**, **ML-powered categorization**
 | Notes visible in table | ✅ | ❌ Only in form | MEDIUM |
 | Hide transactions | ✅ From budget/cash flow | ❌ | MEDIUM |
 | Assign owner (couples) | ✅ | ❌ Single user only | LOW |
-| Optimistic updates | ✅ Instant UI | ❌ Waits for server | HIGH |
-| Undo on delete | ✅ | ❌ Soft delete exists, no undo toast | HIGH |
+| Optimistic updates | ✅ Instant UI | ✅ **DONE** | ~~HIGH~~ |
+| Undo on delete | ✅ | ✅ **DONE** | ~~HIGH~~ |
 | Bulk category reassignment | ✅ Edit multiple | ❌ Bulk delete only | HIGH |
 | Retail sync (Amazon/Target split) | ✅ | ❌ | LOW |
 | Search with natural language | ✅ "show Amazon from last month" | ❌ Basic text search | MEDIUM |
@@ -72,8 +73,8 @@ FinBrain has a solid foundation with **16 pages**, **ML-powered categorization**
 - [ ] **Transaction review queue**: "Review" page showing uncategorized or flagged transactions. Swipe/button to approve, recategorize, or hide.
 - [ ] **Receipt attachment**: File upload on transaction form. Store in cloud storage, display thumbnail in expanded row.
 - [ ] **Duplicate detection**: Hash-based (amount + date + merchant) or fuzzy match during import. Show warnings before saving.
-- [ ] **Optimistic updates**: Update local state immediately on create/edit/delete, rollback on error.
-- [ ] **Undo toast**: After delete, show toast with "Undo" button that calls restore endpoint within 5s.
+- [x] **Optimistic updates**: ✅ All CRUD operations update UI immediately. Create, edit, delete all optimistic with rollback on error.
+- [x] **Undo toast**: ✅ After delete, toast with "Undo" button restores within 5s. Works for single + bulk delete on transactions, budgets, goals, categories.
 - [ ] **Bulk category reassignment**: Checkboxes + "Change Category" action in bulk toolbar.
 
 ---
@@ -91,6 +92,7 @@ FinBrain has a solid foundation with **16 pages**, **ML-powered categorization**
 | Budget templates | ✅ Copy month-to-month | ❌ | MEDIUM |
 | Group-level rollover | ✅ | ❌ | LOW |
 | Edit end date | ✅ | ❌ Only start date | LOW |
+| Optimistic create/edit | ✅ | ✅ **DONE** | HIGH |
 
 ### What to Build
 - [ ] **Rollover toggle**: Per-category "rollover" flag. At month-end, carry surplus/deficit to next month's budget. Add `rollover` boolean + `rolloverAmount` to Budget model.
@@ -111,6 +113,7 @@ FinBrain has a solid foundation with **16 pages**, **ML-powered categorization**
 | Auto-contributions from budget | ✅ | ❌ Manual only | MEDIUM |
 | Goal forecast (projected completion) | ✅ | ❌ Schema field exists, unused | HIGH |
 | On-track/behind status with reasoning | ✅ | ⚠️ Basic "behind schedule" banner | MEDIUM |
+| Optimistic create/edit | ✅ | ✅ **DONE** | HIGH |
 | Goal sharing (couples) | ✅ | ❌ | LOW |
 | Milestone celebrations | ✅ | ❌ | LOW |
 | Suggested goals | ✅ Based on patterns | ❌ | LOW |
@@ -128,8 +131,8 @@ FinBrain has a solid foundation with **16 pages**, **ML-powered categorization**
 
 | Feature | Monarch | FinBrain | Gap |
 |---------|---------|----------|-----|
-| Account editing | ✅ | ❌ Create/delete only | HIGH |
-| Per-account transaction list | ✅ Click account → transactions | ❌ | HIGH |
+| Account editing | ✅ | ✅ **DONE** | ~~HIGH~~ |
+| Per-account transaction list | ✅ Click account → transactions | ✅ **DONE** | ~~HIGH~~ |
 | Account grouping by institution | ✅ | ❌ | MEDIUM |
 | Manual accounts (real estate, vehicle) | ✅ With Zillow/VIN | ⚠️ Type exists, no value tracking | MEDIUM |
 | Investment detail view | ✅ Holdings, allocation, performance | ❌ | HIGH |
@@ -138,8 +141,8 @@ FinBrain has a solid foundation with **16 pages**, **ML-powered categorization**
 | Year-to-date net worth | ✅ | ❌ | LOW |
 
 ### What to Build
-- [ ] **Account edit**: Edit button on account cards. Modal with name, type, balance, institution.
-- [ ] **Per-account transactions**: Click account card → filtered transaction list for that account.
+- [x] **Account edit**: ✅ Edit button (pencil icon) on account cards. Modal with name, type, balance, institution. Optimistic update.
+- [x] **Per-account transactions**: ✅ Click account card → modal with filtered transaction list for that account.
 - [ ] **Account grouping**: Group accounts by institution (e.g., "Chase" group with checking + credit card).
 - [ ] **Investment detail**: Holdings table, asset allocation pie chart, performance line chart, gain/loss per holding.
 - [ ] **Account reconciliation**: Mark transactions as "reconciled" against bank statement balance.
@@ -221,7 +224,7 @@ FinBrain has a solid foundation with **16 pages**, **ML-powered categorization**
 
 | Feature | Monarch | FinBrain | Gap |
 |---------|---------|----------|-----|
-| Real LLM assistant | ✅ Natural language Q&A grounded in data | ❌ Rule-based pattern matching | **CRITICAL** |
+| Real LLM assistant | ✅ Natural language Q&A grounded in data | ⚠️ Pattern-matching, context-aware | MEDIUM |
 | Spending forecast | ✅ Multiple scenarios | ❌ Models listed "in development" | **CRITICAL** |
 | Anomaly detection | ✅ | ❌ | HIGH |
 | Personalized recommendations | ✅ | ❌ `Recommendation` model unused | HIGH |
@@ -265,96 +268,103 @@ These features exist in Monarch but have zero implementation in FinBrain:
 
 ## PRIORITIZED REMEDIATION PLAN
 
-### Phase A — Critical UX Parity (Week 1-2)
+### Phase A — Critical UX Parity ✅ COMPLETED (July 15, 2026)
 > These make FinBrain feel like a real competitor, not a demo.
 
-1. **Wire "Ask FinBrain" chat** — Connect decorative input to `/insights/ask` endpoint
-2. **Wire real AI insights** — Replace hardcoded dashboard text with computed insights from backend
-3. **Notification bell with real count** — Query `Notification` model, show unread badge
-4. **Optimistic updates** — All CRUD operations update UI immediately
-5. **Undo toast on delete** — 5-second undo window after deleting transactions/budgets/goals
-6. **Account edit** — Add edit button and modal to account cards
-7. **Per-account transaction list** — Click account → filtered transactions
+1. ✅ **Wire "Ask FinBrain" chat** — Connected decorative input to `generateAnswer()` with chat message history, thinking state, keyboard handler
+2. ✅ **Wire real AI insights** — Replaced hardcoded dashboard text with computed insights from `lib/insights.ts` (spending alerts, goal progress, budget warnings, income analysis)
+3. ✅ **Notification bell with real count** — Queries `/notifications/unread-count`, shows red badge with count
+4. ✅ **Optimistic updates** — All CRUD operations update UI immediately: transactions, budgets, goals, categories, accounts
+5. ✅ **Undo toast on delete** — 5-second undo window after deleting transactions (single + bulk), budgets, goals, categories
+6. ✅ **Account edit** — Edit button (pencil icon) on account cards. Modal with name, type, balance, institution
+7. ✅ **Per-account transaction list** — Click account card → modal showing filtered transaction list
 
-### Phase B — Feature Parity Core (Week 3-4)
+### Phase B — Perceived Performance ✅ COMPLETED (July 15, 2026)
+> These make the app feel instant and native.
+
+8. ✅ **Optimistic create/edit** — Budgets and categories forms update instantly on save
+9. ✅ **Page transitions** — framer-motion fade/slide between all 16 routes
+10. ✅ **Notification dropdown** — Bell opens dropdown panel with notification list, mark-all-read, individual mark-as-read
+
+### Phase C — Feature Parity Core (Week 3-4) ← NEXT
 > These are the features users expect from a premium finance app.
 
-8. **Rollover budgets** — Carry unused budget to next month
-9. **Budget history** — Show previous months' budgets
-10. **Recurring pattern persistence** — Store patterns in DB, allow edit/snooze
-11. **Calendar view** — Monthly view of upcoming bills and recurring expenses
-12. **Transaction tags** — Multi-label system alongside categories
-13. **Split transactions** — Split a single transaction across categories
-14. **Custom date range** — Date picker for reports and analytics
-15. **Cash flow page** — Dedicated income vs expenses timeline
+11. **Rollover budgets** — Carry unused budget to next month
+12. **Budget history** — Show previous months' budgets (populate existing `BudgetHistory` model)
+13. **Recurring pattern persistence** — Store patterns in DB, allow edit/snooze
+14. **Calendar view** — Monthly view of upcoming bills and recurring expenses
+15. **Transaction tags** — Multi-label system alongside categories
+16. **Split transactions** — Split a single transaction across categories
+17. **Custom date range** — Date picker for reports and analytics
+18. **Cash flow page** — Dedicated income vs expenses timeline
 
-### Phase C — Dashboard & Reports (Week 5-6)
+### Phase D — Dashboard & Reports (Week 5-6)
 > These make the app visually impressive and personalized.
 
-16. **Dashboard widget system** — Draggable, customizable widget layout
-17. **Sankey diagram** — Interactive cash flow visualization
-18. **Budget vs actual chart** — Visual comparison over time
-19. **Net worth mini-chart on dashboard** — Sparkline in widget
-20. **Goal forecast** — Projected completion date based on savings rate
-21. **Saved reports** — Bookmark favorite report configurations
-22. **Monthly review card** — AI-generated monthly summary
+19. **Dashboard widget system** — Draggable, customizable widget layout
+20. **Sankey diagram** — Interactive cash flow visualization
+21. **Budget vs actual chart** — Visual comparison over time
+22. **Net worth mini-chart on dashboard** — Sparkline in widget
+23. **Goal forecast** — Projected completion date based on savings rate
+24. **Saved reports** — Bookmark favorite report configurations
+25. **Monthly review card** — AI-generated monthly summary
 
-### Phase D — Advanced Features (Week 7-8)
+### Phase E — Advanced Features (Week 7-8)
 > These differentiate FinBrain from basic trackers.
 
-23. **Spending forecast** — ARIMA/Prophet 30/60/90 day projections
-24. **Anomaly detection** — Flag unusual transactions automatically
-25. **Investment portfolio view** — Holdings, allocation, performance tracking
-26. **Budget alerts** — Push/email notifications at threshold percentages
-27. **Payment reminders** — Notifications before bill due dates
-28. **Transaction review queue** — Dedicated page for flagged items
-29. **Bulk category reassignment** — Edit multiple transactions at once
-30. **Duplicate detection** — Warn on import of potential duplicates
+26. **Spending forecast** — ARIMA/Prophet 30/60/90 day projections
+27. **Anomaly detection** — Flag unusual transactions automatically
+28. **Investment portfolio view** — Holdings, allocation, performance tracking
+29. **Budget alerts** — Push/email notifications at threshold percentages
+30. **Payment reminders** — Notifications before bill due dates
+31. **Transaction review queue** — Dedicated page for flagged items
+32. **Bulk category reassignment** — Edit multiple transactions at once
+33. **Duplicate detection** — Warn on import of potential duplicates
 
-### Phase E — Polish & Delight (Ongoing)
+### Phase F — Polish & Delight (Ongoing)
 > The details that make the app feel premium.
 
-31. **Profile picture upload**
-32. **Theme toggle (light/dark)**
-33. **Import history log**
-34. **Merchant management (rename/merge)**
-35. **Connection management UI**
-36. **Notification preferences**
-37. **Flex budgeting mode**
-38. **Tax-deductible tagging and report**
-39. **Receipt attachment on transactions**
-40. **Daily remaining budget calculation**
+34. **Profile picture upload**
+35. **Theme toggle (light/dark)**
+36. **Import history log**
+37. **Merchant management (rename/merge)**
+38. **Connection management UI**
+39. **Notification preferences**
+40. **Flex budgeting mode**
+41. **Tax-deductible tagging and report**
+42. **Receipt attachment on transactions**
+43. **Daily remaining budget calculation**
 
 ---
 
 ## QUALITY BENCHMARKS (Monarch's Standard)
 
 ### Interactions
-- [ ] Every modal has focus trap + Escape to close
-- [ ] Every destructive action has undo (toast with timer)
-- [ ] Every list has skeleton loader on initial load
-- [ ] Every form has inline validation with clear error messages
-- [ ] Every CRUD operation shows toast feedback
-- [ ] Optimistic updates on all data mutations
+- [x] Every modal has focus trap + Escape to close ✅
+- [x] Every destructive action has undo (toast with timer) ✅
+- [x] Every list has skeleton loader on initial load ✅
+- [x] Every form has inline validation with clear error messages ✅
+- [x] Every CRUD operation shows toast feedback ✅
+- [x] Optimistic updates on all data mutations ✅
 - [ ] Keyboard shortcuts: Cmd+K for search, Cmd+N for new transaction
-- [ ] Smooth page transitions (fade/slide)
+- [x] Smooth page transitions (fade/slide) ✅
 
 ### Visual
-- [ ] Consistent glass-morphism design language
-- [ ] All charts have tooltips with precise values
-- [ ] All charts have aria-labels and role="img"
-- [ ] Color-coded everything (categories, budgets, goals, recurring)
-- [ ] Progress bars on all goal/budget cards
-- [ ] Empty states with helpful CTAs (not blank screens)
-- [ ] Responsive: works on mobile (320px) through desktop (2560px)
+- [x] Consistent glass-morphism design language ✅
+- [x] All charts have tooltips with precise values ✅
+- [x] All charts have aria-labels and role="img" ✅
+- [x] Color-coded everything (categories, budgets, goals, recurring) ✅
+- [x] Progress bars on all goal/budget cards ✅
+- [x] Empty states with helpful CTAs (not blank screens) ✅
+- [x] Responsive: works on mobile (320px) through desktop (2560px) ✅
 
 ### Data
-- [ ] All amounts respect user's currency preference
-- [ ] All dates formatted per locale
-- [ ] All lists have sort + filter + search
-- [ ] All tables have pagination (or infinite scroll)
-- [ ] All data has proper loading/error/empty states
-- [ ] No hardcoded values — everything computed from real data
+- [x] All amounts respect user's currency preference ✅
+- [x] All dates formatted per locale ✅
+- [x] All lists have sort + filter + search ✅
+- [x] All tables have pagination (or infinite scroll) ✅
+- [x] All data has proper loading/error/empty states ✅
+- [x] No hardcoded values — everything computed from real data ✅
 
 ---
 
@@ -371,27 +381,31 @@ Credit where it's due — these areas are solid or ahead of Monarch:
 - **Open source** — Self-hostable, no subscription fee
 - **Multi-currency from day one** — 7 currencies with conversion
 - **Soft delete with audit trail** — Enterprise-grade data safety
+- **Instant UI feedback** — Optimistic updates + undo toasts on all CRUD ✅
+- **Smooth navigation** — Page transitions between all routes ✅
+- **Real-time notifications** — Bell with unread count + dropdown ✅
 
 ---
 
 ## Summary
 
-| Category | FinBrain Score | Monarch Score | Gap Size |
-|----------|---------------|---------------|----------|
-| Dashboard | 4/10 | 10/10 | LARGE |
-| Transactions | 7/10 | 10/10 | MEDIUM |
-| Budgets | 5/10 | 10/10 | LARGE |
-| Goals | 6/10 | 9/10 | MEDIUM |
-| Accounts | 4/10 | 9/10 | LARGE |
-| Reports | 5/10 | 10/10 | LARGE |
-| Recurring | 4/10 | 9/10 | LARGE |
-| Settings | 3/10 | 8/10 | LARGE |
-| ML/AI | 6/10 | 8/10 | MEDIUM |
-| **Overall** | **5/10** | **9.3/10** | **LARGE** |
+| Category | FinBrain Score | Monarch Score | Gap Size | Notes |
+|----------|---------------|---------------|----------|-------|
+| Dashboard | 6/10 | 10/10 | MEDIUM | AI insights + chat + notification bell done |
+| Transactions | 8/10 | 10/10 | SMALL | Optimistic + undo done |
+| Budgets | 6/10 | 10/10 | MEDIUM | Optimistic create/edit done, need rollover |
+| Goals | 7/10 | 9/10 | SMALL | Optimistic create/edit done |
+| Accounts | 7/10 | 9/10 | SMALL | Edit + per-account transactions done |
+| Reports | 5/10 | 10/10 | LARGE | Unchanged |
+| Recurring | 4/10 | 9/10 | LARGE | Unchanged |
+| Settings | 3/10 | 8/10 | LARGE | Unchanged |
+| ML/AI | 7/10 | 8/10 | SMALL | Insights + chat wired |
+| Quality/UX | 8/10 | 9/10 | SMALL | Skeletons, toasts, transitions, ARIA done |
+| **Overall** | **6.5/10** | **9.3/10** | **MEDIUM** | Up from 5/10 |
 
-The biggest single wins would be:
-1. Wiring the existing AI backend to the dashboard (free — code already exists)
-2. Dashboard customization (high visual impact)
-3. Rollover budgets (expected feature for any budget app)
-4. Calendar view for recurring bills
-5. Sankey diagram (most impressive visual feature)
+The biggest remaining wins would be:
+1. Rollover budgets (expected feature for any budget app)
+2. Calendar view for recurring bills
+3. Sankey diagram (most impressive visual feature)
+4. Dashboard customization (high visual impact)
+5. Spending forecast (ML differentiator)
