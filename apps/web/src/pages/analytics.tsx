@@ -1,6 +1,6 @@
 import { useState, useMemo, useCallback, useEffect } from 'react';
 import {
-  BarChart3, TrendingUp, TrendingDown, Calendar, Loader2, ArrowUpRight, ArrowDownRight,
+  TrendingUp, TrendingDown, Calendar, Loader2, ArrowUpRight, ArrowDownRight,
 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -43,12 +43,19 @@ const chartDefaults = {
 };
 
 type TimePeriod = '3m' | '6m' | '12m' | 'all';
+type TxnType = 'all' | 'income' | 'expense';
 
 const TIME_PERIODS: { value: TimePeriod; label: string }[] = [
   { value: '3m', label: '3 Months' },
   { value: '6m', label: '6 Months' },
   { value: '12m', label: '12 Months' },
   { value: 'all', label: 'All Time' },
+];
+
+const TYPE_FILTERS: { value: TxnType; label: string }[] = [
+  { value: 'all', label: 'All' },
+  { value: 'income', label: 'Income' },
+  { value: 'expense', label: 'Expenses' },
 ];
 
 function getPeriodCutoff(period: TimePeriod): Date {
@@ -64,11 +71,14 @@ const DAY_NAMES = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 export default function Analytics() {
   const { user } = useAuth();
   const currency = (user?.currency || 'USD') as SharedCurrency;
+  const now = useMemo(() => new Date(), []); // ponytail: stable reference for forecast calc
 
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
   const [loading, setLoading] = useState(true);
   const [period, setPeriod] = useState<TimePeriod>('6m');
+  const [txnType, setTxnType] = useState<TxnType>('all');
+  const [categoryFilter, setCategoryFilter] = useState<string>('all');
 
   const fetchData = useCallback(async () => {
     setLoading(true);
@@ -96,8 +106,13 @@ export default function Analytics() {
 
   const filtered = useMemo(() => {
     const cutoff = getPeriodCutoff(period);
-    return transactions.filter((t) => new Date(t.date) >= cutoff);
-  }, [transactions, period]);
+    return transactions.filter((t) => {
+      if (new Date(t.date) < cutoff) return false;
+      if (txnType !== 'all' && t.type !== txnType) return false;
+      if (categoryFilter !== 'all' && t.categoryId !== categoryFilter) return false;
+      return true;
+    });
+  }, [transactions, period, txnType, categoryFilter]);
 
   const stats = useMemo(() => {
     const income = filtered.filter((t) => t.type === 'income').reduce((s, t) => s + t.amount, 0);
@@ -203,6 +218,62 @@ export default function Analytics() {
       .map(([name, amount]) => ({ name, amount }));
   }, [filtered]);
 
+  const yoyData = useMemo(() => {
+    const now = new Date();
+    const thisYear = now.getFullYear();
+    const lastYear = thisYear - 1;
+    const months: Record<string, { thisYear: number; lastYear: number }> = {};
+    for (let i = 0; i < 12; i++) {
+      const key = String(i + 1).padStart(2, '0');
+      months[key] = { thisYear: 0, lastYear: 0 };
+    }
+    for (const txn of transactions) {
+      if (txn.type !== 'expense') continue;
+      const d = new Date(txn.date);
+      const m = String(d.getMonth() + 1).padStart(2, '0');
+      if (d.getFullYear() === thisYear) months[m].thisYear += txn.amount;
+      else if (d.getFullYear() === lastYear) months[m].lastYear += txn.amount;
+    }
+    const labels = Object.keys(months).map((m) => {
+      const d = new Date(2024, Number(m) - 1);
+      return d.toLocaleDateString('en-US', { month: 'short' });
+    });
+    return {
+      labels,
+      datasets: [
+        { label: String(thisYear), data: Object.values(months).map((m) => m.thisYear), backgroundColor: 'rgba(16,185,129,0.5)', borderColor: '#10b981', borderWidth: 1, borderRadius: 4 },
+        { label: String(lastYear), data: Object.values(months).map((m) => m.lastYear), backgroundColor: 'rgba(100,116,139,0.3)', borderColor: '#64748b', borderWidth: 1, borderRadius: 4 },
+      ],
+    };
+  }, [transactions]);
+
+  const cashFlowForecast = useMemo(() => {
+    const recent = transactions.filter((t) => {
+      const d = new Date(t.date);
+      const threeMonthsAgo = new Date(now.getFullYear(), now.getMonth() - 3, 1);
+      return d >= threeMonthsAgo;
+    });
+    let avgIncome = 0, avgExpense = 0;
+    const months = new Set(recent.map((t) => {
+      const d = new Date(t.date);
+      return `${d.getFullYear()}-${d.getMonth()}`;
+    })).size || 1;
+    for (const t of recent) {
+      if (t.type === 'income') avgIncome += t.amount;
+      else avgExpense += t.amount;
+    }
+    avgIncome /= months;
+    avgExpense /= months;
+    const netMonthly = avgIncome - avgExpense;
+    const currentBalance = transactions.reduce((s, t) => s + (t.type === 'income' ? t.amount : -t.amount), 0);
+    const forecast = [30, 60, 90].map((days) => ({
+      days,
+      label: `${days} days`,
+      balance: currentBalance + netMonthly * (days / 30),
+    }));
+    return { forecast, netMonthly, avgIncome, avgExpense };
+  }, [transactions, now]);
+
   const monthlyChartData = useMemo(() => ({
     labels: monthlyData.labels,
     datasets: [
@@ -289,23 +360,48 @@ export default function Analytics() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between flex-wrap gap-3">
         <div>
           <h1 className="text-2xl font-bold tracking-tight">Analytics</h1>
           <p className="text-sm text-muted-foreground">Deep dive into your financial patterns</p>
         </div>
-        <div className="flex gap-1 p-1 rounded-lg bg-white/5">
-          {TIME_PERIODS.map((p) => (
-            <Button
-              key={p.value}
-              variant={period === p.value ? 'default' : 'ghost'}
-              size="sm"
-              onClick={() => setPeriod(p.value)}
-              className="h-7 text-xs"
-            >
-              {p.label}
-            </Button>
-          ))}
+        <div className="flex items-center gap-2 flex-wrap">
+          <select
+            value={categoryFilter}
+            onChange={(e) => setCategoryFilter(e.target.value)}
+            className="h-8 px-2 rounded-lg bg-white/5 border border-white/[0.08] text-xs text-foreground focus:outline-none focus:ring-2 focus:ring-emerald-500/20"
+          >
+            <option value="all">All Categories</option>
+            {categories.map((c) => (
+              <option key={c.id} value={c.id}>{c.name}</option>
+            ))}
+          </select>
+          <div className="flex gap-0.5 p-0.5 rounded-lg bg-white/5">
+            {TYPE_FILTERS.map((t) => (
+              <Button
+                key={t.value}
+                variant={txnType === t.value ? 'default' : 'ghost'}
+                size="sm"
+                onClick={() => setTxnType(t.value)}
+                className="h-7 text-xs"
+              >
+                {t.label}
+              </Button>
+            ))}
+          </div>
+          <div className="flex gap-0.5 p-0.5 rounded-lg bg-white/5">
+            {TIME_PERIODS.map((p) => (
+              <Button
+                key={p.value}
+                variant={period === p.value ? 'default' : 'ghost'}
+                size="sm"
+                onClick={() => setPeriod(p.value)}
+                className="h-7 text-xs"
+              >
+                {p.label}
+              </Button>
+            ))}
+          </div>
         </div>
       </div>
 
@@ -467,6 +563,51 @@ export default function Analytics() {
           )}
         </CardContent>
       </Card>
+
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+        <Card className="stat-card">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-medium">Year-over-Year Spending</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="h-[260px]">
+              <Bar data={yoyData} options={{
+                ...chartDefaults,
+                plugins: {
+                  ...chartDefaults.plugins,
+                  legend: { display: true, position: 'bottom', labels: { color: '#64748b', padding: 16, usePointStyle: true, pointStyle: 'circle' } },
+                },
+                scales: {
+                  x: { grid: { display: false }, ticks: { color: '#64748b' } },
+                  y: { grid: { color: 'rgba(255,255,255,0.03)' }, ticks: { color: '#64748b' } },
+                },
+              }} />
+            </div>
+          </CardContent>
+        </Card>
+        <Card className="stat-card">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-medium">Cash Flow Forecast</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-4">
+              <div className="grid grid-cols-3 gap-3">
+                {cashFlowForecast.forecast.map((f) => (
+                  <div key={f.days} className="p-3 rounded-lg bg-white/[0.02] text-center">
+                    <p className="text-[10px] text-muted-foreground uppercase tracking-wider">{f.label}</p>
+                    <p className={`text-lg font-bold mt-1 ${f.balance >= 0 ? 'text-emerald-400' : 'text-rose-400'}`}>
+                      {formatCurrency(f.balance, currency)}
+                    </p>
+                  </div>
+                ))}
+              </div>
+              <div className="flex items-center gap-4 text-xs text-muted-foreground">
+                <span>Avg monthly net: <span className={cashFlowForecast.netMonthly >= 0 ? 'text-emerald-400' : 'text-rose-400'}>{formatCurrency(cashFlowForecast.netMonthly, currency)}</span></span>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
     </div>
   );
 }
