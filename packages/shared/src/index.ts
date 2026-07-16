@@ -21,6 +21,8 @@ export interface Transaction {
   receiptUrl?: string;
   status: TransactionStatus;
   isRecurring: boolean;
+  tags?: TransactionTag[];
+  splits?: TransactionSplit[];
   createdAt: string;
   updatedAt: string;
 }
@@ -48,6 +50,42 @@ export interface Budget {
   endDate?: string;
   spent: number;
   remaining: number;
+  rollover: boolean;
+  rolloverAmount: number;
+  createdAt: string;
+}
+
+export interface BudgetHistory {
+  id: string;
+  amount: number;
+  spent: number;
+  remaining: number;
+  rolloverAmount: number;
+  recordedAt: string;
+  budgetId: string;
+}
+
+export interface Tag {
+  id: string;
+  userId: string;
+  name: string;
+  color: string;
+  createdAt: string;
+}
+
+export interface TransactionTag {
+  id: string;
+  transactionId: string;
+  tagId: string;
+  tag?: Tag;
+}
+
+export interface TransactionSplit {
+  id: string;
+  amount: number;
+  description?: string;
+  categoryId: string;
+  transactionId: string;
   createdAt: string;
 }
 
@@ -164,6 +202,10 @@ export interface RecurringPattern {
   categoryName: string;
   categoryColor: string;
   transactions: { id: string; date: string; amount: number }[];
+  isActive?: boolean;
+  isSnoozed?: boolean;
+  snoozedUntil?: string;
+  confidence?: number;
 }
 
 export interface RecurringSummary {

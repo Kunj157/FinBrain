@@ -1,13 +1,15 @@
 import { useState, useMemo, useCallback, useEffect } from 'react';
-import { Plus, Search, ArrowUpDown, Pencil, Trash2, ArrowRightLeft, X, Check, Loader2, ChevronLeft, ChevronRight, Trash } from 'lucide-react';
+import { Plus, Search, ArrowUpDown, Pencil, Trash2, ArrowRightLeft, X, Check, Loader2, ChevronLeft, ChevronRight, Trash, AlertTriangle, Scissors } from 'lucide-react';
+import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import { Input } from '@/components/ui/input';
 import { Select } from '@/components/ui/select';
 import { useAuth } from '@/hooks/use-auth';
 import api from '@/lib/api';
 import { formatCurrency, formatDate } from '@/lib/utils';
-import type { Transaction, PaymentMethod, TransactionStatus, Currency as SharedCurrency, Category } from '@finbrain/shared';
+import type { Transaction, PaymentMethod, TransactionStatus, Currency as SharedCurrency, Category, Tag } from '@finbrain/shared';
 
 const PAYMENT_METHODS = [
   { value: 'cash', label: 'Cash' },
@@ -25,6 +27,7 @@ interface Filters {
   search: string;
   sort: string;
   order: 'asc' | 'desc';
+  tagId: string;
 }
 
 type FormMode = 'create' | 'edit';
@@ -33,7 +36,7 @@ export default function TransactionsPage() {
   const { user } = useAuth();
   const currency = (user?.currency || 'USD') as SharedCurrency;
 
-  const [filters, setFilters] = useState<Filters>({ type: '', categoryId: '', paymentMethod: '', search: '', sort: 'date', order: 'desc' });
+  const [filters, setFilters] = useState<Filters>({ type: '', categoryId: '', paymentMethod: '', search: '', sort: 'date', order: 'desc', tagId: '' });
   const [page, setPage] = useState(1);
   const [showForm, setShowForm] = useState(false);
   const [clearing, setClearing] = useState(false);
@@ -42,8 +45,10 @@ export default function TransactionsPage() {
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [txns, setTxns] = useState<Transaction[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
+  const [tags, setTags] = useState<Tag[]>([]);
   const [total, setTotal] = useState(0);
   const [loading, setLoading] = useState(true);
+  const [splitTxn, setSplitTxn] = useState<Transaction | null>(null);
   const limit = 15;
 
   const fetchData = useCallback(async () => {
@@ -59,14 +64,16 @@ export default function TransactionsPage() {
       if (filters.paymentMethod) params.set('paymentMethod', filters.paymentMethod);
       if (filters.search) params.set('search', filters.search);
 
-      const [txnRes, catRes] = await Promise.all([
+      const [txnRes, catRes, tagRes] = await Promise.all([
         api.get(`/transactions?${params}`),
         api.get('/categories'),
+        api.get('/tags'),
       ]);
 
       setTxns(txnRes.data.data.data);
       setTotal(txnRes.data.data.total);
       if (!categories.length) setCategories(catRes.data.data);
+      setTags(tagRes.data.data);
     } catch {
       // silent
     } finally {
@@ -134,6 +141,11 @@ export default function TransactionsPage() {
     }
   }, [fetchData]);
 
+  const filteredTxns = useMemo(() => {
+    if (!filters.tagId) return txns;
+    return txns.filter((t) => t.tags?.some((tt) => tt.tagId === filters.tagId));
+  }, [txns, filters.tagId]);
+
   return (
     <div className="space-y-6 animate-fade-in">
       <div className="flex items-center justify-between">
@@ -191,6 +203,14 @@ export default function TransactionsPage() {
                 ...PAYMENT_METHODS.map((m) => ({ value: m.value, label: m.label })),
               ]}
             />
+            <Select
+              value={filters.tagId}
+              onValueChange={(value) => { setFilters((f) => ({ ...f, tagId: value })); setPage(1); }}
+              options={[
+                { value: '', label: 'All tags' },
+                ...tags.map((t) => ({ value: t.id, label: t.name })),
+              ]}
+            />
             {selected.size > 0 && (
               <Button variant="destructive" size="sm" onClick={handleBulkDelete} className="gap-1">
                 <Trash2 className="h-3 w-3" />
@@ -220,10 +240,10 @@ export default function TransactionsPage() {
                     <th className="w-10 px-4 py-3">
                       <input
                         type="checkbox"
-                        checked={selected.size === txns.length && txns.length > 0}
+                        checked={selected.size === filteredTxns.length && filteredTxns.length > 0}
                         onChange={() => {
-                          if (selected.size === txns.length) setSelected(new Set());
-                          else setSelected(new Set(txns.map((t) => t.id)));
+                          if (selected.size === filteredTxns.length) setSelected(new Set());
+                          else setSelected(new Set(filteredTxns.map((t) => t.id)));
                         }}
                         className="rounded border-white/[0.08] bg-white/[0.02]"
                       />
@@ -236,15 +256,18 @@ export default function TransactionsPage() {
                     </th>
                     <th className="text-left px-3 py-3 text-muted-foreground font-medium">Description</th>
                     <th className="text-left px-3 py-3 text-muted-foreground font-medium">Category</th>
-                    <th className="text-right px-3 py-3 text-muted-foreground font-medium cursor-pointer hover:text-foreground" onClick={() => toggleSort('amount')}>
-                      <span className="flex items-center justify-end gap-1">Amount <ArrowUpDown className="h-3 w-3" /></span>
+                    <th className="text-left px-3 py-3 text-muted-foreground font-medium">Tags</th>
+                    <th className="text-right px-3 py-3 text-muted-foreground font-medium">
+                      <button className="flex items-center justify-end gap-1 hover:text-foreground transition-colors" onClick={() => toggleSort('amount')} onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); toggleSort('amount'); } }}>
+                        Amount <ArrowUpDown className="h-3 w-3" />
+                      </button>
                     </th>
                     <th className="text-center px-3 py-3 text-muted-foreground font-medium">Status</th>
                     <th className="w-20 px-3 py-3 text-muted-foreground font-medium">Actions</th>
                   </tr>
                 </thead>
                 <tbody>
-                  {txns.map((txn) => (
+                  {filteredTxns.map((txn) => (
                     <tr key={txn.id} className="border-b border-white/[0.03] hover:bg-white/[0.01] transition-colors">
                       <td className="px-4 py-3">
                         <input
@@ -265,6 +288,19 @@ export default function TransactionsPage() {
                           {categoryMap[txn.categoryId] || 'Other'}
                         </span>
                       </td>
+                      <td className="px-3 py-3">
+                        <div className="flex flex-wrap gap-1">
+                          {txn.tags?.filter((tt) => tt.tag).map((tt) => (
+                            <span
+                              key={tt.tagId}
+                              className="inline-block rounded-full px-1.5 py-0.5 text-[10px]"
+                              style={{ backgroundColor: `${tt.tag!.color}20`, color: tt.tag!.color }}
+                            >
+                              {tt.tag!.name}
+                            </span>
+                          ))}
+                        </div>
+                      </td>
                       <td className={`px-3 py-3 text-right font-medium tabular-nums ${txn.type === 'income' ? 'text-emerald-400' : ''}`}>
                         {txn.type === 'income' ? '+' : '-'}{formatCurrency(txn.amount, currency)}
                       </td>
@@ -275,7 +311,10 @@ export default function TransactionsPage() {
                       </td>
                       <td className="px-3 py-3">
                         <div className="flex items-center gap-1">
-                          <button onClick={() => openEdit(txn)} className="p-1.5 rounded-lg hover:bg-white/[0.04] text-muted-foreground hover:text-foreground transition-colors">
+                          <button onClick={() => setSplitTxn(txn)} className="p-1.5 rounded-lg hover:bg-white/[0.04] text-muted-foreground hover:text-foreground transition-colors" aria-label={`Split transaction ${txn.merchant || txn.description}`}>
+                            <Scissors className="h-3.5 w-3.5" />
+                          </button>
+                          <button onClick={() => openEdit(txn)} className="p-1.5 rounded-lg hover:bg-white/[0.04] text-muted-foreground hover:text-foreground transition-colors" aria-label={`Edit transaction ${txn.merchant || txn.description}`}>
                             <Pencil className="h-3.5 w-3.5" />
                           </button>
                           <button onClick={() => handleDelete(txn.id)} className="p-1.5 rounded-lg hover:bg-white/[0.04] text-muted-foreground hover:text-rose-400 transition-colors">
@@ -332,9 +371,20 @@ export default function TransactionsPage() {
           mode={formMode}
           transaction={editingTxn}
           categories={categories}
+          allTags={tags}
           currency={currency}
           onClose={() => setShowForm(false)}
           onSave={() => setShowForm(false)}
+        />
+      )}
+
+      {splitTxn && (
+        <SplitForm
+          transaction={splitTxn}
+          categories={categories}
+          currency={currency}
+          onClose={() => setSplitTxn(null)}
+          onSave={() => { setSplitTxn(null); fetchData(); }}
         />
       )}
     </div>
@@ -345,6 +395,7 @@ function TransactionForm({
   mode,
   transaction,
   categories,
+  allTags,
   currency,
   onClose,
   onSave,
@@ -352,6 +403,7 @@ function TransactionForm({
   mode: FormMode;
   transaction: Transaction | null;
   categories: { id: string; name: string; color: string }[];
+  allTags: Tag[];
   currency: SharedCurrency;
   onClose: () => void;
   onSave: () => void;
@@ -368,6 +420,7 @@ function TransactionForm({
     isRecurring: transaction?.isRecurring || false,
     notes: transaction?.notes || '',
   });
+  const [selectedTagIds, setSelectedTagIds] = useState<string[]>(transaction?.tags?.map((t) => t.tagId) ?? []);
   const [saving, setSaving] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -395,11 +448,20 @@ function TransactionForm({
     };
 
     try {
+      let savedTxn: Transaction;
       if (mode === 'edit' && transaction) {
-        await api.put(`/transactions/${transaction.id}`, payload);
+        const res = await api.put(`/transactions/${transaction.id}`, payload);
+        savedTxn = res.data.data;
+        toast.success('Transaction updated');
       } else {
-        await api.post('/transactions', payload);
+        const res = await api.post('/transactions', payload);
+        savedTxn = res.data.data;
+        toast.success('Transaction created');
       }
+
+      await api.post(`/tags/transaction/${savedTxn.id}`, { tagIds: selectedTagIds });
+
+      onSave();
     } catch {
       // silent
     }
@@ -528,6 +590,37 @@ function TransactionForm({
             />
           </div>
 
+          {allTags.length > 0 && (
+            <div>
+              <label className="text-xs text-muted-foreground block mb-1.5">Tags</label>
+              <div className="flex flex-wrap gap-1.5">
+                {allTags.map((tag) => {
+                  const selected = selectedTagIds.includes(tag.id);
+                  return (
+                    <button
+                      key={tag.id}
+                      type="button"
+                      onClick={() => {
+                        setSelectedTagIds((prev) =>
+                          selected ? prev.filter((id) => id !== tag.id) : [...prev, tag.id]
+                        );
+                      }}
+                      className="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs transition-all"
+                      style={{
+                        backgroundColor: selected ? `${tag.color}30` : 'rgba(255,255,255,0.04)',
+                        color: selected ? tag.color : 'rgba(255,255,255,0.5)',
+                        border: `1px solid ${selected ? tag.color + '40' : 'rgba(255,255,255,0.06)'}`,
+                      }}
+                    >
+                      <span className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: tag.color }} />
+                      {tag.name}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+
           <div className="flex items-center gap-2">
             <input
               type="checkbox"
@@ -544,6 +637,157 @@ function TransactionForm({
             <Button type="submit" className="flex-1 gap-2" disabled={saving}>
               {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Check className="h-4 w-4" />}
               {mode === 'create' ? 'Add Transaction' : 'Save Changes'}
+            </Button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+}
+
+function SplitForm({
+  transaction,
+  categories,
+  currency,
+  onClose,
+  onSave,
+}: {
+  transaction: Transaction;
+  categories: { id: string; name: string; color: string }[];
+  currency: SharedCurrency;
+  onClose: () => void;
+  onSave: () => void;
+}) {
+  const [splits, setSplits] = useState<{ amount: string; description: string; categoryId: string }[]>(
+    transaction.splits?.length
+      ? transaction.splits.map((s) => ({ amount: s.amount.toString(), description: s.description || '', categoryId: s.categoryId }))
+      : [{ amount: '', description: '', categoryId: transaction.categoryId }]
+  );
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState('');
+
+  const totalSplit = splits.reduce((sum, s) => sum + (parseFloat(s.amount) || 0), 0);
+  const remaining = transaction.amount - totalSplit;
+
+  const addSplit = () => {
+    setSplits((prev) => [...prev, { amount: '', description: '', categoryId: transaction.categoryId }]);
+  };
+
+  const removeSplit = (index: number) => {
+    setSplits((prev) => prev.filter((_, i) => i !== index));
+  };
+
+  const updateSplit = (index: number, field: string, value: string) => {
+    setSplits((prev) => prev.map((s, i) => (i === index ? { ...s, [field]: value } : s)));
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError('');
+
+    if (Math.abs(remaining) > 0.01) {
+      setError(`Split total must equal transaction amount. Remaining: ${formatCurrency(remaining, currency)}`);
+      return;
+    }
+
+    for (const split of splits) {
+      if (!split.categoryId) {
+        setError('All splits must have a category');
+        return;
+      }
+    }
+
+    setSaving(true);
+    try {
+      await api.post(`/transactions/${transaction.id}/splits`, {
+        splits: splits.map((s) => ({
+          amount: parseFloat(s.amount),
+          description: s.description || undefined,
+          categoryId: s.categoryId,
+        })),
+      });
+      toast.success('Transaction split');
+      onSave();
+    } catch {
+      toast.error('Failed to split transaction');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm" onClick={onClose} onKeyDown={(e) => { if (e.key === 'Escape') onClose(); }} role="dialog" aria-modal="true" aria-labelledby="split-form-title">
+      <div className="w-full max-w-lg mx-4 glass rounded-xl" onClick={(e) => e.stopPropagation()}>
+        <div className="flex items-center justify-between p-5 border-b border-white/[0.06]">
+          <div>
+            <h2 id="split-form-title" className="text-lg font-semibold">Split Transaction</h2>
+            <p className="text-sm text-muted-foreground mt-1">
+              {formatCurrency(transaction.amount, currency)} — {transaction.merchant || transaction.description}
+            </p>
+          </div>
+          <button onClick={onClose} className="p-1.5 rounded-lg hover:bg-white/[0.04]" aria-label="Close">
+            <X className="h-5 w-5" />
+          </button>
+        </div>
+        <form onSubmit={handleSubmit} className="p-5 space-y-4">
+          {splits.map((split, index) => (
+            <div key={index} className="space-y-2 p-3 rounded-lg bg-white/[0.02] border border-white/[0.06]">
+              <div className="flex items-center justify-between">
+                <span className="text-xs text-muted-foreground">Split {index + 1}</span>
+                {splits.length > 1 && (
+                  <button type="button" onClick={() => removeSplit(index)} className="text-xs text-rose-400 hover:text-rose-300">
+                    Remove
+                  </button>
+                )}
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <Input
+                  type="number"
+                  step="0.01"
+                  min="0.01"
+                  placeholder="Amount"
+                  value={split.amount}
+                  onChange={(e: React.ChangeEvent<HTMLInputElement>) => updateSplit(index, 'amount', e.target.value)}
+                />
+                <Select
+                  value={split.categoryId}
+                  onValueChange={(value) => updateSplit(index, 'categoryId', value)}
+                  options={categories.map((c) => ({ value: c.id, label: c.name }))}
+                />
+              </div>
+              <Input
+                type="text"
+                placeholder="Description (optional)"
+                value={split.description}
+                onChange={(e: React.ChangeEvent<HTMLInputElement>) => updateSplit(index, 'description', e.target.value)}
+              />
+            </div>
+          ))}
+
+          <div className="flex items-center justify-between">
+            <Button type="button" variant="outline" size="sm" onClick={addSplit} className="gap-1">
+              <Plus className="h-3 w-3" /> Add Split
+            </Button>
+            <div className="text-sm">
+              <span className="text-muted-foreground">Remaining: </span>
+              <span className={remaining < 0 ? 'text-rose-400' : remaining > 0 ? 'text-amber-400' : 'text-emerald-400'}>
+                {formatCurrency(remaining, currency)}
+              </span>
+            </div>
+          </div>
+
+          {error && (
+            <div className="flex items-center gap-2 text-sm text-rose-400 bg-rose-500/10 rounded-lg px-3 py-2">
+              <AlertTriangle className="h-4 w-4 flex-shrink-0" />
+              {error}
+            </div>
+          )}
+
+          <div className="flex gap-3 pt-2">
+            <Button type="button" variant="outline" className="flex-1" onClick={onClose}>Cancel</Button>
+            <Button type="submit" className="flex-1 gap-2" disabled={saving || Math.abs(remaining) > 0.01}>
+              {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Scissors className="h-4 w-4" />}
+              Split Transaction
             </Button>
           </div>
         </form>

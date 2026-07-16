@@ -81,7 +81,16 @@ router.get('/', async (req: Request, res: Response) => {
   const orderBy = { [SORT_FIELD_MAP[sort] || 'date']: order as 'asc' | 'desc' };
 
   const [data, total] = await Promise.all([
-    prisma.transaction.findMany({ where, orderBy, skip: (page - 1) * limit, take: limit }),
+    prisma.transaction.findMany({
+      where,
+      orderBy,
+      skip: (page - 1) * limit,
+      take: limit,
+      include: {
+        tags: { include: { tag: true } },
+        splits: true,
+      },
+    }),
     prisma.transaction.count({ where }),
   ]);
 
@@ -91,6 +100,10 @@ router.get('/', async (req: Request, res: Response) => {
 router.get('/:id', async (req: Request, res: Response) => {
   const txn = await prisma.transaction.findFirst({
     where: { id: req.params.id, userId: req.userId, deletedAt: null },
+    include: {
+      tags: { include: { tag: true } },
+      splits: true,
+    },
   });
   if (!txn) return res.status(404).json({ success: false, error: 'Transaction not found' });
   res.json({ success: true, data: txn });
@@ -257,6 +270,70 @@ router.post('/:id/restore', async (req: Request, res: Response) => {
   audit(req.userId, 'restore', existing.id, null);
 
   res.json({ success: true, message: 'Transaction restored' });
+});
+
+const splitSchema = z.object({
+  splits: z.array(z.object({
+    amount: z.number().positive(),
+    description: z.string().optional(),
+    categoryId: z.string(),
+  })).min(1),
+});
+
+router.post('/:id/splits', async (req: Request, res: Response) => {
+  const txn = await prisma.transaction.findFirst({
+    where: { id: req.params.id, userId: req.userId, deletedAt: null },
+  });
+  if (!txn) return res.status(404).json({ success: false, error: 'Transaction not found' });
+
+  const parsed = splitSchema.safeParse(req.body);
+  if (!parsed.success) {
+    return res.status(400).json({ success: false, error: 'Invalid input', details: parsed.error.format() });
+  }
+
+  const totalSplit = parsed.data.splits.reduce((sum, s) => sum + s.amount, 0);
+  if (Math.abs(totalSplit - txn.amount) > 0.01) {
+    return res.status(400).json({ success: false, error: `Split total (${totalSplit}) must equal transaction amount (${txn.amount})` });
+  }
+
+  for (const split of parsed.data.splits) {
+    const cat = await prisma.category.findFirst({ where: { id: split.categoryId, userId: req.userId } });
+    if (!cat) return res.status(400).json({ success: false, error: `Category ${split.categoryId} not found` });
+  }
+
+  await prisma.transactionSplit.deleteMany({ where: { transactionId: txn.id } });
+
+  await prisma.transactionSplit.createMany({
+    data: parsed.data.splits.map((s) => ({
+      amount: s.amount,
+      description: s.description || null,
+      categoryId: s.categoryId,
+      transactionId: txn.id,
+    })),
+  });
+
+  const updated = await prisma.transaction.findUnique({
+    where: { id: txn.id },
+    include: { splits: true },
+  });
+
+  res.json({ success: true, data: updated });
+});
+
+router.delete('/:id/splits', async (req: Request, res: Response) => {
+  const txn = await prisma.transaction.findFirst({
+    where: { id: req.params.id, userId: req.userId, deletedAt: null },
+  });
+  if (!txn) return res.status(404).json({ success: false, error: 'Transaction not found' });
+
+  await prisma.transactionSplit.deleteMany({ where: { transactionId: txn.id } });
+
+  const updated = await prisma.transaction.findUnique({
+    where: { id: txn.id },
+    include: { splits: true },
+  });
+
+  res.json({ success: true, data: updated });
 });
 
 export default router;

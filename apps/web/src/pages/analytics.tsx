@@ -1,9 +1,9 @@
 import { useState, useMemo, useCallback, useEffect } from 'react';
 import {
-  BarChart3, TrendingUp, TrendingDown, Calendar, Loader2, ArrowUpRight, ArrowDownRight,
+  TrendingUp, TrendingDown, Calendar, Loader2, ArrowUpRight, ArrowDownRight,
 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
+import { DateRangePicker, getPresetRange } from '@/components/ui/date-range-picker';
 import { useAuth } from '@/hooks/use-auth';
 import api from '@/lib/api';
 import { formatCurrency } from '@/lib/utils';
@@ -42,23 +42,6 @@ const chartDefaults = {
   },
 };
 
-type TimePeriod = '3m' | '6m' | '12m' | 'all';
-
-const TIME_PERIODS: { value: TimePeriod; label: string }[] = [
-  { value: '3m', label: '3 Months' },
-  { value: '6m', label: '6 Months' },
-  { value: '12m', label: '12 Months' },
-  { value: 'all', label: 'All Time' },
-];
-
-function getPeriodCutoff(period: TimePeriod): Date {
-  const now = new Date();
-  if (period === '3m') return new Date(now.getFullYear(), now.getMonth() - 3, 1);
-  if (period === '6m') return new Date(now.getFullYear(), now.getMonth() - 6, 1);
-  if (period === '12m') return new Date(now.getFullYear() - 1, now.getMonth() + 1, 1);
-  return new Date(2000, 0, 1);
-}
-
 const DAY_NAMES = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 
 export default function Analytics() {
@@ -68,7 +51,7 @@ export default function Analytics() {
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
   const [loading, setLoading] = useState(true);
-  const [period, setPeriod] = useState<TimePeriod>('6m');
+  const [dateRange, setDateRange] = useState(getPresetRange('6m'));
 
   const fetchData = useCallback(async () => {
     setLoading(true);
@@ -95,9 +78,13 @@ export default function Analytics() {
   }, [categories]);
 
   const filtered = useMemo(() => {
-    const cutoff = getPeriodCutoff(period);
-    return transactions.filter((t) => new Date(t.date) >= cutoff);
-  }, [transactions, period]);
+    const start = dateRange.start ? new Date(dateRange.start) : new Date(2000, 0, 1);
+    const end = dateRange.end ? new Date(dateRange.end + 'T23:59:59') : new Date();
+    return transactions.filter((t) => {
+      const d = new Date(t.date);
+      return d >= start && d <= end;
+    });
+  }, [transactions, dateRange]);
 
   const stats = useMemo(() => {
     const income = filtered.filter((t) => t.type === 'income').reduce((s, t) => s + t.amount, 0);
@@ -117,9 +104,10 @@ export default function Analytics() {
   const monthlyData = useMemo(() => {
     const months: Record<string, { income: number; expense: number }> = {};
     const now = new Date();
-    const cutoff = getPeriodCutoff(period);
-    const monthCount = period === '3m' ? 3 : period === '6m' ? 6 : period === '12m' ? 12 : Math.max(
-      Math.ceil((now.getTime() - cutoff.getTime()) / (30 * 86400000)), 1
+    const start = dateRange.start ? new Date(dateRange.start) : new Date(2000, 0, 1);
+    const end = dateRange.end ? new Date(dateRange.end) : now;
+    const monthCount = Math.max(
+      (end.getFullYear() - start.getFullYear()) * 12 + (end.getMonth() - start.getMonth()) + 1, 1
     );
 
     for (let i = monthCount - 1; i >= 0; i--) {
@@ -147,7 +135,7 @@ export default function Analytics() {
       income: labels.map((k) => months[k].income),
       expense: labels.map((k) => months[k].expense),
     };
-  }, [filtered, period]);
+  }, [filtered, dateRange]);
 
   const categoryBreakdown = useMemo(() => {
     const spending: Record<string, number> = {};
@@ -294,19 +282,7 @@ export default function Analytics() {
           <h1 className="text-2xl font-bold tracking-tight">Analytics</h1>
           <p className="text-sm text-muted-foreground">Deep dive into your financial patterns</p>
         </div>
-        <div className="flex gap-1 p-1 rounded-lg bg-white/5">
-          {TIME_PERIODS.map((p) => (
-            <Button
-              key={p.value}
-              variant={period === p.value ? 'default' : 'ghost'}
-              size="sm"
-              onClick={() => setPeriod(p.value)}
-              className="h-7 text-xs"
-            >
-              {p.label}
-            </Button>
-          ))}
-        </div>
+        <DateRangePicker value={dateRange} onChange={setDateRange} />
       </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
