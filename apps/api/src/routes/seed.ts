@@ -1,13 +1,8 @@
 import { Router, type Request, type Response } from 'express';
 import { prisma } from '../prisma';
-import { seedDefaultCategories } from '../seed-defaults';
 import { loadBulkML } from '../services/auto-categorize-ml';
 
 const router = Router();
-
-router.post('/categories', async (req: Request, res: Response) => {
-  res.json({ success: true, data: { message: 'Categories already seeded on startup' } });
-});
 
 router.delete('/transactions', async (req: Request, res: Response) => {
   const result = await prisma.transaction.deleteMany({ where: { userId: req.userId } });
