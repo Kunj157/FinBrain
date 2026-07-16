@@ -121,41 +121,6 @@ router.post('/parse', upload.single('file'), async (req: Request, res: Response)
   }
 });
 
-// keep backward compat
-router.post('/csv', upload.single('file'), async (req: Request, res: Response) => {
-  try {
-    const file = req.file as Express.Multer.File | undefined;
-    if (!file) {
-      return res.status(400).json({ success: false, error: 'No file uploaded' });
-    }
-
-    const categories = await prisma.category.findMany({ where: { userId: req.userId } });
-    const catByName = new Map(categories.map((c) => [c.name, c.id]));
-
-    const records = await parseCsv(file.path);
-    const transactions = await Promise.all(records.map((r) => enrichTransaction(req.userId, r)));
-
-    fs.unlinkSync(file.path);
-
-    const resolved = await Promise.all(transactions.map(async (tx) => ({
-      ...tx,
-      categoryId: await resolveCategoryId(tx.category, catByName),
-    })));
-
-    res.json({
-      success: true,
-      data: {
-        total: resolved.length,
-        preview: resolved,
-        columns: records.length > 0 ? Object.keys(records[0]) : [],
-      },
-    });
-  } catch (error) {
-    console.error('CSV import error:', error);
-    res.status(500).json({ success: false, error: 'Failed to parse CSV' });
-  }
-});
-
 router.post('/suggest-category', async (req: Request, res: Response) => {
   const { merchant, description } = req.body;
   if (!merchant && !description) {
