@@ -1,6 +1,5 @@
 import { Router, type Request, type Response } from 'express';
 import { prisma } from '../prisma';
-import { seedDefaultCategories } from '../seed-defaults';
 import { loadBulkML } from '../services/auto-categorize-ml';
 
 const router = Router();
