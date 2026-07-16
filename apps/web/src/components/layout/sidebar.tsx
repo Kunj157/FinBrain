@@ -13,7 +13,6 @@ import {
   Brain,
   Settings,
   HelpCircle,
-  Database,
   Building2,
   ScrollText,
   Repeat,
