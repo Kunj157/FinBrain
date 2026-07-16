@@ -17,6 +17,8 @@ import {
   Building2,
   ScrollText,
   Repeat,
+  Calendar,
+  TrendingUp,
 } from 'lucide-react';
 
 const navItems = [
@@ -32,6 +34,8 @@ const navItems = [
   { icon: BarChart3, label: 'Analytics', path: '/analytics' },
   { icon: Receipt, label: 'Receipts', path: '/receipts' },
   { icon: FileText, label: 'Reports', path: '/reports' },
+  { icon: Calendar, label: 'Calendar', path: '/calendar' },
+  { icon: TrendingUp, label: 'Cash Flow', path: '/cash-flow' },
   { icon: Sparkles, label: 'AI Insights', path: '/insights' },
 ];
 

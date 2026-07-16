@@ -1,5 +1,6 @@
 import { useState, useMemo, useCallback, useEffect } from 'react';
-import { Plus, PiggyBank, Pencil, Trash2, X, Check, Loader2, AlertTriangle } from 'lucide-react';
+import { Plus, PiggyBank, Pencil, Trash2, X, Check, Loader2, AlertTriangle, ArrowRightLeft, History } from 'lucide-react';
+import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Select } from '@/components/ui/select';
@@ -7,7 +8,7 @@ import { Badge } from '@/components/ui/badge';
 import { useAuth } from '@/hooks/use-auth';
 import api from '@/lib/api';
 import { formatCurrency } from '@/lib/utils';
-import type { Currency as SharedCurrency, Category } from '@finbrain/shared';
+import type { Currency as SharedCurrency, Category, BudgetHistory } from '@finbrain/shared';
 
 interface Budget {
   id: string;
@@ -20,6 +21,8 @@ interface Budget {
   endDate: string | null;
   spent: number;
   remaining: number;
+  rollover: boolean;
+  rolloverAmount: number;
   createdAt: string;
   updatedAt: string;
 }
@@ -42,6 +45,9 @@ export default function Budgets() {
   const [showForm, setShowForm] = useState(false);
   const [formMode, setFormMode] = useState<FormMode>('create');
   const [editingBudget, setEditingBudget] = useState<Budget | null>(null);
+  const [historyBudgetId, setHistoryBudgetId] = useState<string | null>(null);
+  const [history, setHistory] = useState<BudgetHistory[]>([]);
+  const [historyLoading, setHistoryLoading] = useState(false);
 
   const fetchData = useCallback(async () => {
     setLoading(true);
@@ -71,7 +77,7 @@ export default function Budgets() {
     return budgets.map((b) => ({ ...b, category: categoryMap[b.categoryId] }));
   }, [budgets, categoryMap]);
 
-  const totalBudget = useMemo(() => budgets.reduce((s, b) => s + b.amount, 0), [budgets]);
+  const totalBudget = useMemo(() => budgets.reduce((s, b) => s + b.amount + b.rolloverAmount, 0), [budgets]);
   const totalSpent = useMemo(() => budgets.reduce((s, b) => s + b.spent, 0), [budgets]);
 
   const openCreate = () => {
@@ -87,9 +93,55 @@ export default function Budgets() {
   };
 
   const handleDelete = useCallback(async (id: string) => {
-    await api.delete(`/budgets/${id}`);
-    fetchData();
-  }, [fetchData]);
+    const budget = budgets.find((b) => b.id === id);
+    if (!budget) return;
+    setBudgets((prev) => prev.filter((b) => b.id !== id));
+    toast.success('Budget deleted', {
+      action: {
+        label: 'Undo',
+        onClick: async () => {
+          try {
+            await api.post('/budgets', {
+              categoryId: budget.categoryId,
+              amount: budget.amount,
+              period: budget.period,
+              startDate: budget.startDate,
+              rollover: budget.rollover,
+            });
+            fetchData();
+            toast.success('Budget restored');
+          } catch {
+            toast.error('Failed to restore');
+          }
+        },
+      },
+      duration: 5000,
+    });
+    try {
+      await api.delete(`/budgets/${id}`);
+    } catch {
+      setBudgets((prev) => [...prev, budget]);
+      toast.error('Failed to delete budget');
+    }
+  }, [budgets, fetchData]);
+
+  const loadHistory = async (budgetId: string) => {
+    if (historyBudgetId === budgetId) {
+      setHistoryBudgetId(null);
+      setHistory([]);
+      return;
+    }
+    setHistoryBudgetId(budgetId);
+    setHistoryLoading(true);
+    try {
+      const res = await api.get(`/budgets/${budgetId}/history`);
+      setHistory(res.data.data);
+    } catch {
+      toast.error('Failed to load history');
+    } finally {
+      setHistoryLoading(false);
+    }
+  };
 
   return (
     <div className="space-y-6 animate-fade-in">
@@ -154,8 +206,9 @@ export default function Budgets() {
           {budgetsWithCategory
             .filter((b) => b.category)
             .map((b) => {
-              const pct = b.amount > 0 ? Math.min((b.spent / b.amount) * 100, 100) : 0;
-              const isOver = b.spent > b.amount;
+              const effectiveBudget = b.amount + b.rolloverAmount;
+              const pct = effectiveBudget > 0 ? Math.min((b.spent / effectiveBudget) * 100, 100) : 0;
+              const isOver = b.spent > effectiveBudget;
               const color = b.category?.color || '#6b7280';
               return (
                 <Card key={b.id} className="group relative overflow-hidden card-hover">
@@ -163,8 +216,11 @@ export default function Budgets() {
                   <CardHeader className="pb-2">
                     <div className="flex items-center justify-between">
                       <CardTitle className="text-sm font-medium">{b.category?.name || 'Unknown'}</CardTitle>
-                      <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                        <button onClick={() => openEdit(b)} className="p-1.5 rounded-lg hover:bg-white/[0.04] text-muted-foreground hover:text-foreground transition-colors">
+                      <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 focus-within:opacity-100 transition-opacity">
+                        <button onClick={() => loadHistory(b.id)} className="p-1.5 rounded-lg hover:bg-white/[0.04] text-muted-foreground hover:text-foreground transition-colors" aria-label={`View ${b.category?.name} history`}>
+                          <History className="h-3.5 w-3.5" />
+                        </button>
+                        <button onClick={() => openEdit(b)} className="p-1.5 rounded-lg hover:bg-white/[0.04] text-muted-foreground hover:text-foreground transition-colors" aria-label={`Edit ${b.category?.name} budget`}>
                           <Pencil className="h-3.5 w-3.5" />
                         </button>
                         <button onClick={() => handleDelete(b.id)} className="p-1.5 rounded-lg hover:bg-white/[0.04] text-muted-foreground hover:text-rose-400 transition-colors">
@@ -179,12 +235,17 @@ export default function Budgets() {
                           <AlertTriangle className="h-3 w-3" /> Exceeded
                         </Badge>
                       )}
+                      {b.rollover && b.rolloverAmount > 0 && (
+                        <Badge variant="secondary" className="text-[10px] gap-1 text-emerald-400">
+                          <ArrowRightLeft className="h-3 w-3" /> {formatCurrency(b.rolloverAmount, b.currency as SharedCurrency)} rolled
+                        </Badge>
+                      )}
                     </div>
                   </CardHeader>
                   <CardContent>
                     <div className="space-y-3">
                       <div className="flex items-baseline justify-between">
-                        <span className="text-2xl font-semibold">{formatCurrency(b.amount, b.currency as SharedCurrency)}</span>
+                        <span className="text-2xl font-semibold">{formatCurrency(effectiveBudget, b.currency as SharedCurrency)}</span>
                         <span className={`text-sm ${isOver ? 'text-rose-400' : 'text-muted-foreground'}`}>
                           {formatCurrency(b.spent, b.currency as SharedCurrency)} spent
                         </span>
@@ -200,6 +261,36 @@ export default function Budgets() {
                         <span>{formatCurrency(b.remaining, b.currency as SharedCurrency)} remaining</span>
                       </div>
                     </div>
+
+                    {historyBudgetId === b.id && (
+                      <div className="mt-4 pt-4 border-t border-white/[0.06]">
+                        <p className="text-xs font-medium text-muted-foreground mb-2">History</p>
+                        {historyLoading ? (
+                          <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                            <Loader2 className="h-3 w-3 animate-spin" /> Loading...
+                          </div>
+                        ) : history.length === 0 ? (
+                          <p className="text-xs text-muted-foreground/60">No history yet</p>
+                        ) : (
+                          <div className="space-y-2 max-h-40 overflow-y-auto">
+                            {history.map((h) => (
+                              <div key={h.id} className="flex items-center justify-between text-xs">
+                                <span className="text-muted-foreground">
+                                  {new Date(h.recordedAt).toLocaleDateString('en-US', { month: 'short', year: 'numeric' })}
+                                </span>
+                                <div className="flex gap-3">
+                                  <span>{formatCurrency(h.amount, b.currency as SharedCurrency)}</span>
+                                  <span className="text-rose-400">{formatCurrency(h.spent, b.currency as SharedCurrency)}</span>
+                                  {h.rolloverAmount > 0 && (
+                                    <span className="text-emerald-400">+{formatCurrency(h.rolloverAmount, b.currency as SharedCurrency)}</span>
+                                  )}
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    )}
                   </CardContent>
                 </Card>
               );
@@ -244,6 +335,7 @@ function BudgetForm({
     amount: budget?.amount.toString() || '',
     period: budget?.period || 'monthly',
     startDate: budget?.startDate || new Date().toISOString().split('T')[0],
+    rollover: budget?.rollover ?? false,
   });
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
@@ -273,6 +365,7 @@ function BudgetForm({
         amount,
         period: form.period,
         startDate: form.startDate,
+        rollover: form.rollover,
       };
       if (mode === 'edit' && budget) {
         await api.put(`/budgets/${budget.id}`, payload);
@@ -341,6 +434,22 @@ function BudgetForm({
               onChange={(e) => setForm((f) => ({ ...f, startDate: e.target.value }))}
               className="w-full h-10 px-3 rounded-lg bg-white/[0.02] border border-white/[0.08] text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/20"
             />
+          </div>
+
+          <div className="flex items-center justify-between p-3 rounded-lg bg-white/[0.02] border border-white/[0.06]">
+            <div>
+              <p className="text-sm font-medium">Rollover</p>
+              <p className="text-xs text-muted-foreground">Carry unused budget to next period</p>
+            </div>
+            <button
+              type="button"
+              role="switch"
+              aria-checked={form.rollover}
+              onClick={() => setForm((f) => ({ ...f, rollover: !f.rollover }))}
+              className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors ${form.rollover ? 'bg-emerald-500' : 'bg-white/10'}`}
+            >
+              <span className={`inline-block h-3.5 w-3.5 transform rounded-full bg-white transition-transform ${form.rollover ? 'translate-x-4.5' : 'translate-x-0.5'}`} />
+            </button>
           </div>
 
           {error && (

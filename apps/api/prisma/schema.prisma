@@ -82,6 +82,8 @@ model User {
   receipts            Receipt[]
   notifications       Notification[]
   auditLogs           AuditLog[]
+  tags                Tag[]
+  recurringPatterns   RecurringPattern[]
 
   @@map("users")
 }
@@ -103,6 +105,8 @@ model Category {
   categorizationRules CategorizationRule[]
   budgets            Budget[]
   goals              Goal[]
+  transactionSplits  TransactionSplit[]
+  recurringPatterns  RecurringPattern[]
 
   createdAt DateTime @default(now())
 
@@ -154,6 +158,9 @@ model Transaction {
   accountId String?
   account   Account? @relation(fields: [accountId], references: [id])
 
+  tags      TransactionTag[]
+  splits    TransactionSplit[]
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
@@ -170,8 +177,10 @@ model Budget {
   period    BudgetPeriod @default(monthly)
   startDate DateTime
   endDate   DateTime?
-  spent     Float        @default(0)
-  remaining Float?
+  spent          Float  @default(0)
+  remaining      Float?
+  rollover       Boolean @default(false)
+  rolloverAmount Float  @default(0)
 
   userId     String
   user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
@@ -188,11 +197,12 @@ model Budget {
 }
 
 model BudgetHistory {
-  id        String   @id @default(cuid())
-  amount    Float
-  spent     Float
-  remaining Float
-  recordedAt DateTime @default(now())
+  id            String   @id @default(cuid())
+  amount        Float
+  spent         Float
+  remaining     Float
+  rolloverAmount Float  @default(0)
+  recordedAt    DateTime @default(now())
 
   budgetId String
   budget   Budget @relation(fields: [budgetId], references: [id], onDelete: Cascade)
@@ -356,4 +366,73 @@ model CategorizationRule {
 
   @@index([userId, priority])
   @@map("categorization_rules")
+}
+
+model Tag {
+  id        String   @id @default(cuid())
+  name      String
+  color     String   @default("#6b7280")
+
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+
+  transactions TransactionTag[]
+
+  @@unique([userId, name])
+  @@map("tags")
+}
+
+model TransactionTag {
+  id            String @id @default(cuid())
+  transactionId String
+  tagId         String
+
+  transaction Transaction @relation(fields: [transactionId], references: [id], onDelete: Cascade)
+  tag         Tag         @relation(fields: [tagId], references: [id], onDelete: Cascade)
+
+  @@unique([transactionId, tagId])
+  @@map("transaction_tags")
+}
+
+model TransactionSplit {
+  id            String @id @default(cuid())
+  amount        Float
+  description   String?
+
+  categoryId    String
+  category      Category @relation(fields: [categoryId], references: [id])
+  transactionId String
+  transaction   Transaction @relation(fields: [transactionId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+
+  @@map("transaction_splits")
+}
+
+model RecurringPattern {
+  id           String   @id @default(cuid())
+  merchant     String
+  description  String?
+  amount       Float
+  avgAmount    Float
+  frequency    String
+  nextDueDate  DateTime
+  lastDate     DateTime
+  confidence   Float    @default(0)
+  isActive     Boolean  @default(true)
+  isSnoozed    Boolean  @default(false)
+  snoozedUntil DateTime?
+
+  categoryId String
+  category   Category @relation(fields: [categoryId], references: [id])
+
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("recurring_patterns")
 }

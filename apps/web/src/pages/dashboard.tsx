@@ -1,17 +1,17 @@
-import { Wallet, TrendingUp, TrendingDown, PiggyBank, Plus, ArrowRightLeft, Target, Brain, Sparkles, Loader2, Building2, Upload, Database, X } from 'lucide-react';
-import { useMemo, useEffect, useState, useCallback } from 'react';
+import { Wallet, TrendingUp, TrendingDown, PiggyBank, Plus, ArrowRightLeft, Target, Brain, Sparkles, Building2, Loader2, X, Shield, Eye, Lock, Send, AlertTriangle } from 'lucide-react';
+import { useMemo, useEffect, useState, useCallback, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { StatCard } from '@/components/finance/stat-card';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { PlaidLinkButton } from '@/components/finance/plaid-link';
-import { CsvImport } from '@/components/finance/csv-import';
 import { useAuth } from '@/hooks/use-auth';
 import api from '@/lib/api';
 import { formatCurrency, formatDate } from '@/lib/utils';
+import { generateAnswer } from '@/lib/ai-chat';
 import { IncomeExpenseChart, CategoryChart, SpendingTrend } from '@/components/finance/charts';
-import type { Transaction, Category } from '@finbrain/shared';
+import type { Transaction, Category, Budget, Goal, Currency as SharedCurrency } from '@finbrain/shared';
 
 const quickActions = [
   { label: 'Add Income', icon: TrendingUp, variant: 'positive' as const },
@@ -20,46 +20,34 @@ const quickActions = [
   { label: 'Add Goal', icon: Target, variant: 'default' as const },
 ];
 
-const getStartedCards = [
-  {
-    icon: Building2,
-    title: 'Connect your bank',
-    desc: 'Securely import transactions from your bank via Plaid',
-    action: 'import-plaid',
-  },
-  {
-    icon: Upload,
-    title: 'Import a CSV',
-    desc: 'Upload a CSV or PDF bank statement',
-    action: 'import-csv',
-  },
-  {
-    icon: Database,
-    title: 'Try sample data',
-    desc: 'Generate realistic transactions to explore the dashboard',
-    action: 'import-sample',
-  },
-];
-
 export default function Dashboard() {
   const { user } = useAuth();
   const navigate = useNavigate();
   const [allTransactions, setAllTransactions] = useState<Transaction[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
+  const [budgets, setBudgets] = useState<Budget[]>([]);
+  const [goals, setGoals] = useState<Goal[]>([]);
   const [loading, setLoading] = useState(true);
-  const [seeding, setSeeding] = useState(false);
   const [onboardingAction, setOnboardingAction] = useState<string | null>(null);
   const [netWorth, setNetWorth] = useState<{ netWorth: number } | null>(null);
+  const [chatInput, setChatInput] = useState('');
+  const [messages, setMessages] = useState<{ role: 'user' | 'assistant'; content: string }[]>([]);
+  const [isThinking, setIsThinking] = useState(false);
+  const chatEndRef = useRef<HTMLDivElement>(null);
 
   const fetchData = useCallback(async () => {
     try {
-      const [txnRes, catRes, nwRes] = await Promise.all([
+      const [txnRes, catRes, nwRes, budgetRes, goalRes] = await Promise.all([
         api.get('/transactions?limit=100'),
         api.get('/categories'),
         api.get('/accounts/net-worth').catch(() => null),
+        api.get('/budgets').catch(() => ({ data: { data: [] } })),
+        api.get('/goals').catch(() => ({ data: { data: [] } })),
       ]);
       setAllTransactions(txnRes.data.data.data);
       setCategories(catRes.data.data);
+      setBudgets(budgetRes.data.data);
+      setGoals(goalRes.data.data);
       if (nwRes?.data?.data) setNetWorth(nwRes.data.data);
     } catch {
       // silent
@@ -76,17 +64,7 @@ export default function Dashboard() {
   }, [fetchData]);
 
   const handleGetStarted = async (action: string) => {
-    switch (action) {
-      case 'import-sample':
-        setSeeding(true);
-        try {
-          await api.post('/seed/transactions', null, { params: { count: 250 } });
-          await fetchData();
-        } catch { /* silent */ } finally { setSeeding(false); }
-        break;
-      default:
-        setOnboardingAction(action);
-    }
+    setOnboardingAction(action);
   };
 
   const summary = useMemo(() => {
@@ -145,6 +123,120 @@ export default function Dashboard() {
   const currency = user?.currency || 'USD';
   const firstName = user?.name?.split(' ')[0] || 'there';
 
+  useEffect(() => {
+    chatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  }, [messages]);
+
+  const doSend = async (question: string) => {
+    if (isThinking) return;
+    setChatInput('');
+    setMessages((prev) => [...prev, { role: 'user', content: question }]);
+    setIsThinking(true);
+    await new Promise((r) => setTimeout(r, 600 + Math.random() * 800));
+    const answer = generateAnswer(question, allTransactions, categories, budgets, goals, currency as SharedCurrency);
+    setMessages((prev) => [...prev, { role: 'assistant', content: answer }]);
+    setIsThinking(false);
+  };
+
+  const handleSend = async () => {
+    if (!chatInput.trim()) return;
+    await doSend(chatInput.trim());
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      handleSend();
+    }
+  };
+
+  const dynamicInsights = useMemo(() => {
+    if (allTransactions.length === 0) return [];
+    const now = new Date();
+    const thisMonth = allTransactions.filter((t) => {
+      const d = new Date(t.date);
+      return d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear();
+    });
+    const lastMonth = allTransactions.filter((t) => {
+      const d = new Date(t.date);
+      const lm = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+      return d.getMonth() === lm.getMonth() && d.getFullYear() === lm.getFullYear();
+    });
+
+    const thisExpenses = thisMonth.filter((t) => t.type === 'expense');
+    const lastExpenses = lastMonth.filter((t) => t.type === 'expense');
+    const thisTotal = thisExpenses.reduce((s, t) => s + t.amount, 0);
+    const lastTotal = lastExpenses.reduce((s, t) => s + t.amount, 0);
+
+    const insights: { id: string; type: 'alert' | 'insight'; color: string; title: string; desc: string }[] = [];
+
+    if (lastTotal > 0) {
+      const change = ((thisTotal - lastTotal) / lastTotal) * 100;
+      if (change > 20) {
+        insights.push({
+          id: 'spending-surge',
+          type: 'alert',
+          color: 'from-rose-500/5 to-orange-500/5 border-rose-500/10',
+          title: 'Spending Surge',
+          desc: `Expenses up ${change.toFixed(0)}% vs last month (${formatCurrency(thisTotal, currency)} vs ${formatCurrency(lastTotal, currency)}).`,
+        });
+      } else if (change < -15) {
+        insights.push({
+          id: 'spending-drop',
+          type: 'insight',
+          color: 'from-emerald-500/5 to-teal-500/5 border-emerald-500/10',
+          title: 'Spending Down',
+          desc: `Expenses dropped ${Math.abs(change).toFixed(0)}% this month — keep up the discipline!`,
+        });
+      }
+    }
+
+    const catTotals: Record<string, number> = {};
+    for (const t of thisExpenses) {
+      catTotals[t.categoryId] = (catTotals[t.categoryId] || 0) + t.amount;
+    }
+    const topCat = Object.entries(catTotals).sort(([, a], [, b]) => b - a)[0];
+    if (topCat && thisTotal > 0) {
+      const cat = categories.find((c) => c.id === topCat[0]);
+      const pct = ((topCat[1] / thisTotal) * 100).toFixed(0);
+      insights.push({
+        id: 'top-category',
+        type: 'insight',
+        color: 'from-blue-500/5 to-indigo-500/5 border-blue-500/10',
+        title: `Top: ${cat?.name || 'Unknown'}`,
+        desc: `${formatCurrency(topCat[1], currency)} (${pct}% of expenses).`,
+      });
+    }
+
+    for (const budget of budgets) {
+      if (budget.spent > budget.amount) {
+        const cat = categories.find((c) => c.id === budget.categoryId);
+        insights.push({
+          id: `budget-over-${budget.id}`,
+          type: 'alert',
+          color: 'from-amber-500/5 to-orange-500/5 border-amber-500/10',
+          title: `${cat?.name || 'Budget'} Over Budget`,
+          desc: `Exceeded by ${formatCurrency(budget.spent - budget.amount, currency)}.`,
+        });
+        break;
+      }
+    }
+
+    const income = thisMonth.filter((t) => t.type === 'income').reduce((s, t) => s + t.amount, 0);
+    const sr = income > 0 ? ((income - thisTotal) / income) * 100 : 0;
+    if (income > 0 && sr < 20) {
+      insights.push({
+        id: 'low-savings',
+        type: 'alert',
+        color: 'from-amber-500/5 to-yellow-500/5 border-amber-500/10',
+        title: 'Low Savings Rate',
+        desc: `Savings rate is ${sr.toFixed(0)}%. Aim for at least 20%.`,
+      });
+    }
+
+    return insights.slice(0, 3);
+  }, [allTransactions, categories, budgets, currency]);
+
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-[60vh]">
@@ -156,49 +248,40 @@ export default function Dashboard() {
   const hasData = allTransactions.length > 0;
 
   const emptyContent = (
-    <div className="space-y-8 animate-fade-in">
-      <div className="text-center pt-12 pb-4">
-        <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-2xl bg-emerald-500/10 border border-emerald-500/20 mb-6">
+    <div className="flex flex-col items-center justify-center min-h-[70vh] animate-fade-in">
+      <div className="text-center space-y-6 max-w-md mx-auto px-4">
+        <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-2xl bg-emerald-500/10 border border-emerald-500/20">
           <Brain className="h-8 w-8 text-emerald-400" />
         </div>
-        <h1 className="text-3xl font-bold tracking-tight">
-          Welcome to <span className="text-gradient">Fin</span>Brain
-        </h1>
-        <p className="text-muted-foreground mt-2 max-w-md mx-auto">
-          Get started by importing your financial data. You can connect your bank,
-          upload a statement, or generate sample data to explore.
-        </p>
-      </div>
+        <div>
+          <h1 className="text-2xl font-semibold">
+            Welcome to <span className="text-gradient">Fin</span>Brain
+          </h1>
+          <p className="text-muted-foreground mt-2 text-sm">
+            Connect your bank account to start tracking your finances.
+          </p>
+        </div>
 
-      <div className="grid gap-4 md:grid-cols-2 max-w-2xl mx-auto">
-        {getStartedCards.map((card) => (
-          <button
-            key={card.action}
-            onClick={() => handleGetStarted(card.action)}
-            disabled={seeding && card.action === 'import-sample'}
-            className="flex flex-col items-start gap-3 rounded-xl border border-white/[0.06] bg-white/[0.02] p-5 hover:bg-white/[0.04] hover:border-emerald-500/20 hover:shadow-lg hover:shadow-emerald-500/5 transition-all duration-200 group cursor-pointer text-left disabled:opacity-50"
-          >
-            <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-emerald-500/10 group-hover:bg-emerald-500/20 transition-colors">
-              {seeding && card.action === 'import-sample' ? (
-                <Loader2 className="h-6 w-6 text-emerald-400 animate-spin" />
-              ) : (
-                <card.icon className="h-6 w-6 text-emerald-400" />
-              )}
-            </div>
-            <div>
-              <p className="font-medium text-sm">{card.title}</p>
-              <p className="text-xs text-muted-foreground mt-0.5">{card.desc}</p>
-            </div>
-          </button>
-        ))}
-      </div>
+        <Button size="lg" onClick={() => handleGetStarted('import-plaid')} className="gap-2 px-8">
+          <Building2 className="h-4 w-4" />
+          Connect your bank
+        </Button>
 
-      <p className="text-center text-xs text-muted-foreground pt-4">
-        Already have data?{' '}
-        <button onClick={fetchData} className="text-emerald-400 hover:underline">
-          Refresh
-        </button>
-      </p>
+        <div className="flex items-center justify-center gap-5 text-[11px] text-muted-foreground pt-2">
+          <div className="flex items-center gap-1.5">
+            <Lock className="h-3 w-3" />
+            <span>256-bit encryption</span>
+          </div>
+          <div className="flex items-center gap-1.5">
+            <Eye className="h-3 w-3" />
+            <span>Read-only access</span>
+          </div>
+          <div className="flex items-center gap-1.5">
+            <Shield className="h-3 w-3" />
+            <span>Powered by Plaid</span>
+          </div>
+        </div>
+      </div>
     </div>
   );
 
@@ -390,43 +473,93 @@ export default function Dashboard() {
               </div>
             ) : (
               <>
-                <div className="rounded-xl bg-gradient-to-br from-emerald-500/5 to-teal-500/5 border border-emerald-500/10 p-4">
-                  <div className="flex items-start gap-3">
-                    <Brain className="h-5 w-5 text-emerald-400 mt-0.5 flex-shrink-0" />
-                    <div>
-                      <p className="text-sm font-medium text-emerald-400">Spending Alert</p>
-                      <p className="text-sm text-muted-foreground mt-1">
-                        You spent 19% more on restaurants this month. Consider reducing dining out to stay within budget.
-                      </p>
+                {dynamicInsights.length > 0 ? (
+                  dynamicInsights.map((insight) => (
+                    <div key={insight.id} className={`rounded-xl bg-gradient-to-br ${insight.color} border p-3`}>
+                      <div className="flex items-start gap-2.5">
+                        {insight.type === 'alert' ? (
+                          <AlertTriangle className="h-4 w-4 text-amber-400 mt-0.5 flex-shrink-0" />
+                        ) : (
+                          <Brain className="h-4 w-4 text-emerald-400 mt-0.5 flex-shrink-0" />
+                        )}
+                        <div>
+                          <p className="text-xs font-medium text-foreground">{insight.title}</p>
+                          <p className="text-xs text-muted-foreground mt-0.5">{insight.desc}</p>
+                        </div>
+                      </div>
+                    </div>
+                  ))
+                ) : (
+                  <div className="rounded-xl bg-gradient-to-br from-emerald-500/5 to-teal-500/5 border border-emerald-500/10 p-3">
+                    <div className="flex items-start gap-2.5">
+                      <Brain className="h-4 w-4 text-emerald-400 mt-0.5 flex-shrink-0" />
+                      <p className="text-xs text-muted-foreground">All looks good! No alerts right now.</p>
                     </div>
                   </div>
-                </div>
-
-                <div className="rounded-xl bg-gradient-to-br from-amber-500/5 to-orange-500/5 border border-amber-500/10 p-4">
-                  <div className="flex items-start gap-3">
-                    <Sparkles className="h-5 w-5 text-amber-400 mt-0.5 flex-shrink-0" />
-                    <div>
-                      <p className="text-sm font-medium text-amber-400">Goal Progress</p>
-                      <p className="text-sm text-muted-foreground mt-1">
-                        You&apos;re 68% toward your Emergency Fund goal. At your current savings rate, you&apos;ll reach it in 4 months.
-                      </p>
-                    </div>
-                  </div>
-                </div>
+                )}
               </>
             )}
 
             <div className="rounded-lg bg-white/[0.02] border border-white/[0.06] p-4">
               <p className="text-xs text-muted-foreground uppercase tracking-wider font-medium">Ask FinBrain</p>
-              <div className="mt-3 flex gap-2">
-                <input
-                  type="text"
-                  placeholder="Ask anything about your finances..."
-                  className="flex-1 h-10 px-3 rounded-lg bg-white/[0.03] border border-white/[0.06] text-sm text-foreground placeholder:text-muted-foreground/50 focus:outline-none focus:ring-2 focus:ring-emerald-500/20"
-                />
-                <Button size="sm">
-                  <Brain className="h-4 w-4" />
-                </Button>
+              <div className="mt-3 space-y-3">
+                {messages.length === 0 ? (
+                  <div className="flex flex-wrap gap-1.5">
+                    {['How much did I spend this month?', 'What are my top expenses?', 'How are my budgets?'].map((q) => (
+                      <button
+                        key={q}
+                        onClick={() => doSend(q)}
+                        className="text-[10px] px-2.5 py-1 rounded-full bg-emerald-500/10 text-emerald-300 hover:bg-emerald-500/20 transition-colors"
+                      >
+                        {q}
+                      </button>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="max-h-[150px] overflow-y-auto space-y-2 pr-1">
+                    {messages.map((msg, i) => (
+                      <div key={i} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
+                        <div className={`max-w-[85%] rounded-lg px-3 py-2 text-xs ${
+                          msg.role === 'user'
+                            ? 'bg-emerald-500/15 text-emerald-50'
+                            : 'bg-white/[0.04] text-foreground'
+                        }`}>
+                          <p className="whitespace-pre-wrap leading-relaxed">{msg.content}</p>
+                        </div>
+                      </div>
+                    ))}
+                    {isThinking && (
+                      <div className="flex justify-start">
+                        <div className="rounded-lg px-3 py-2 bg-white/[0.04]">
+                          <div className="flex items-center gap-1.5">
+                            <Brain className="h-3 w-3 text-emerald-400 animate-pulse" />
+                            <span className="text-[10px] text-muted-foreground">Thinking...</span>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+                    <div ref={chatEndRef} />
+                  </div>
+                )}
+                <div className="flex gap-2">
+                  <input
+                    type="text"
+                    value={chatInput}
+                    onChange={(e) => setChatInput(e.target.value)}
+                    onKeyDown={handleKeyDown}
+                    placeholder="Ask about your finances..."
+                    className="flex-1 h-9 px-3 rounded-lg bg-white/[0.03] border border-white/[0.06] text-xs text-foreground placeholder:text-muted-foreground/50 focus:outline-none focus:ring-2 focus:ring-emerald-500/20"
+                    disabled={isThinking}
+                  />
+                  <Button
+                    size="sm"
+                    onClick={handleSend}
+                    disabled={!chatInput.trim() || isThinking}
+                    className="h-9 px-3"
+                  >
+                    {isThinking ? <Loader2 className="h-3 w-3 animate-spin" /> : <Send className="h-3 w-3" />}
+                  </Button>
+                </div>
               </div>
             </div>
           </CardContent>
@@ -442,28 +575,22 @@ export default function Dashboard() {
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm" onClick={() => setOnboardingAction(null)}>
           <div className="w-full max-w-lg mx-4 glass rounded-xl max-h-[90vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
             <div className="flex items-center justify-between p-5 border-b border-white/[0.06]">
-              <h2 className="text-lg font-semibold">
-                {onboardingAction === 'import-plaid' ? 'Connect Your Bank' : 'Import a CSV'}
-              </h2>
+              <h2 className="text-lg font-semibold">Connect Your Bank</h2>
               <button onClick={() => setOnboardingAction(null)} className="p-1.5 rounded-lg hover:bg-white/[0.04]">
                 <X className="h-5 w-5" />
               </button>
             </div>
             <div className="p-5">
-              {onboardingAction === 'import-plaid' ? (
-                <div className="text-center space-y-6">
-                  <Building2 className="h-12 w-12 mx-auto text-emerald-400" />
-                  <p className="text-sm text-muted-foreground">
-                    Connect securely with Plaid to import your transactions.
-                    Sandbox mode is active — no real credentials required.
-                  </p>
-                  <div className="flex justify-center">
-                    <PlaidLinkButton userId={user?.id || 'anon'} onSuccess={() => { setOnboardingAction(null); fetchData(); }} />
-                  </div>
+              <div className="text-center space-y-6">
+                <Building2 className="h-12 w-12 mx-auto text-emerald-400" />
+                <p className="text-sm text-muted-foreground">
+                  Connect securely with Plaid to import your transactions.
+                  Sandbox mode is active — no real credentials required.
+                </p>
+                <div className="flex justify-center">
+                  <PlaidLinkButton userId={user?.id || 'anon'} onSuccess={() => { setOnboardingAction(null); fetchData(); }} />
                 </div>
-              ) : (
-                <CsvImport onComplete={() => { setOnboardingAction(null); fetchData(); }} />
-              )}
+              </div>
             </div>
           </div>
         </div>
