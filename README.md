@@ -203,4 +203,4 @@ See [PHASES.md](./docs/PHASES.md) for the complete detailed plan.
 
 ## License
 
-MIT
+[MIT](./LICENSE)
