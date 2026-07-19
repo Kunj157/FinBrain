@@ -1,8 +1,9 @@
-import { Bell, Search, Sun, Moon, LogOut, Menu } from 'lucide-react';
+import { Search, Sun, Moon, LogOut, Menu } from 'lucide-react';
 import { Avatar } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/hooks/use-auth';
 import { useTheme } from '@/hooks/use-theme';
+import { NotificationBell } from '@/components/notifications';
 
 export function Header({ onSearchOpen, onMenuToggle }: { onSearchOpen: () => void; onMenuToggle: () => void }) {
   const { user, signOut } = useAuth();
@@ -38,10 +39,7 @@ export function Header({ onSearchOpen, onMenuToggle }: { onSearchOpen: () => voi
       </div>
 
       <div className="flex items-center gap-1 md:gap-2">
-        <Button variant="ghost" size="icon" className="relative">
-          <Bell className="h-4 w-4" />
-          <span className="absolute -top-0.5 -right-0.5 h-2 w-2 rounded-full bg-destructive" />
-        </Button>
+        <NotificationBell />
 
         <Button variant="ghost" size="icon" onClick={toggle}>
           {isDark ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}

@@ -8,7 +8,10 @@ import { Button } from '@/components/ui/button';
 import { useAuth } from '@/hooks/use-auth';
 import api from '@/lib/api';
 import { formatCurrency, formatDate } from '@/lib/utils';
+import { SankeyFlow } from '@/components/finance/sankey';
 import type { Transaction, Category, Currency as SharedCurrency } from '@finbrain/shared';
+import jsPDF from 'jspdf';
+import autoTable from 'jspdf-autotable';
 
 type ReportType = 'monthly' | 'quarterly' | 'annual';
 
@@ -109,19 +112,19 @@ export default function Reports() {
     const income = periodTransactions.filter((t) => t.type === 'income');
     const expense = periodTransactions.filter((t) => t.type === 'expense');
 
-    const totalIncome = income.reduce((s, t) => s + t.amount, 0);
-    const totalExpense = expense.reduce((s, t) => s + t.amount, 0);
+    const totalIncome = income.reduce((s, t) => s + Math.abs(t.amount), 0);
+    const totalExpense = expense.reduce((s, t) => s + Math.abs(t.amount), 0);
     const net = totalIncome - totalExpense;
     const savingsRate = totalIncome > 0 ? (net / totalIncome) * 100 : 0;
 
-    const prevIncome = prevPeriodTransactions.filter((t) => t.type === 'income').reduce((s, t) => s + t.amount, 0);
-    const prevExpense = prevPeriodTransactions.filter((t) => t.type === 'expense').reduce((s, t) => s + t.amount, 0);
+    const prevIncome = prevPeriodTransactions.filter((t) => t.type === 'income').reduce((s, t) => s + Math.abs(t.amount), 0);
+    const prevExpense = prevPeriodTransactions.filter((t) => t.type === 'expense').reduce((s, t) => s + Math.abs(t.amount), 0);
     const incomeChange = prevIncome > 0 ? ((totalIncome - prevIncome) / prevIncome) * 100 : 0;
     const expenseChange = prevExpense > 0 ? ((totalExpense - prevExpense) / prevExpense) * 100 : 0;
 
     const categoryBreakdown = Object.entries(
       expense.reduce((acc, t) => {
-        acc[t.categoryId] = (acc[t.categoryId] || 0) + t.amount;
+        acc[t.categoryId] = (acc[t.categoryId] || 0) + Math.abs(t.amount);
         return acc;
       }, {} as Record<string, number>)
     )
@@ -182,6 +185,114 @@ export default function Reports() {
     window.print();
   }, []);
 
+  const exportPDF = useCallback(() => {
+    const doc = new jsPDF();
+    const pageWidth = doc.internal.pageSize.getWidth();
+
+    doc.setFontSize(20);
+    doc.setFont('helvetica', 'bold');
+    doc.text('FinBrain Financial Report', pageWidth / 2, 20, { align: 'center' });
+
+    doc.setFontSize(12);
+    doc.setFont('helvetica', 'normal');
+    doc.text(`${getPeriodLabel(reportType, currentDate)}`, pageWidth / 2, 28, { align: 'center' });
+    doc.text(`Generated: ${new Date().toLocaleDateString()}`, pageWidth / 2, 34, { align: 'center' });
+
+    let y = 44;
+    doc.setFontSize(14);
+    doc.setFont('helvetica', 'bold');
+    doc.text('Summary', 14, y);
+    y += 8;
+
+    doc.setFontSize(10);
+    doc.setFont('helvetica', 'normal');
+    doc.text(`Income: ${formatCurrency(report.totalIncome, currency)}`, 14, y);
+    y += 6;
+    doc.text(`Expenses: ${formatCurrency(report.totalExpense, currency)}`, 14, y);
+    y += 6;
+    doc.text(`Net: ${formatCurrency(report.net, currency)}`, 14, y);
+    y += 6;
+    doc.text(`Savings Rate: ${report.savingsRate.toFixed(1)}%`, 14, y);
+    y += 6;
+    doc.text(`Transactions: ${periodTransactions.length}`, 14, y);
+    y += 12;
+
+    if (report.categoryBreakdown.length > 0) {
+      doc.setFontSize(14);
+      doc.setFont('helvetica', 'bold');
+      doc.text('Category Breakdown', 14, y);
+      y += 4;
+
+      autoTable(doc, {
+        startY: y,
+        head: [['Category', 'Amount', '%']],
+        body: report.categoryBreakdown.map((c) => [
+          c.name,
+          formatCurrency(c.amount, currency),
+          `${c.percentage.toFixed(1)}%`,
+        ]),
+        theme: 'grid',
+        headStyles: { fillColor: [16, 185, 129] },
+        styles: { fontSize: 9 },
+        margin: { left: 14, right: 14 },
+      });
+
+      y = (doc as unknown as { lastAutoTable: { finalY: number } }).lastAutoTable.finalY + 12;
+    }
+
+    if (report.topMerchants.length > 0) {
+      doc.setFontSize(14);
+      doc.setFont('helvetica', 'bold');
+      doc.text('Top Merchants', 14, y);
+      y += 4;
+
+      autoTable(doc, {
+        startY: y,
+        head: [['Merchant', 'Amount']],
+        body: report.topMerchants.map((m) => [
+          m.name,
+          formatCurrency(m.amount, currency),
+        ]),
+        theme: 'grid',
+        headStyles: { fillColor: [16, 185, 129] },
+        styles: { fontSize: 9 },
+        margin: { left: 14, right: 14 },
+      });
+
+      y = (doc as unknown as { lastAutoTable: { finalY: number } }).lastAutoTable.finalY + 12;
+    }
+
+    if (y > 260) {
+      doc.addPage();
+      y = 20;
+    }
+
+    doc.setFontSize(14);
+    doc.setFont('helvetica', 'bold');
+    doc.text('Transactions', 14, y);
+    y += 4;
+
+    autoTable(doc, {
+      startY: y,
+      head: [['Date', 'Type', 'Category', 'Merchant', 'Amount']],
+      body: periodTransactions
+        .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())
+        .map((t) => [
+          new Date(t.date).toLocaleDateString(),
+          t.type,
+          catMap[t.categoryId]?.name || 'Other',
+          t.merchant || t.description,
+          formatCurrency(Math.abs(t.amount), currency),
+        ]),
+      theme: 'grid',
+      headStyles: { fillColor: [16, 185, 129] },
+      styles: { fontSize: 8 },
+      margin: { left: 14, right: 14 },
+    });
+
+    doc.save(`finbrain-report-${reportType}-${getPeriodLabel(reportType, currentDate).replace(/\s+/g, '-').toLowerCase()}.pdf`);
+  }, [periodTransactions, reportType, currentDate, catMap, currency, report]);
+
   if (loading) {
     return (
       <div className="flex items-center justify-center h-full">
@@ -201,6 +312,10 @@ export default function Reports() {
           <Button variant="outline" size="sm" onClick={exportCSV}>
             <Download className="h-4 w-4 mr-2" />
             Export CSV
+          </Button>
+          <Button variant="outline" size="sm" onClick={exportPDF}>
+            <FileText className="h-4 w-4 mr-2" />
+            Export PDF
           </Button>
           <Button variant="outline" size="sm" onClick={printReport}>
             <Printer className="h-4 w-4 mr-2" />
@@ -367,6 +482,29 @@ export default function Reports() {
           </CardContent>
         </Card>
       </div>
+
+      <Card className="stat-card">
+        <CardHeader className="pb-2">
+          <CardTitle className="text-sm font-medium">Money Flow</CardTitle>
+        </CardHeader>
+        <CardContent>
+          {report.categoryBreakdown.length > 0 ? (
+            <SankeyFlow
+              income={[
+                { name: 'Income', amount: report.totalIncome },
+              ]}
+              expenses={report.categoryBreakdown.map((c) => ({
+                name: c.name,
+                amount: c.amount,
+                color: c.color,
+              }))}
+              currency={currency}
+            />
+          ) : (
+            <p className="text-xs text-muted-foreground text-center py-12">No data to visualize</p>
+          )}
+        </CardContent>
+      </Card>
 
       <Card className="stat-card">
         <CardHeader className="pb-2">

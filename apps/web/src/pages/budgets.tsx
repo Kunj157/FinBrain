@@ -74,6 +74,19 @@ export default function Budgets() {
   const totalBudget = useMemo(() => budgets.reduce((s, b) => s + b.amount, 0), [budgets]);
   const totalSpent = useMemo(() => budgets.reduce((s, b) => s + b.spent, 0), [budgets]);
 
+  const alerts = useMemo(() => {
+    const result: { id: string; name: string; pct: number; level: 'warning' | 'danger' | 'critical' }[] = [];
+    for (const b of budgets) {
+      if (b.amount <= 0) continue;
+      const pct = (b.spent / b.amount) * 100;
+      const name = categoryMap[b.categoryId]?.name || 'Unknown';
+      if (pct >= 100) result.push({ id: b.id, name, pct, level: 'critical' });
+      else if (pct >= 90) result.push({ id: b.id, name, pct, level: 'danger' });
+      else if (pct >= 75) result.push({ id: b.id, name, pct, level: 'warning' });
+    }
+    return result;
+  }, [budgets, categoryMap]);
+
   const openCreate = () => {
     setEditingBudget(null);
     setFormMode('create');
@@ -137,6 +150,31 @@ export default function Budgets() {
         </div>
       )}
 
+      {alerts.length > 0 && (
+        <Card className="border-amber-500/20 bg-amber-500/5">
+          <CardContent className="p-4">
+            <div className="flex items-center gap-2 mb-2">
+              <AlertTriangle className="h-4 w-4 text-amber-400" />
+              <span className="text-sm font-medium text-amber-400">Budget Alerts</span>
+            </div>
+            <div className="flex flex-wrap gap-2">
+              {alerts.map((a) => (
+                <Badge
+                  key={a.id}
+                  variant={a.level === 'critical' ? 'destructive' : 'secondary'}
+                  className={`text-[10px] gap-1 ${
+                    a.level === 'danger' ? 'bg-rose-500/10 text-rose-400 border-rose-500/20' :
+                    a.level === 'warning' ? 'bg-amber-500/10 text-amber-400 border-amber-500/20' : ''
+                  }`}
+                >
+                  {a.name}: {a.pct.toFixed(0)}%
+                </Badge>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
       {loading ? (
         <div className="py-16 text-center">
           <Loader2 className="h-10 w-10 text-muted-foreground/30 mx-auto animate-spin" />
@@ -179,6 +217,16 @@ export default function Budgets() {
                           <AlertTriangle className="h-3 w-3" /> Exceeded
                         </Badge>
                       )}
+                      {!isOver && pct >= 90 && (
+                        <Badge variant="secondary" className="text-[10px] bg-amber-500/10 text-amber-400 border-amber-500/20">
+                          90%+ used
+                        </Badge>
+                      )}
+                      {!isOver && pct >= 75 && pct < 90 && (
+                        <Badge variant="secondary" className="text-[10px] bg-amber-500/10 text-amber-400 border-amber-500/20">
+                          75%+ used
+                        </Badge>
+                      )}
                     </div>
                   </CardHeader>
                   <CardContent>
@@ -191,9 +239,16 @@ export default function Budgets() {
                       </div>
                       <div className="relative h-2 rounded-full bg-white/[0.06] overflow-hidden">
                         <div
-                          className={`absolute inset-y-0 left-0 rounded-full transition-all duration-500 ${isOver ? 'bg-rose-500' : 'bg-emerald-500'}`}
+                          className={`absolute inset-y-0 left-0 rounded-full transition-all duration-500 ${isOver ? 'bg-rose-500' : pct >= 90 ? 'bg-amber-500' : pct >= 75 ? 'bg-amber-400' : 'bg-emerald-500'}`}
                           style={{ width: `${pct}%` }}
                         />
+                        {[75, 90].map((threshold) => (
+                          <div
+                            key={threshold}
+                            className="absolute top-0 bottom-0 w-px bg-white/20"
+                            style={{ left: `${threshold}%` }}
+                          />
+                        ))}
                       </div>
                       <div className="flex justify-between text-xs text-muted-foreground">
                         <span>{pct.toFixed(0)}% used</span>

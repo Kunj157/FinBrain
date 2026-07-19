@@ -101,42 +101,103 @@ FinBrain is a full-stack AI-powered personal finance tracker. Monorepo with `app
 - `apps/api/src/routes/devbank.ts` (deleted) and its route mounting in `index.ts`
 - Seed generator POST route from `apps/api/src/routes/seed.ts`
 - All test/sample transactions deleted from DB (clean slate for re-import)
+- CSV/PDF upload option from onboarding and dashboard (only Plaid bank connection remains)
+- "Try sample data" button from dashboard empty state
+
+---
+
+## Completed Phases
+
+### Phase 1 — Foundation ✅
+- Monorepo, Auth (Clerk), Prisma schema, Docker Compose, CI/CD
+
+### Phase 2 — Data Ingestion ✅
+- Plaid integration, CSV import, PDF parser (German banks), Receipt OCR, Multi-currency
+
+### Phase 3 — Finance Core ✅
+- Transaction CRUD, Categories, Dashboard charts, Analytics, Goals, Budgets, Recurring detection
+
+### Additional Completed Features
+- Budget threshold alerts (75/90/100%) with visual indicators
+- Goal auto-contribute from income + contribution progress chart
+- Analytics category and type filters
+- Net worth trend chart with period selector
+- Global search (Cmd+K)
+- Mobile responsive layout with hamburger menu
+- Public landing page
+- Auth redirect fixes, account deletion UX
+
+---
+
+## Current Development Roadmap
+
+**Reference**: `docs/FEATURE_ROADMAP.md` — Feature gap analysis vs Industry Standard Money
+
+### Wave 1 — Close Critical Gaps (COMPLETED)
+
+1. **LLM AI Assistant** ✅ — Replace keyword matching with OpenAI/Claude integration
+   - Context Engine: `/api/v1/ai/context` endpoint with full financial snapshot
+   - LLM Integration: OpenAI API with structured system prompt
+   - Decision Interface: "Can I afford X?" with impact analysis
+   - Files: `apps/api/src/routes/ai.ts`, `apps/web/src/lib/ai-chat.ts`, `apps/web/src/pages/insights.tsx`, `apps/web/src/pages/dashboard.tsx`
+   - Requires: `OPENAI_API_KEY` environment variable
+
+2. **Investment Holdings** ✅ — Portfolio tracking with market data
+   - Prisma models: Portfolio, Holding (with allocation, gain/loss tracking)
+   - API routes: CRUD for portfolios and holdings, summary endpoint
+   - Portfolio UI with allocation charts, gain/loss visualization
+   - Files: `apps/api/src/routes/investments.ts`, `apps/web/src/pages/investments.tsx`
+   - Requires: `npx prisma db push` to create tables
+
+3. **Budget Alerts** ✅ — Wire Notification model, threshold triggers
+   - Notification CRUD routes with read/unread state
+   - Budget threshold detection (75%, 90%, 100%)
+   - In-app notification bell with dropdown, mark all read
+   - Files: `apps/api/src/routes/notifications.ts`, `apps/web/src/components/notifications.tsx`
+
+### Wave 2 — Forecasting & Analytics (COMPLETED)
+
+1. **ML Forecasting** ✅ — Prophet, ARIMA, Linear Regression, Moving Average endpoints
+   - ML service: `apps/ml-service/src/services/forecast.py`, `apps/ml-service/src/routes/forecast.py`
+   - API proxy: `apps/api/src/routes/forecast.ts` with local fallback when ML service is down
+   - Frontend: `apps/web/src/pages/forecasting.tsx` — model comparison table, bar visualizations, 3/6/12-month projections
+   - All four models return forecast arrays + MAPE accuracy scores
+
+2. **Sankey Diagrams** ✅ — Money flow visualization on reports page
+   - Component: `apps/web/src/components/finance/sankey.tsx` using @nivo/sankey
+   - Income → Expense category flow, color-coded proportional links
+
+3. **PDF Report Export** ✅ — Client-side PDF generation
+   - Uses jsPDF + jspdf-autotable (no server-side dependencies)
+   - Reports include: summary stats, category breakdown table, top merchants, full transaction list
+   - File: `apps/web/src/pages/reports.tsx` (exportPDF function)
+
+4. **Cash Flow Projection** ✅ — Recurring-aware, months-ahead forecasting
+   - Fetches recurring patterns from `/api/v1/recurring`
+   - Separates fixed recurring expenses from variable spending
+   - Shows 30/60/90-day projections + 6-month bar visualization
+   - File: `apps/web/src/pages/analytics.tsx` (enhanced cashFlowForecast section)
+
+### Wave 3 — Feature Parity
+- Couples/Household (multi-user, shared budgets)
+- Credit Score tracking
+- Recurring Calendar View
+- Flex Budgeting (three-bucket mode)
+
+### Wave 4 — Polish & Mobile
+- Notification Center
+- Customizable Dashboard (drag-and-drop)
+- Tax Summary Report
+- Scheduled Reports (email)
+- Mobile Apps (React Native/Capacitor)
 
 ---
 
 ## Current State / Known Issues
 
-### Layout Fix (Onboarding CSV Import)
-- **Fixed**: Onboarding page `max-w-2xl` → `max-w-7xl` when CSV step is active
-- **Fixed**: Removed extra `glass rounded-xl p-6` wrapper around `CsvImport` component
-- **Fixed**: Onboarding page uses top-alignment (`flex-col pt-8`) instead of centering during CSV step
-- The CSV import preview table now stretches edge-to-edge within a wide container
-
-### Transactions Page Table
-- **Fixed**: `Card` now has `className="p-0"` to remove card padding
-- `CardHeader` has `className="p-5 pb-3"` for filter row padding
-- Table stretches full width within the content area
-
-### No Auto-Categorization in Bulk Endpoint
-- `apps/api/src/routes/transactions.ts` bulk endpoint: `catByName.get(item.category)` checks if category name matches a DB category UUID before falling back to "Other"
-
----
-
-## Next Steps
-
-1. **Re-import German bank statement** — upload `Konto_1011216648-Auszug_2026_0005.PDF` via onboarding page and verify:
-   - All 22 transactions parsed correctly
-   - Categories resolve to proper DB UUIDs (not "Other")
-   - Opening balance appears as Income transaction
-   - Dashboard reflects correct monthly totals and balance
-
-2. **Start ML service for transformer predictions** — `python3 -m uvicorn main:app --host 0.0.0.0 --port 8000` (multilingual, higher accuracy than rule-based)
-
-3. **Verify layout** — confirm CSV import preview table fills full width on-screen
-
-4. **Test user corrections pipeline** — corrections saved to `user_corrections.jsonl` should feed into future transformer retraining
-
-5. **Consider retraining** — with more real-world German data, the Bills & Utilities (69.4%) and Other (71.4%) categories could improve
+- **Database wiped clean** — ready for fresh Plaid import
+- `prisma migrate dev` doesn't work in non-interactive mode — use `npx prisma db push` instead
+- Phase C features (tags, splits, calendar, cash-flow, ai-chat, date-range-picker) were built on `feat/feature-parity-core` but removed on current branch — will rebuild as part of Wave 1-4
 
 ---
 
@@ -145,26 +206,79 @@ FinBrain is a full-stack AI-powered personal finance tracker. Monorepo with `app
 ### ML Service
 - `apps/ml-service/src/services/classifier.py` — XLM-RoBERTa classifier with `DATA_DIR` auto-detection
 - `apps/ml-service/src/services/categorizer.py` — sklearn fallback with `DATA_DIR` auto-detection
+- `apps/ml-service/src/services/forecast.py` — Prophet, ARIMA, Linear Regression, Moving Average forecasting
 - `apps/ml-service/src/routes/categorize.py` — unified prediction pipeline, `/text`, `/batch`, `/train`
-- `apps/ml-service/src/main.py` — model info endpoints, `DATA_DIR` import
+- `apps/ml-service/src/routes/forecast.py` — forecasting endpoints: `/forecast`, `/forecast/monthly-series`
+- `apps/ml-service/src/main.py` — model info endpoints, `DATA_DIR` import, route mounting
 - `apps/ml-service/data/xlmr_model/` — trained model files
 
 ### API
 - `apps/api/src/routes/import.ts` — PDF/CSV parse, category UUID resolution, opening balance
 - `apps/api/src/routes/transactions.ts` — `catByName` map, name-based category fallback
+- `apps/api/src/routes/budgets.ts` — budget CRUD with threshold alerts
+- `apps/api/src/routes/goals.ts` — goal CRUD with auto-contribute
+- `apps/api/src/routes/ai.ts` — LLM chat with financial context, context endpoint
+- `apps/api/src/routes/investments.ts` — portfolio and holdings CRUD, summary
+- `apps/api/src/routes/notifications.ts` — notification CRUD, budget alert checking
+- `apps/api/src/routes/forecast.ts` — forecast proxy to ML service with local fallback
 - `apps/api/src/services/auto-categorize.ts` — 100+ German keywords, merchant-name boost
 - `apps/api/src/services/pdf-parser.ts` — German bank statement parser, opening balance extraction
-- `apps/api/src/routes/seed.ts` — simplified (delete/bulk/ml-categorizer only)
+- `apps/api/src/scripts/recategorize.ts` — standalone script to re-categorize all user transactions
 
 ### Web
-- `apps/web/src/pages/onboarding.tsx` — import flow, `max-w-7xl` for CSV step
-- `apps/web/src/pages/transactions.tsx` — full-width table, removed sample data button
-- `apps/web/src/pages/dashboard.tsx` — dynamic month from most recent transaction
-- `apps/web/src/components/finance/csv-import.tsx` — import preview with opening balance
-- `apps/web/src/components/finance/charts.tsx` — normalized date keys for SpendingTrend
+- `apps/web/src/pages/onboarding.tsx` — standard multi-step wizard, Plaid-only
+- `apps/web/src/pages/transactions.tsx` — full-width table with filters
+- `apps/web/src/pages/dashboard.tsx` — dynamic insights, stat cards, charts
+- `apps/web/src/pages/insights.tsx` — health score, AI insights, rule-based chat
+- `apps/web/src/pages/budgets.tsx` — budget CRUD with threshold alerts
+- `apps/web/src/pages/goals.tsx` — goal CRUD with auto-contribute
+- `apps/web/src/pages/analytics.tsx` — category and type filters, recurring-aware cash flow projection
+- `apps/web/src/pages/investments.tsx` — portfolio tracking with holdings
+- `apps/web/src/pages/forecasting.tsx` — ML forecasting page with model comparison
+- `apps/web/src/pages/reports.tsx` — reports with Sankey diagrams and PDF export
+- `apps/web/src/lib/ai-chat.ts` — LLM chat utility for dashboard + insights
+- `apps/web/src/components/notifications.tsx` — notification bell with dropdown
+- `apps/web/src/components/finance/sankey.tsx` — Sankey money flow diagram component
 - `apps/web/src/components/layout/app-layout.tsx` — sidebar + content layout
 
 ### Config
 - `docker-compose.yml` — host data volume mount for ml-service
-- `apps/ml-service/requirements.txt` — updated to `>=` format
-- `.npmrc` — updated
+
+---
+
+## Session: Jul 19, 2026
+
+### What Changed
+1. **Auto-categorize rewrite** — Keywords always win (confidence 1.0), ML only fallback. Removed `lastschrift`/`überweisung`/`abbuchung` from Bills & Utilities (payment types, not categories). Removed `müller` from Food & Drink/Shopping (common surname), replaced with ` müller drogerie`. Added `sentics gmbh` to Income. Added word-boundary regex for single-word keywords.
+2. **AI Assistant: Groq integration** — Replaced OpenAI-only with Groq (free, no credit card, 30 RPM). Model: `llama-3.1-8b-instant`. Fallback: OpenAI if `OPENAI_API_KEY` set. Requires `GROQ_API_KEY` in `apps/api/.env`. Updated frontend error messages.
+3. **Negative expense bug fix** — Expenses stored as negative amounts caused wrong calculations across 7 files (`insights.tsx`, `dashboard.tsx`, `analytics.tsx`, `charts.tsx`, `reports.tsx`, `ai.ts`). Fixed by wrapping expense `.reduce()` with `Math.abs()`. Health score jumped from 23/100 to ~62/100.
+4. **Re-categorize script** — `apps/api/src/scripts/recategorize.ts` and `POST /api/v1/seed/re-categorize` endpoint for bulk re-categorization. Fixed 3 transactions (ottonova→Healthcare, Feather→Healthcare, Müller rent→Housing).
+5. **Wave 2: ML Forecasting** — `apps/ml-service/src/services/forecast.py` and `routes/forecast.py` with Prophet, ARIMA, Linear Regression, Moving Average. API proxy at `apps/api/src/routes/forecast.ts`. Frontend at `apps/web/src/pages/forecasting.tsx`.
+6. **Wave 2: Sankey Diagrams** — `apps/web/src/components/finance/sankey.tsx` using @nivo/sankey. Added to Reports page showing Income → Expense category flow.
+7. **Wave 2: PDF Export** — jsPDF + jspdf-autotable client-side PDF generation in `apps/web/src/pages/reports.tsx` (exportPDF function).
+8. **Wave 2: Cash Flow Projection** — Enhanced `apps/web/src/pages/analytics.tsx` with recurring-aware projections, 6-month bar visualization, recurring/variable expense breakdown.
+
+### Current State
+- **DB user**: `cmrrhyuev0000zr4iocg75ayg` (Clerk user with 22 transactions from May 2026)
+- **Dev user**: `dev-user-001` (empty, used when CLERK_SECRET_KEY unset)
+- **AI**: Groq configured, working. Dev server: `kill $(lsof -t -i :4000) 2>/dev/null`
+- **Build status**: API and Web both pass `tsc --noEmit`
+
+### Known Issues
+- All 22 transactions from May only → consistency score is low (11/110 days)
+- No budgets or goals set → those default to 50%
+- ML service not running → keyword-only classification
+
+---
+
+## Git Commit Rules
+
+### Co-author Format
+When committing, do NOT add any co-authors. The only author should be Kunj157. Specifically, do not add yourself or any other entity as a co-author.
+
+### Commit Message Guidelines
+- Keep commit messages concise and descriptive
+- Use imperative mood (e.g., "Add", "Fix", "Update", "Remove")
+- Explain what was changed and why, not how
+- Limit to one logical change per commit
+- Reference related issues/PRs when applicable

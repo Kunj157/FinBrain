@@ -2,6 +2,32 @@
 
 All notable changes to FinBrain will be documented in this file.
 
+## 0.7.0 — 2026-07-19
+
+### Added
+- **ML Forecasting** — Prophet, ARIMA, Linear Regression, and Moving Average models wired to actual prediction endpoints. `/api/v1/forecast` returns monthly income/expense/net forecasts with MAPE accuracy scores. Frontend forecasting page with model comparison table, 3/6/12-month projections, and bar visualizations.
+- **Sankey Diagrams** — Money flow visualization on the Reports page showing Income → Expense categories using @nivo/sankey. Color-coded links proportional to spending amounts.
+- **PDF Report Export** — Client-side PDF generation via jsPDF + jspdf-autotable. Reports include summary stats, category breakdown table, top merchants, and full transaction list with professional formatting.
+- **Cash Flow Projection** — Recurring-aware projections on the Analytics page. Separates fixed recurring expenses from variable spending. Shows 30/60/90-day balance projections plus 6-month bar visualization.
+
+### Changed
+- ML service forecasting models updated from "development" to "ready" status
+- Analytics cash flow section renamed from "Cash Flow Forecast" to "Cash Flow Projection" with recurring/variable expense breakdown
+
+## 0.6.0 — 2026-07-19
+
+### Added
+- **AI Assistant** — LLM-powered financial advisor via Groq (llama-3.1-8b-instant) with OpenAI fallback. Full financial context injection (income, expenses, savings rate, budgets, goals, accounts, recurring). "Can I afford X?" decision support with reasoning.
+- **Investment Portfolio Tracking** — Portfolio and holding CRUD. Allocation breakdown, gain/loss calculation, cross-portfolio summary by asset type.
+- **Budget Alerts** — Threshold notifications at 75%, 90%, 100% of budget. Deduped within 24h. In-app notification bell with dropdown, mark all read, auto-refresh.
+- **Re-categorization Tooling** — Bulk re-run keyword classification on all transactions via `POST /seed/re-categorize`.
+
+### Fixed
+- **Auto-categorize rewrite** — Keywords always win (confidence 1.0), ML only as fallback. Removed payment type words (Lastschrift, Überweisung, Abbuchung) from Bills & Utilities. Word-boundary regex for single-word keywords. Merchant-name matches boosted over description.
+- **Negative expense bug** — Expenses stored as negative amounts caused wrong calculations across 7 frontend files (insights, dashboard, analytics, charts, reports, AI). Fixed with `Math.abs()` wrappers.
+- **PDF import limit** — Removed `.slice(0, 10)` from parse endpoints that was only returning first 10 transactions.
+- **Category resolution** — DB category IDs are UUIDs, not hardcoded strings. Fixed UUID lookup in import and transaction routes.
+
 ## 0.5.0 — 2026-07-11
 
 ### Added

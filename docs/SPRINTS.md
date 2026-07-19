@@ -5,9 +5,9 @@
 
 ---
 
-## Phase 1 — Foundation ✅ (Complete)
+## Sprint 1 — Foundation ✅ (Complete)
 > **Auth**: Clerk JWT verification enforced on all API routes. Frontend uses Clerk components for sign-in/sign-up. 401 responses auto-redirect to login. Dev fallback only when Clerk is unconfigured.
-> **Onboarding**: No forced profile/onboarding wizard. Dashboard is the entry point with Monarch-style empty-state cards (Connect Bank, Import CSV, Sample Data, DevBank). Sidebar Onboarding → Import.
+> **Onboarding**: No forced profile/onboarding wizard. Dashboard is the entry point with standard empty-state cards (Connect Bank, Import CSV, Sample Data, DevBank). Sidebar Onboarding → Import.
 
 **Goal**: Secure application with working infrastructure and UI shell.
 
@@ -69,7 +69,7 @@
 
 ---
 
-## Phase 2 — Data Ingestion ✅ (Complete)
+## Sprint 2 — Data Ingestion ✅ (Complete)
 
 **Goal**: Users can get their financial data into FinBrain via any method.
 
@@ -121,7 +121,7 @@
 
 ---
 
-## Phase 3 — Finance Core ✅ (Complete)
+## Sprint 3 — Finance Core ✅ (Complete)
 
 **Goal**: Functional expense tracker with CRUD operations.
 
@@ -160,7 +160,7 @@
 
 ---
 
-## Phase 4 — Adaptive Budgeting & Goals 📋
+## Sprint 4 — Adaptive Budgeting & Goals 📋
 
 **Goal**: Budgets that learn the user, not the other way around.
 
@@ -201,7 +201,7 @@
 
 ---
 
-## Phase 5 — Analytics & Reports 📋
+## Sprint 5 — Analytics & Reports 📋
 
 **Goal**: Rich analytics platform with exportable reports.
 
@@ -251,7 +251,7 @@
 
 ---
 
-## Phase 6 — Cloud-Native & Offline 📋
+## Sprint 6 — Cloud-Native & Offline 📋
 
 **Goal**: Production-ready cloud architecture with offline-first PWA.
 
@@ -318,7 +318,7 @@
 
 ---
 
-## Phase 7 — ML & AI Assistant 📋
+## Sprint 7 — ML & AI Assistant 📋
 
 **Goal**: AI-powered financial forecasting and natural language assistant.
 
@@ -410,7 +410,7 @@
 
 ---
 
-## Phase 8+ — Stretch Goals 🚀
+## Sprint 8+ — Stretch Goals 🚀
 
 - [ ] React Native mobile app (shares API)
 - [ ] Plaid Production for real bank connections

@@ -17,12 +17,15 @@ import {
   Building2,
   ScrollText,
   Repeat,
+  Briefcase,
+  TrendingUp,
 } from 'lucide-react';
 
 const navItems = [
   { icon: LayoutDashboard, label: 'Dashboard', path: '/dashboard' },
 
   { icon: Building2, label: 'Accounts', path: '/accounts' },
+  { icon: Briefcase, label: 'Investments', path: '/investments' },
   { icon: ArrowRightLeft, label: 'Transactions', path: '/transactions' },
   { icon: Tags, label: 'Categories', path: '/categories' },
   { icon: ScrollText, label: 'Rules', path: '/rules' },
@@ -30,6 +33,7 @@ const navItems = [
   { icon: Repeat, label: 'Recurring', path: '/recurring' },
   { icon: Target, label: 'Goals', path: '/goals' },
   { icon: BarChart3, label: 'Analytics', path: '/analytics' },
+  { icon: TrendingUp, label: 'Forecasting', path: '/forecasting' },
   { icon: Receipt, label: 'Receipts', path: '/receipts' },
   { icon: FileText, label: 'Reports', path: '/reports' },
   { icon: Sparkles, label: 'AI Insights', path: '/insights' },
