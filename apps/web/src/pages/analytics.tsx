@@ -75,6 +75,7 @@ export default function Analytics() {
 
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
+  const [recurringPatterns, setRecurringPatterns] = useState<Array<{ amount: number; frequency: string; monthlyCost: number; merchant: string }>>([]);
   const [loading, setLoading] = useState(true);
   const [period, setPeriod] = useState<TimePeriod>('6m');
   const [txnType, setTxnType] = useState<TxnType>('all');
@@ -83,14 +84,16 @@ export default function Analytics() {
   const fetchData = useCallback(async () => {
     setLoading(true);
     try {
-      const [txnRes, catRes] = await Promise.all([
-        api.get('/transactions?limit=1000'),
+      const [txnRes, catRes, recurRes] = await Promise.all([
+        api.get('/transactions?limit=5000'),
         api.get('/categories'),
+        api.get('/recurring').catch(() => ({ data: { data: { patterns: [] } } })),
       ]);
       setTransactions(txnRes.data.data.data);
       setCategories(catRes.data.data);
-    } catch (err) {
-      console.error('[analytics] Failed to fetch data:', err);
+      setRecurringPatterns(recurRes.data.data?.patterns || []);
+    } catch {
+      // silent
     } finally {
       setLoading(false);
     }
@@ -248,31 +251,55 @@ export default function Analytics() {
   }, [transactions]);
 
   const cashFlowForecast = useMemo(() => {
+    const now = new Date();
     const recent = transactions.filter((t) => {
       const d = new Date(t.date);
       const threeMonthsAgo = new Date(now.getFullYear(), now.getMonth() - 3, 1);
       return d >= threeMonthsAgo;
     });
+
     let avgIncome = 0, avgExpense = 0;
     const months = new Set(recent.map((t) => {
       const d = new Date(t.date);
       return `${d.getFullYear()}-${d.getMonth()}`;
     })).size || 1;
     for (const t of recent) {
-      if (t.type === 'income') avgIncome += t.amount;
-      else avgExpense += t.amount;
+      if (t.type === 'income') avgIncome += Math.abs(t.amount);
+      else avgExpense += Math.abs(t.amount);
     }
     avgIncome /= months;
     avgExpense /= months;
+
+    const recurringExpense = recurringPatterns.reduce((s, p) => s + p.monthlyCost, 0);
+    const nonRecurringExpense = Math.max(0, avgExpense - recurringExpense);
     const netMonthly = avgIncome - avgExpense;
-    const currentBalance = transactions.reduce((s, t) => s + (t.type === 'income' ? t.amount : -t.amount), 0);
-    const forecast = [30, 60, 90].map((days) => ({
+
+    const currentBalance = transactions.reduce((s, t) => s + (t.type === 'income' ? Math.abs(t.amount) : -Math.abs(t.amount)), 0);
+
+    const months30 = [30, 60, 90].map((days) => ({
       days,
       label: `${days} days`,
       balance: currentBalance + netMonthly * (days / 30),
     }));
-    return { forecast, netMonthly, avgIncome, avgExpense };
-  }, [transactions, now]);
+
+    const monthlyProjections = Array.from({ length: 6 }, (_, i) => {
+      const monthDate = new Date(now.getFullYear(), now.getMonth() + i + 1, 1);
+      const label = monthDate.toLocaleDateString('en-US', { month: 'short', year: '2-digit' });
+      const projectedBalance = currentBalance + netMonthly * (i + 1);
+      return { month: i + 1, label, balance: Math.round(projectedBalance * 100) / 100 };
+    });
+
+    return {
+      forecast: months30,
+      monthlyProjections,
+      netMonthly,
+      avgIncome,
+      avgExpense,
+      recurringExpense: Math.round(recurringExpense * 100) / 100,
+      nonRecurringExpense: Math.round(nonRecurringExpense * 100) / 100,
+      currentBalance: Math.round(currentBalance * 100) / 100,
+    };
+  }, [transactions, recurringPatterns]);
 
   const monthlyChartData = useMemo(() => ({
     labels: monthlyData.labels,
@@ -587,7 +614,7 @@ export default function Analytics() {
         </Card>
         <Card className="stat-card">
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium">Cash Flow Forecast</CardTitle>
+            <CardTitle className="text-sm font-medium">Cash Flow Projection</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="space-y-4">
@@ -601,8 +628,32 @@ export default function Analytics() {
                   </div>
                 ))}
               </div>
-              <div className="flex items-center gap-4 text-xs text-muted-foreground">
-                <span>Avg monthly net: <span className={cashFlowForecast.netMonthly >= 0 ? 'text-emerald-400' : 'text-rose-400'}>{formatCurrency(cashFlowForecast.netMonthly, currency)}</span></span>
+
+              <div className="space-y-1.5">
+                <p className="text-xs font-medium text-muted-foreground">6-Month Projection</p>
+                {cashFlowForecast.monthlyProjections.map((p) => (
+                  <div key={p.month} className="flex items-center gap-3">
+                    <span className="text-[10px] text-muted-foreground w-12">{p.label}</span>
+                    <div className="flex-1 h-2 bg-white/5 rounded-full overflow-hidden">
+                      <div
+                        className="h-full rounded-full transition-all"
+                        style={{
+                          width: `${Math.min(100, Math.max(2, (Math.abs(p.balance) / Math.max(cashFlowForecast.currentBalance * 2, 1)) * 100))}%`,
+                          backgroundColor: p.balance >= 0 ? '#34d399' : '#fb7185',
+                        }}
+                      />
+                    </div>
+                    <span className={`text-xs font-medium w-20 text-right ${p.balance >= 0 ? 'text-emerald-400' : 'text-rose-400'}`}>
+                      {formatCurrency(p.balance, currency)}
+                    </span>
+                  </div>
+                ))}
+              </div>
+
+              <div className="flex items-center gap-4 text-xs text-muted-foreground pt-2 border-t border-white/5">
+                <span>Recurring: <span className="text-rose-400">{formatCurrency(cashFlowForecast.recurringExpense, currency)}/mo</span></span>
+                <span>Variable: <span className="text-amber-400">{formatCurrency(cashFlowForecast.nonRecurringExpense, currency)}/mo</span></span>
+                <span>Net: <span className={cashFlowForecast.netMonthly >= 0 ? 'text-emerald-400' : 'text-rose-400'}>{formatCurrency(cashFlowForecast.netMonthly, currency)}/mo</span></span>
               </div>
             </div>
           </CardContent>
