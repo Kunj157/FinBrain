@@ -1,6 +1,7 @@
 import { Router, type Request, type Response } from 'express';
 import { prisma } from '../prisma';
 import { loadBulkML } from '../services/auto-categorize-ml';
+import { suggestCategoryWithML } from '../services/auto-categorize';
 
 const router = Router();
 
@@ -71,6 +72,60 @@ router.post('/ml-categorizer', async (req: Request, res: Response) => {
   } catch (error) {
     console.error('ML categorizer seed error:', error);
     res.status(500).json({ success: false, error: 'Failed to train categorizer' });
+  }
+});
+
+router.post('/re-categorize', async (req: Request, res: Response) => {
+  try {
+    const transactions = await prisma.transaction.findMany({
+      where: { userId: req.userId },
+      include: { category: true },
+    });
+
+    if (transactions.length === 0) {
+      return res.json({ success: true, data: { message: 'No transactions to re-categorize.', updated: 0 } });
+    }
+
+    const categories = await prisma.category.findMany({
+      where: { userId: req.userId },
+    });
+    const catByName = new Map(categories.map(c => [c.name, c.id]));
+
+    let updated = 0;
+    const results: { merchant: string; oldCategory: string; newCategory: string }[] = [];
+
+    for (const tx of transactions) {
+      const merchant = tx.merchant || '';
+      const description = tx.description || '';
+      if (!merchant && !description) continue;
+
+      const suggestion = await suggestCategoryWithML(req.userId, merchant, description);
+      if (suggestion && suggestion.categoryName && suggestion.categoryId && suggestion.categoryId !== tx.categoryId) {
+        await prisma.transaction.update({
+          where: { id: tx.id },
+          data: { categoryId: suggestion.categoryId },
+        });
+        results.push({
+          merchant: merchant.slice(0, 40),
+          oldCategory: tx.category?.name || 'None',
+          newCategory: suggestion.categoryName,
+        });
+        updated++;
+      }
+    }
+
+    res.json({
+      success: true,
+      data: {
+        message: `Re-categorized ${updated} of ${transactions.length} transactions`,
+        updated,
+        total: transactions.length,
+        changes: results,
+      },
+    });
+  } catch (error) {
+    console.error('Re-categorize error:', error);
+    res.status(500).json({ success: false, error: 'Failed to re-categorize transactions' });
   }
 });
 
