@@ -59,7 +59,6 @@ export function PlaidLinkButton({ userId, onSuccess }: PlaidLinkProps) {
         setStatus('done');
         onSuccess?.();
       } catch {
-        // sync failed but bank is still connected
         setStatus('done');
         onSuccess?.();
       } finally {

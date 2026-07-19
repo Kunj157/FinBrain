@@ -17,12 +17,14 @@ import {
   Building2,
   ScrollText,
   Repeat,
+  Briefcase,
 } from 'lucide-react';
 
 const navItems = [
   { icon: LayoutDashboard, label: 'Dashboard', path: '/dashboard' },
 
   { icon: Building2, label: 'Accounts', path: '/accounts' },
+  { icon: Briefcase, label: 'Investments', path: '/investments' },
   { icon: ArrowRightLeft, label: 'Transactions', path: '/transactions' },
   { icon: Tags, label: 'Categories', path: '/categories' },
   { icon: ScrollText, label: 'Rules', path: '/rules' },
