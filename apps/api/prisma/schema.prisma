@@ -53,6 +53,12 @@ enum BudgetPeriod {
   yearly
 }
 
+enum BucketType {
+  fixed
+  variable
+  savings
+}
+
 model User {
   id        String   @id @default(cuid())
   clerkId   String   @unique
@@ -83,6 +89,7 @@ model User {
   notifications       Notification[]
   auditLogs           AuditLog[]
   portfolios          Portfolio[]
+  creditScores        CreditScore[]
 
   @@map("users")
 }
@@ -165,12 +172,13 @@ model Transaction {
 }
 
 model Budget {
-  id        String       @id @default(cuid())
-  amount    Float
-  currency  Currency     @default(USD)
-  period    BudgetPeriod @default(monthly)
-  startDate DateTime
-  endDate   DateTime?
+  id         String       @id @default(cuid())
+  amount     Float
+  currency   Currency     @default(USD)
+  period     BudgetPeriod @default(monthly)
+  bucketType BucketType?
+  startDate  DateTime
+  endDate    DateTime?
   spent     Float        @default(0)
   remaining Float?
 
@@ -395,4 +403,21 @@ model Holding {
 
   @@index([portfolioId])
   @@map("holdings")
+}
+
+model CreditScore {
+  id        String   @id @default(cuid())
+  score     Int
+  provider  String   @default("manual")
+  factors   Json     @default("[]")
+  notes     String?
+  date      DateTime @default(now())
+
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+
+  @@index([userId, date])
+  @@map("credit_scores")
 }

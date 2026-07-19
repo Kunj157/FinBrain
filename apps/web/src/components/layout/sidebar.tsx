@@ -19,6 +19,7 @@ import {
   Repeat,
   Briefcase,
   TrendingUp,
+  CreditCard,
 } from 'lucide-react';
 
 const navItems = [
@@ -26,6 +27,7 @@ const navItems = [
 
   { icon: Building2, label: 'Accounts', path: '/accounts' },
   { icon: Briefcase, label: 'Investments', path: '/investments' },
+  { icon: CreditCard, label: 'Credit Score', path: '/credit-score' },
   { icon: ArrowRightLeft, label: 'Transactions', path: '/transactions' },
   { icon: Tags, label: 'Categories', path: '/categories' },
   { icon: ScrollText, label: 'Rules', path: '/rules' },
