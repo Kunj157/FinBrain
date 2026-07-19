@@ -1,8 +1,12 @@
+import sys
 from pathlib import Path
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from routes.receipts import router as receipts_router
 from routes.categorize import router as categorize_router
+from routes.forecast import router as forecast_router
 from services.classifier import classifier as xlmr_classifier, DATA_DIR
 
 app = FastAPI(
@@ -21,6 +25,7 @@ app.add_middleware(
 
 app.include_router(receipts_router)
 app.include_router(categorize_router)
+app.include_router(forecast_router)
 
 
 @app.get("/api/v1/health")
@@ -55,8 +60,8 @@ async def list_models():
             {"id": "sklearn-categorizer", "name": "sklearn TF-IDF + LogisticRegression", "status": "ready", "type": "sklearn"},
             {"id": "moving_average", "name": "Moving Average", "status": "ready"},
             {"id": "linear_regression", "name": "Linear Regression", "status": "ready"},
-            {"id": "arima", "name": "ARIMA", "status": "development"},
-            {"id": "prophet", "name": "Prophet", "status": "development"},
+            {"id": "arima", "name": "ARIMA", "status": "ready"},
+            {"id": "prophet", "name": "Prophet", "status": "ready"},
         ]
     }
 
