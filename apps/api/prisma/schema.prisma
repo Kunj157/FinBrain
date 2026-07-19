@@ -83,6 +83,7 @@ model User {
   notifications       Notification[]
   auditLogs           AuditLog[]
   portfolios          Portfolio[]
+  creditScores        CreditScore[]
 
   @@map("users")
 }
@@ -395,4 +396,21 @@ model Holding {
 
   @@index([portfolioId])
   @@map("holdings")
+}
+
+model CreditScore {
+  id        String   @id @default(cuid())
+  score     Int
+  provider  String   @default("manual")
+  factors   Json     @default("[]")
+  notes     String?
+  date      DateTime @default(now())
+
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+
+  @@index([userId, date])
+  @@map("credit_scores")
 }
