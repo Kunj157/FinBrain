@@ -101,24 +101,99 @@ FinBrain is a full-stack AI-powered personal finance tracker. Monorepo with `app
 - `apps/api/src/routes/devbank.ts` (deleted) and its route mounting in `index.ts`
 - Seed generator POST route from `apps/api/src/routes/seed.ts`
 - All test/sample transactions deleted from DB (clean slate for re-import)
+- CSV/PDF upload option from onboarding and dashboard (only Plaid bank connection remains)
+- "Try sample data" button from dashboard empty state
+
+---
+
+## Phase C — Feature Parity Core (COMPLETED)
+
+All 8 features implemented on branch `feat/feature-parity-core`, PR #49 to `dev`. All pass typecheck and lint (0 errors).
+
+### 1. Rollover Budgets
+- `apps/api/src/routes/budgets.ts` — `rolloverAmount` field, carried forward each period
+- `apps/web/src/pages/budgets.tsx` — rollover toggle, visual indicator
+
+### 2. Budget History
+- `apps/api/src/routes/budgets.ts` — `GET /budgets/:id/history` endpoint
+- `apps/web/src/pages/budgets.tsx` — history modal with period-by-period breakdown
+
+### 3. Transaction Tags
+- `apps/api/src/routes/tags.ts` — full CRUD for tags + transaction-tag assignment
+- `apps/web/src/pages/transactions.tsx` — tag assignment UI in transaction form
+
+### 4. Split Transactions
+- `apps/api/src/routes/transactions.ts` — `POST /transactions/:id/splits` endpoint
+- `apps/web/src/pages/transactions.tsx` — split UI with remainder tracking
+
+### 5. Recurring Pattern Persistence
+- `apps/api/src/routes/recurring.ts` — snooze, dismiss, restore, mark-paid endpoints
+- `apps/web/src/pages/recurring.tsx` — PatternCard with snooze/dismiss/restore/paid actions
+- Separate showSnoozed/showDismissed toggles
+
+### 6. Calendar View
+- `apps/web/src/pages/calendar.tsx` — monthly calendar with transaction dots, day detail panel
+- Route: `/calendar`
+
+### 7. Custom Date Range
+- `apps/web/src/components/ui/date-range-picker.tsx` — DateRangePicker component
+- Used in analytics and cash flow pages
+
+### 8. Cash Flow Page
+- `apps/web/src/pages/cash-flow.tsx` — income vs expenses bar chart, category breakdown
+- Route: `/cash-flow`
+
+---
+
+## Onboarding & Dashboard Redesign (COMPLETED)
+
+### Onboarding — Monarch-style Multi-step Wizard
+- **File**: `apps/web/src/pages/onboarding.tsx`
+- Step 1 (Welcome): Logo, 3 feature cards (Track net worth, Track spending, Budget smarter), "Get started"
+- Step 2 (Connect): Bank search input (triggers Plaid on focus), trust signals (256-bit encryption, Read-only access, Powered by Plaid)
+- Step 3 (Done): Success message, "Go to Dashboard"
+- Progress bar with numbered steps and checkmarks
+- "Skip for now" link on non-done steps
+- Removed CSV/PDF upload option — only Plaid remains
+
+### Dashboard Empty State
+- **File**: `apps/web/src/pages/dashboard.tsx`
+- Clean centered layout with single "Connect your bank" CTA
+- Trust signals row below the button
+- Removed card grid, removed "Try sample data" button
+
+### Dashboard AI Insights (Dynamic)
+- **File**: `apps/web/src/pages/dashboard.tsx`
+- Replaced hardcoded fake insights with dynamic computation from actual data
+- Shows: spending surges/drops vs last month, top spending category, over-budget alerts, low savings rate warnings
+- Falls back to "All looks good!" when no alerts
+
+### Ask FinBrain — Functional Chat
+- **File**: `apps/web/src/lib/ai-chat.ts` — shared `generateAnswer` utility
+- **Dashboard**: Inline mini-chat with suggested questions that auto-send on click
+- **Insights page**: Full chat with suggested questions that auto-send (was previously just filling input without sending)
+- Supports questions about: spending, income, savings, budgets, goals, subscriptions, financial tips
+- Refactored `handleSend` → `doSend(question)` pattern so chips can send without React state race condition
+
+### Recurring Pattern Restore
+- `apps/api/src/routes/recurring.ts` — `POST /recurring/:id/restore` endpoint
+- `apps/web/src/pages/recurring.tsx` — `handleRestore`, `onRestore` prop, "Restore" button on hover for dismissed patterns
+
+---
+
+## Config
+
+### OpenCode
+- `opencode.json` — ponytail plugin installed (`opencode-ponytail`)
+- Restart opencode to activate
 
 ---
 
 ## Current State / Known Issues
 
-### Layout Fix (Onboarding CSV Import)
-- **Fixed**: Onboarding page `max-w-2xl` → `max-w-7xl` when CSV step is active
-- **Fixed**: Removed extra `glass rounded-xl p-6` wrapper around `CsvImport` component
-- **Fixed**: Onboarding page uses top-alignment (`flex-col pt-8`) instead of centering during CSV step
-- The CSV import preview table now stretches edge-to-edge within a wide container
-
-### Transactions Page Table
-- **Fixed**: `Card` now has `className="p-0"` to remove card padding
-- `CardHeader` has `className="p-5 pb-3"` for filter row padding
-- Table stretches full width within the content area
-
-### No Auto-Categorization in Bulk Endpoint
-- `apps/api/src/routes/transactions.ts` bulk endpoint: `catByName.get(item.category)` checks if category name matches a DB category UUID before falling back to "Other"
+- **Database wiped clean** — all transactions, accounts, tags, splits deleted. Ready for fresh Plaid import.
+- `notifications` route referenced in `index.ts` but file doesn't exist — was removed from import and mount.
+- `prisma migrate dev` doesn't work in non-interactive mode — use `npx prisma db push` instead.
 
 ---
 
@@ -151,20 +226,45 @@ FinBrain is a full-stack AI-powered personal finance tracker. Monorepo with `app
 
 ### API
 - `apps/api/src/routes/import.ts` — PDF/CSV parse, category UUID resolution, opening balance
-- `apps/api/src/routes/transactions.ts` — `catByName` map, name-based category fallback
+- `apps/api/src/routes/transactions.ts` — `catByName` map, name-based category fallback, splits
+- `apps/api/src/routes/recurring.ts` — snooze, dismiss, restore, mark-paid endpoints
+- `apps/api/src/routes/tags.ts` — tag CRUD + transaction-tag assignment
+- `apps/api/src/routes/budgets.ts` — rollover budgets, budget history
 - `apps/api/src/services/auto-categorize.ts` — 100+ German keywords, merchant-name boost
 - `apps/api/src/services/pdf-parser.ts` — German bank statement parser, opening balance extraction
-- `apps/api/src/routes/seed.ts` — simplified (delete/bulk/ml-categorizer only)
 
 ### Web
-- `apps/web/src/pages/onboarding.tsx` — import flow, `max-w-7xl` for CSV step
-- `apps/web/src/pages/transactions.tsx` — full-width table, removed sample data button
-- `apps/web/src/pages/dashboard.tsx` — dynamic month from most recent transaction
+- `apps/web/src/pages/onboarding.tsx` — Monarch-style multi-step wizard, Plaid-only
+- `apps/web/src/pages/transactions.tsx` — full-width table, tag assignment, split UI
+- `apps/web/src/pages/dashboard.tsx` — dynamic insights, functional Ask FinBrain chat, Plaid modal
+- `apps/web/src/pages/insights.tsx` — health score, AI insights, Ask FinBrain full chat
+- `apps/web/src/pages/calendar.tsx` — monthly calendar with transaction dots
+- `apps/web/src/pages/cash-flow.tsx` — income vs expenses bar chart
+- `apps/web/src/pages/recurring.tsx` — pattern management with snooze/dismiss/restore
+- `apps/web/src/pages/budgets.tsx` — rollover budgets, history modal
+- `apps/web/src/lib/ai-chat.ts` — shared `generateAnswer` utility for dashboard + insights
 - `apps/web/src/components/finance/csv-import.tsx` — import preview with opening balance
 - `apps/web/src/components/finance/charts.tsx` — normalized date keys for SpendingTrend
+- `apps/web/src/components/ui/date-range-picker.tsx` — custom date range picker
+- `apps/web/src/components/ui/input.tsx` — styled input component
 - `apps/web/src/components/layout/app-layout.tsx` — sidebar + content layout
 
 ### Config
+- `opencode.json` — ponytail plugin
 - `docker-compose.yml` — host data volume mount for ml-service
 - `apps/ml-service/requirements.txt` — updated to `>=` format
 - `.npmrc` — updated
+
+---
+
+## Git Commit Rules
+
+### Co-author Format
+When committing, do NOT add any co-authors. The only author should be Kunj157. Specifically, do not add yourself or any other entity as a co-author.
+
+### Commit Message Guidelines
+- Keep commit messages concise and descriptive
+- Use imperative mood (e.g., "Add", "Fix", "Update", "Remove")
+- Explain what was changed and why, not how
+- Limit to one logical change per commit
+- Reference related issues/PRs when applicable

@@ -109,19 +109,19 @@ export default function Reports() {
     const income = periodTransactions.filter((t) => t.type === 'income');
     const expense = periodTransactions.filter((t) => t.type === 'expense');
 
-    const totalIncome = income.reduce((s, t) => s + t.amount, 0);
-    const totalExpense = expense.reduce((s, t) => s + t.amount, 0);
+    const totalIncome = income.reduce((s, t) => s + Math.abs(t.amount), 0);
+    const totalExpense = expense.reduce((s, t) => s + Math.abs(t.amount), 0);
     const net = totalIncome - totalExpense;
     const savingsRate = totalIncome > 0 ? (net / totalIncome) * 100 : 0;
 
-    const prevIncome = prevPeriodTransactions.filter((t) => t.type === 'income').reduce((s, t) => s + t.amount, 0);
-    const prevExpense = prevPeriodTransactions.filter((t) => t.type === 'expense').reduce((s, t) => s + t.amount, 0);
+    const prevIncome = prevPeriodTransactions.filter((t) => t.type === 'income').reduce((s, t) => s + Math.abs(t.amount), 0);
+    const prevExpense = prevPeriodTransactions.filter((t) => t.type === 'expense').reduce((s, t) => s + Math.abs(t.amount), 0);
     const incomeChange = prevIncome > 0 ? ((totalIncome - prevIncome) / prevIncome) * 100 : 0;
     const expenseChange = prevExpense > 0 ? ((totalExpense - prevExpense) / prevExpense) * 100 : 0;
 
     const categoryBreakdown = Object.entries(
       expense.reduce((acc, t) => {
-        acc[t.categoryId] = (acc[t.categoryId] || 0) + t.amount;
+        acc[t.categoryId] = (acc[t.categoryId] || 0) + Math.abs(t.amount);
         return acc;
       }, {} as Record<string, number>)
     )

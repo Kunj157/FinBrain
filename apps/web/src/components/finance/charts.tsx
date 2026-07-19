@@ -48,8 +48,8 @@ export function IncomeExpenseChart({ transactions }: { transactions: Transaction
       const d = new Date(txn.date);
       const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
       if (months[key]) {
-        if (txn.type === 'income') months[key].income += txn.amount;
-        else months[key].expense += txn.amount;
+        if (txn.type === 'income') months[key].income += Math.abs(txn.amount);
+        else months[key].expense += Math.abs(txn.amount);
       }
     }
 
@@ -111,7 +111,7 @@ export function CategoryChart({ transactions, categories }: { transactions: Tran
 
     for (const txn of transactions) {
       if (txn.type === 'expense') {
-        spending[txn.categoryId] = (spending[txn.categoryId] || 0) + txn.amount;
+        spending[txn.categoryId] = (spending[txn.categoryId] || 0) + Math.abs(txn.amount);
       }
     }
 
@@ -181,7 +181,7 @@ export function SpendingTrend({ transactions }: { transactions: Transaction[] })
       if (txn.type === 'expense') {
         const dateKey = new Date(txn.date).toISOString().split('T')[0];
         if (days[dateKey] !== undefined) {
-          days[dateKey] += txn.amount;
+          days[dateKey] += Math.abs(txn.amount);
         }
       }
     }
