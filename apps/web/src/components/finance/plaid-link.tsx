@@ -56,6 +56,8 @@ export function PlaidLinkButton({ userId, onSuccess }: PlaidLinkProps) {
           await api.post('/transactions/bulk', { items });
         }
 
+        await api.post('/plaid/sync-accounts', { accessToken }).catch(() => {});
+
         setStatus('done');
         onSuccess?.();
       } catch {
