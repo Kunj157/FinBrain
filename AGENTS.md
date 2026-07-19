@@ -106,112 +106,81 @@ FinBrain is a full-stack AI-powered personal finance tracker. Monorepo with `app
 
 ---
 
-## Phase C — Feature Parity Core (COMPLETED)
+## Completed Phases
 
-All 8 features implemented on branch `feat/feature-parity-core`, PR #49 to `dev`. All pass typecheck and lint (0 errors).
+### Phase 1 — Foundation ✅
+- Monorepo, Auth (Clerk), Prisma schema, Docker Compose, CI/CD
 
-### 1. Rollover Budgets
-- `apps/api/src/routes/budgets.ts` — `rolloverAmount` field, carried forward each period
-- `apps/web/src/pages/budgets.tsx` — rollover toggle, visual indicator
+### Phase 2 — Data Ingestion ✅
+- Plaid integration, CSV import, PDF parser (German banks), Receipt OCR, Multi-currency
 
-### 2. Budget History
-- `apps/api/src/routes/budgets.ts` — `GET /budgets/:id/history` endpoint
-- `apps/web/src/pages/budgets.tsx` — history modal with period-by-period breakdown
+### Phase 3 — Finance Core ✅
+- Transaction CRUD, Categories, Dashboard charts, Analytics, Goals, Budgets, Recurring detection
 
-### 3. Transaction Tags
-- `apps/api/src/routes/tags.ts` — full CRUD for tags + transaction-tag assignment
-- `apps/web/src/pages/transactions.tsx` — tag assignment UI in transaction form
-
-### 4. Split Transactions
-- `apps/api/src/routes/transactions.ts` — `POST /transactions/:id/splits` endpoint
-- `apps/web/src/pages/transactions.tsx` — split UI with remainder tracking
-
-### 5. Recurring Pattern Persistence
-- `apps/api/src/routes/recurring.ts` — snooze, dismiss, restore, mark-paid endpoints
-- `apps/web/src/pages/recurring.tsx` — PatternCard with snooze/dismiss/restore/paid actions
-- Separate showSnoozed/showDismissed toggles
-
-### 6. Calendar View
-- `apps/web/src/pages/calendar.tsx` — monthly calendar with transaction dots, day detail panel
-- Route: `/calendar`
-
-### 7. Custom Date Range
-- `apps/web/src/components/ui/date-range-picker.tsx` — DateRangePicker component
-- Used in analytics and cash flow pages
-
-### 8. Cash Flow Page
-- `apps/web/src/pages/cash-flow.tsx` — income vs expenses bar chart, category breakdown
-- Route: `/cash-flow`
+### Additional Completed Features
+- Budget threshold alerts (75/90/100%) with visual indicators
+- Goal auto-contribute from income + contribution progress chart
+- Analytics category and type filters
+- Net worth trend chart with period selector
+- Global search (Cmd+K)
+- Mobile responsive layout with hamburger menu
+- Public landing page
+- Auth redirect fixes, account deletion UX
 
 ---
 
-## Onboarding & Dashboard Redesign (COMPLETED)
+## Current Development Roadmap
 
-### Onboarding — Monarch-style Multi-step Wizard
-- **File**: `apps/web/src/pages/onboarding.tsx`
-- Step 1 (Welcome): Logo, 3 feature cards (Track net worth, Track spending, Budget smarter), "Get started"
-- Step 2 (Connect): Bank search input (triggers Plaid on focus), trust signals (256-bit encryption, Read-only access, Powered by Plaid)
-- Step 3 (Done): Success message, "Go to Dashboard"
-- Progress bar with numbered steps and checkmarks
-- "Skip for now" link on non-done steps
-- Removed CSV/PDF upload option — only Plaid remains
+**Reference**: `docs/FEATURE_ROADMAP.md` — Feature gap analysis vs Industry Standard Money
 
-### Dashboard Empty State
-- **File**: `apps/web/src/pages/dashboard.tsx`
-- Clean centered layout with single "Connect your bank" CTA
-- Trust signals row below the button
-- Removed card grid, removed "Try sample data" button
+### Wave 1 — Close Critical Gaps (COMPLETED)
 
-### Dashboard AI Insights (Dynamic)
-- **File**: `apps/web/src/pages/dashboard.tsx`
-- Replaced hardcoded fake insights with dynamic computation from actual data
-- Shows: spending surges/drops vs last month, top spending category, over-budget alerts, low savings rate warnings
-- Falls back to "All looks good!" when no alerts
+1. **LLM AI Assistant** ✅ — Replace keyword matching with OpenAI/Claude integration
+   - Context Engine: `/api/v1/ai/context` endpoint with full financial snapshot
+   - LLM Integration: OpenAI API with structured system prompt
+   - Decision Interface: "Can I afford X?" with impact analysis
+   - Files: `apps/api/src/routes/ai.ts`, `apps/web/src/lib/ai-chat.ts`, `apps/web/src/pages/insights.tsx`, `apps/web/src/pages/dashboard.tsx`
+   - Requires: `OPENAI_API_KEY` environment variable
 
-### Ask FinBrain — Functional Chat
-- **File**: `apps/web/src/lib/ai-chat.ts` — shared `generateAnswer` utility
-- **Dashboard**: Inline mini-chat with suggested questions that auto-send on click
-- **Insights page**: Full chat with suggested questions that auto-send (was previously just filling input without sending)
-- Supports questions about: spending, income, savings, budgets, goals, subscriptions, financial tips
-- Refactored `handleSend` → `doSend(question)` pattern so chips can send without React state race condition
+2. **Investment Holdings** ✅ — Portfolio tracking with market data
+   - Prisma models: Portfolio, Holding (with allocation, gain/loss tracking)
+   - API routes: CRUD for portfolios and holdings, summary endpoint
+   - Portfolio UI with allocation charts, gain/loss visualization
+   - Files: `apps/api/src/routes/investments.ts`, `apps/web/src/pages/investments.tsx`
+   - Requires: `npx prisma db push` to create tables
 
-### Recurring Pattern Restore
-- `apps/api/src/routes/recurring.ts` — `POST /recurring/:id/restore` endpoint
-- `apps/web/src/pages/recurring.tsx` — `handleRestore`, `onRestore` prop, "Restore" button on hover for dismissed patterns
+3. **Budget Alerts** ✅ — Wire Notification model, threshold triggers
+   - Notification CRUD routes with read/unread state
+   - Budget threshold detection (75%, 90%, 100%)
+   - In-app notification bell with dropdown, mark all read
+   - Files: `apps/api/src/routes/notifications.ts`, `apps/web/src/components/notifications.tsx`
 
----
+### Wave 2 — Forecasting & Analytics
+- ML Forecasting (Prophet/ARIMA endpoints)
+- Sankey Diagrams (money flow visualization)
+- PDF Export (server-side generation)
+- Cash Flow Projection (recurring-aware)
 
-## Config
+### Wave 3 — Feature Parity
+- Couples/Household (multi-user, shared budgets)
+- Credit Score tracking
+- Recurring Calendar View
+- Flex Budgeting (three-bucket mode)
 
-### OpenCode
-- `opencode.json` — ponytail plugin installed (`opencode-ponytail`)
-- Restart opencode to activate
+### Wave 4 — Polish & Mobile
+- Notification Center
+- Customizable Dashboard (drag-and-drop)
+- Tax Summary Report
+- Scheduled Reports (email)
+- Mobile Apps (React Native/Capacitor)
 
 ---
 
 ## Current State / Known Issues
 
-- **Database wiped clean** — all transactions, accounts, tags, splits deleted. Ready for fresh Plaid import.
-- `notifications` route referenced in `index.ts` but file doesn't exist — was removed from import and mount.
-- `prisma migrate dev` doesn't work in non-interactive mode — use `npx prisma db push` instead.
-
----
-
-## Next Steps
-
-1. **Re-import German bank statement** — upload `Konto_1011216648-Auszug_2026_0005.PDF` via onboarding page and verify:
-   - All 22 transactions parsed correctly
-   - Categories resolve to proper DB UUIDs (not "Other")
-   - Opening balance appears as Income transaction
-   - Dashboard reflects correct monthly totals and balance
-
-2. **Start ML service for transformer predictions** — `python3 -m uvicorn main:app --host 0.0.0.0 --port 8000` (multilingual, higher accuracy than rule-based)
-
-3. **Verify layout** — confirm CSV import preview table fills full width on-screen
-
-4. **Test user corrections pipeline** — corrections saved to `user_corrections.jsonl` should feed into future transformer retraining
-
-5. **Consider retraining** — with more real-world German data, the Bills & Utilities (69.4%) and Other (71.4%) categories could improve
+- **Database wiped clean** — ready for fresh Plaid import
+- `prisma migrate dev` doesn't work in non-interactive mode — use `npx prisma db push` instead
+- Phase C features (tags, splits, calendar, cash-flow, ai-chat, date-range-picker) were built on `feat/feature-parity-core` but removed on current branch — will rebuild as part of Wave 1-4
 
 ---
 
@@ -226,34 +195,52 @@ All 8 features implemented on branch `feat/feature-parity-core`, PR #49 to `dev`
 
 ### API
 - `apps/api/src/routes/import.ts` — PDF/CSV parse, category UUID resolution, opening balance
-- `apps/api/src/routes/transactions.ts` — `catByName` map, name-based category fallback, splits
-- `apps/api/src/routes/recurring.ts` — snooze, dismiss, restore, mark-paid endpoints
-- `apps/api/src/routes/tags.ts` — tag CRUD + transaction-tag assignment
-- `apps/api/src/routes/budgets.ts` — rollover budgets, budget history
+- `apps/api/src/routes/transactions.ts` — `catByName` map, name-based category fallback
+- `apps/api/src/routes/budgets.ts` — budget CRUD with threshold alerts
+- `apps/api/src/routes/goals.ts` — goal CRUD with auto-contribute
+- `apps/api/src/routes/ai.ts` — LLM chat with financial context, context endpoint
+- `apps/api/src/routes/investments.ts` — portfolio and holdings CRUD, summary
+- `apps/api/src/routes/notifications.ts` — notification CRUD, budget alert checking
 - `apps/api/src/services/auto-categorize.ts` — 100+ German keywords, merchant-name boost
 - `apps/api/src/services/pdf-parser.ts` — German bank statement parser, opening balance extraction
+- `apps/api/src/scripts/recategorize.ts` — standalone script to re-categorize all user transactions
 
 ### Web
-- `apps/web/src/pages/onboarding.tsx` — Monarch-style multi-step wizard, Plaid-only
-- `apps/web/src/pages/transactions.tsx` — full-width table, tag assignment, split UI
-- `apps/web/src/pages/dashboard.tsx` — dynamic insights, functional Ask FinBrain chat, Plaid modal
-- `apps/web/src/pages/insights.tsx` — health score, AI insights, Ask FinBrain full chat
-- `apps/web/src/pages/calendar.tsx` — monthly calendar with transaction dots
-- `apps/web/src/pages/cash-flow.tsx` — income vs expenses bar chart
-- `apps/web/src/pages/recurring.tsx` — pattern management with snooze/dismiss/restore
-- `apps/web/src/pages/budgets.tsx` — rollover budgets, history modal
-- `apps/web/src/lib/ai-chat.ts` — shared `generateAnswer` utility for dashboard + insights
-- `apps/web/src/components/finance/csv-import.tsx` — import preview with opening balance
-- `apps/web/src/components/finance/charts.tsx` — normalized date keys for SpendingTrend
-- `apps/web/src/components/ui/date-range-picker.tsx` — custom date range picker
-- `apps/web/src/components/ui/input.tsx` — styled input component
+- `apps/web/src/pages/onboarding.tsx` — standard multi-step wizard, Plaid-only
+- `apps/web/src/pages/transactions.tsx` — full-width table with filters
+- `apps/web/src/pages/dashboard.tsx` — dynamic insights, stat cards, charts
+- `apps/web/src/pages/insights.tsx` — health score, AI insights, rule-based chat
+- `apps/web/src/pages/budgets.tsx` — budget CRUD with threshold alerts
+- `apps/web/src/pages/goals.tsx` — goal CRUD with auto-contribute
+- `apps/web/src/pages/analytics.tsx` — category and type filters
+- `apps/web/src/pages/investments.tsx` — portfolio tracking with holdings
+- `apps/web/src/lib/ai-chat.ts` — LLM chat utility for dashboard + insights
+- `apps/web/src/components/notifications.tsx` — notification bell with dropdown
 - `apps/web/src/components/layout/app-layout.tsx` — sidebar + content layout
 
 ### Config
-- `opencode.json` — ponytail plugin
 - `docker-compose.yml` — host data volume mount for ml-service
-- `apps/ml-service/requirements.txt` — updated to `>=` format
-- `.npmrc` — updated
+
+---
+
+## Session: Jul 19, 2026
+
+### What Changed
+1. **Auto-categorize rewrite** — Keywords always win (confidence 1.0), ML only fallback. Removed `lastschrift`/`überweisung`/`abbuchung` from Bills & Utilities (payment types, not categories). Removed `müller` from Food & Drink/Shopping (common surname), replaced with ` müller drogerie`. Added `sentics gmbh` to Income. Added word-boundary regex for single-word keywords.
+2. **AI Assistant: Groq integration** — Replaced OpenAI-only with Groq (free, no credit card, 30 RPM). Model: `llama-3.1-8b-instant`. Fallback: OpenAI if `OPENAI_API_KEY` set. Requires `GROQ_API_KEY` in `apps/api/.env`. Updated frontend error messages.
+3. **Negative expense bug fix** — Expenses stored as negative amounts caused wrong calculations across 7 files (`insights.tsx`, `dashboard.tsx`, `analytics.tsx`, `charts.tsx`, `reports.tsx`, `ai.ts`). Fixed by wrapping expense `.reduce()` with `Math.abs()`. Health score jumped from 23/100 to ~62/100.
+4. **Re-categorize script** — `apps/api/src/scripts/recategorize.ts` and `POST /api/v1/seed/re-categorize` endpoint for bulk re-categorization. Fixed 3 transactions (ottonova→Healthcare, Feather→Healthcare, Müller rent→Housing).
+
+### Current State
+- **DB user**: `cmrrhyuev0000zr4iocg75ayg` (Clerk user with 22 transactions from May 2026)
+- **Dev user**: `dev-user-001` (empty, used when CLERK_SECRET_KEY unset)
+- **AI**: Groq configured, working. Dev server: `kill $(lsof -t -i :4000) 2>/dev/null`
+- **Build status**: API and Web both pass `tsc --noEmit`
+
+### Known Issues
+- All 22 transactions from May only → consistency score is low (11/110 days)
+- No budgets or goals set → those default to 50%
+- ML service not running → keyword-only classification
 
 ---
 
