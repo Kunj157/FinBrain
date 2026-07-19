@@ -155,11 +155,28 @@ FinBrain is a full-stack AI-powered personal finance tracker. Monorepo with `app
    - In-app notification bell with dropdown, mark all read
    - Files: `apps/api/src/routes/notifications.ts`, `apps/web/src/components/notifications.tsx`
 
-### Wave 2 — Forecasting & Analytics
-- ML Forecasting (Prophet/ARIMA endpoints)
-- Sankey Diagrams (money flow visualization)
-- PDF Export (server-side generation)
-- Cash Flow Projection (recurring-aware)
+### Wave 2 — Forecasting & Analytics (COMPLETED)
+
+1. **ML Forecasting** ✅ — Prophet, ARIMA, Linear Regression, Moving Average endpoints
+   - ML service: `apps/ml-service/src/services/forecast.py`, `apps/ml-service/src/routes/forecast.py`
+   - API proxy: `apps/api/src/routes/forecast.ts` with local fallback when ML service is down
+   - Frontend: `apps/web/src/pages/forecasting.tsx` — model comparison table, bar visualizations, 3/6/12-month projections
+   - All four models return forecast arrays + MAPE accuracy scores
+
+2. **Sankey Diagrams** ✅ — Money flow visualization on reports page
+   - Component: `apps/web/src/components/finance/sankey.tsx` using @nivo/sankey
+   - Income → Expense category flow, color-coded proportional links
+
+3. **PDF Report Export** ✅ — Client-side PDF generation
+   - Uses jsPDF + jspdf-autotable (no server-side dependencies)
+   - Reports include: summary stats, category breakdown table, top merchants, full transaction list
+   - File: `apps/web/src/pages/reports.tsx` (exportPDF function)
+
+4. **Cash Flow Projection** ✅ — Recurring-aware, months-ahead forecasting
+   - Fetches recurring patterns from `/api/v1/recurring`
+   - Separates fixed recurring expenses from variable spending
+   - Shows 30/60/90-day projections + 6-month bar visualization
+   - File: `apps/web/src/pages/analytics.tsx` (enhanced cashFlowForecast section)
 
 ### Wave 3 — Feature Parity
 - Couples/Household (multi-user, shared budgets)
@@ -189,8 +206,10 @@ FinBrain is a full-stack AI-powered personal finance tracker. Monorepo with `app
 ### ML Service
 - `apps/ml-service/src/services/classifier.py` — XLM-RoBERTa classifier with `DATA_DIR` auto-detection
 - `apps/ml-service/src/services/categorizer.py` — sklearn fallback with `DATA_DIR` auto-detection
+- `apps/ml-service/src/services/forecast.py` — Prophet, ARIMA, Linear Regression, Moving Average forecasting
 - `apps/ml-service/src/routes/categorize.py` — unified prediction pipeline, `/text`, `/batch`, `/train`
-- `apps/ml-service/src/main.py` — model info endpoints, `DATA_DIR` import
+- `apps/ml-service/src/routes/forecast.py` — forecasting endpoints: `/forecast`, `/forecast/monthly-series`
+- `apps/ml-service/src/main.py` — model info endpoints, `DATA_DIR` import, route mounting
 - `apps/ml-service/data/xlmr_model/` — trained model files
 
 ### API
@@ -201,6 +220,7 @@ FinBrain is a full-stack AI-powered personal finance tracker. Monorepo with `app
 - `apps/api/src/routes/ai.ts` — LLM chat with financial context, context endpoint
 - `apps/api/src/routes/investments.ts` — portfolio and holdings CRUD, summary
 - `apps/api/src/routes/notifications.ts` — notification CRUD, budget alert checking
+- `apps/api/src/routes/forecast.ts` — forecast proxy to ML service with local fallback
 - `apps/api/src/services/auto-categorize.ts` — 100+ German keywords, merchant-name boost
 - `apps/api/src/services/pdf-parser.ts` — German bank statement parser, opening balance extraction
 - `apps/api/src/scripts/recategorize.ts` — standalone script to re-categorize all user transactions
@@ -212,10 +232,13 @@ FinBrain is a full-stack AI-powered personal finance tracker. Monorepo with `app
 - `apps/web/src/pages/insights.tsx` — health score, AI insights, rule-based chat
 - `apps/web/src/pages/budgets.tsx` — budget CRUD with threshold alerts
 - `apps/web/src/pages/goals.tsx` — goal CRUD with auto-contribute
-- `apps/web/src/pages/analytics.tsx` — category and type filters
+- `apps/web/src/pages/analytics.tsx` — category and type filters, recurring-aware cash flow projection
 - `apps/web/src/pages/investments.tsx` — portfolio tracking with holdings
+- `apps/web/src/pages/forecasting.tsx` — ML forecasting page with model comparison
+- `apps/web/src/pages/reports.tsx` — reports with Sankey diagrams and PDF export
 - `apps/web/src/lib/ai-chat.ts` — LLM chat utility for dashboard + insights
 - `apps/web/src/components/notifications.tsx` — notification bell with dropdown
+- `apps/web/src/components/finance/sankey.tsx` — Sankey money flow diagram component
 - `apps/web/src/components/layout/app-layout.tsx` — sidebar + content layout
 
 ### Config
@@ -230,6 +253,10 @@ FinBrain is a full-stack AI-powered personal finance tracker. Monorepo with `app
 2. **AI Assistant: Groq integration** — Replaced OpenAI-only with Groq (free, no credit card, 30 RPM). Model: `llama-3.1-8b-instant`. Fallback: OpenAI if `OPENAI_API_KEY` set. Requires `GROQ_API_KEY` in `apps/api/.env`. Updated frontend error messages.
 3. **Negative expense bug fix** — Expenses stored as negative amounts caused wrong calculations across 7 files (`insights.tsx`, `dashboard.tsx`, `analytics.tsx`, `charts.tsx`, `reports.tsx`, `ai.ts`). Fixed by wrapping expense `.reduce()` with `Math.abs()`. Health score jumped from 23/100 to ~62/100.
 4. **Re-categorize script** — `apps/api/src/scripts/recategorize.ts` and `POST /api/v1/seed/re-categorize` endpoint for bulk re-categorization. Fixed 3 transactions (ottonova→Healthcare, Feather→Healthcare, Müller rent→Housing).
+5. **Wave 2: ML Forecasting** — `apps/ml-service/src/services/forecast.py` and `routes/forecast.py` with Prophet, ARIMA, Linear Regression, Moving Average. API proxy at `apps/api/src/routes/forecast.ts`. Frontend at `apps/web/src/pages/forecasting.tsx`.
+6. **Wave 2: Sankey Diagrams** — `apps/web/src/components/finance/sankey.tsx` using @nivo/sankey. Added to Reports page showing Income → Expense category flow.
+7. **Wave 2: PDF Export** — jsPDF + jspdf-autotable client-side PDF generation in `apps/web/src/pages/reports.tsx` (exportPDF function).
+8. **Wave 2: Cash Flow Projection** — Enhanced `apps/web/src/pages/analytics.tsx` with recurring-aware projections, 6-month bar visualization, recurring/variable expense breakdown.
 
 ### Current State
 - **DB user**: `cmrrhyuev0000zr4iocg75ayg` (Clerk user with 22 transactions from May 2026)
