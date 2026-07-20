@@ -68,16 +68,20 @@ FinBrain is a full-stack AI-powered personal finance tracker built as a monorepo
 | Public Landing Page | ✅ Done |
 | Mobile Responsive Layout | ✅ Done |
 | Categorization Rules Engine (CRUD, auto-apply) | ✅ Done |
-| Advisor Profile & Memory Layer | 📋 Planned |
-| Deterministic Affordability Engine | 📋 Planned |
-| Persistent Advisor Chat (multi-turn) | 📋 Planned |
-| AI Insights & Weekly Recap | 📋 Planned |
-| Couples / Household Accounts | 📋 Planned |
-| Credit Score Tracking | 📋 Planned |
-| Recurring Calendar View & Bill Reminders | 📋 Planned |
-| Flex Budgeting (fixed/non-monthly/flexible buckets) | 📋 Planned |
+| Advisor Profile & Memory Layer | ✅ Done |
+| Deterministic Affordability Engine | ✅ Done |
+| Persistent Advisor Chat (multi-turn) | ✅ Done |
+| AI Insights & Weekly Recap | ✅ Done |
+| Couples / Household Accounts | ✅ Done |
+| Credit Score Tracking | ✅ Done |
+| Recurring Calendar View & Bill Reminders | ✅ Done |
+| Flex Budgeting (fixed/non-monthly/flexible buckets) | ✅ Done |
+| Tax Summary Report | ✅ Done |
+| Data Quality Dashboard | ✅ Done |
+| Scenario Simulator | ✅ Done |
+| Spending Pattern Detection | ✅ Done |
+| Anomaly Detection | ✅ Done |
 | Customizable Dashboard (drag-and-drop) | 📋 Planned |
-| Tax Summary Report | 📋 Planned |
 | Scheduled Reports (email) | 📋 Planned |
 | Mobile Apps (React Native / Capacitor) | 📋 Planned |
 

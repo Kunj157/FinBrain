@@ -450,22 +450,31 @@ When merging `dev` → `main` for a release:
 
 ## Current State Addendum (July 2026)
 
-The original sprint plan above is partially superseded by the completed Waves 1-2 and the new Monarch-Quality Implementation Plan.
+The original sprint plan above is partially superseded by completed Waves 1-4.
 
-### What's Done (supersedes earlier sprints)
+### What's Done
 
 - Sprint 1 (Foundation): ✅ Complete
 - Sprint 2 (Data Ingestion): ✅ Complete
 - Sprint 3 (Finance Core): ✅ Complete
 - Wave 1 (LLM AI Assistant, Investment Holdings, Budget Alerts): ✅ Complete
 - Wave 2 (ML Forecasting, Sankey Diagrams, PDF Export, Cash Flow Projection): ✅ Complete
+- Wave 3 (Advisor Foundation: Profile, Patterns, Memory, Affordability, Scenarios): ✅ Complete
+- Wave 4 (Advisor Intelligence: Insights, Weekly Recap, Anomalies, Data Quality): ✅ Complete
+- Household/Couples: ✅ Complete
+- Credit Score: ✅ Complete
+- Flex Budgeting: ✅ Complete
+- Recurring Calendar: ✅ Complete
+- Tax Summary Report: ✅ Complete
 
-### What's Next
+### What's Remaining
 
-The detailed implementation plan lives in `docs/MONARCH_ADVISOR_IMPLEMENTATION_PLAN.md`. It covers 18 phases from data integrity through production readiness. The current active work is **Milestone A — Advisor Foundation** (Phases 0-4):
-
-- Phase 0: Documentation cleanup
-- Phase 1: Finance math helpers + data quality
-- Phase 2: Advisor profile, patterns, memory
-- Phase 3: Affordability engine + scenarios
-- Phase 4: Persistent advisor chat
+- Customizable Dashboard (drag-and-drop widgets)
+- Scheduled Reports (email delivery)
+- Mobile Apps (React Native / Capacitor)
+- Real-time market data for investments (Yahoo Finance API)
+- Household shared transaction views (yours/mine/ours labels)
+- Scheduled report delivery
+- PWA service worker + offline mode
+- E2E tests
+- Production deployment config

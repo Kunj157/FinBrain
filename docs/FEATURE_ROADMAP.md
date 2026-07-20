@@ -27,20 +27,20 @@ Industry Standard is the gold standard for personal finance apps in 2026, with 1
 
 | Category | Industry Standard | FinBrain | Gap |
 |---|---|---|---|
-| **Budgeting** | Flex + Category, rollover, alerts | Category budgets, rollover | Medium |
-| **Net Worth** | Real-time + Zillow + historical trends | Basic net worth + history | Medium |
-| **Investment Tracking** | Full portfolio, stocks, crypto, allocation | Account type only, no holdings UI | **Critical** |
-| **Couples/Household** | Multi-user, shared views, yours/mine/ours | Single-user only | **Critical** |
-| **Forecasting** | Plus tier: retirement, home, career break modeling | Linear extrapolation only | **Critical** |
-| **AI Assistant** | CFP-trained, natural language, data-aware | Keyword-matching rule engine | **Critical** |
-| **Reports** | Sankey diagrams, custom reports, PDF | Basic CSV + browser print | High |
-| **Credit Score** | Built-in tracking | None | High |
-| **Recurring/Subscriptions** | Calendar view, auto-detect, reminders | Detection only, no calendar | Medium |
-| **Goals** | Rebuilt v3, progress, projections | Basic goals with contributions | Low-Medium |
-| **Cash Flow** | Projection months ahead, recurring-aware | 30/60/90-day linear only | High |
-| **Mobile** | iOS + Android, full feature parity | Web-only (PWA) | High |
-| **Notifications** | In-app, customizable | Model exists, no UI | Medium |
-| **Onboarding** | Polished wizard | Industry Standard-style wizard (done) | **Complete** |
+| **Budgeting** | Flex + Category, rollover, alerts | Flex + Category, rollover, alerts, suggestions | **Match** |
+| **Net Worth** | Real-time + Zillow + historical trends | Real-time + historical trends | Close |
+| **Investment Tracking** | Full portfolio, stocks, crypto, allocation | Portfolio + holdings, manual prices | Partial |
+| **Couples/Household** | Multi-user, shared views, yours/mine/ours | Household CRUD, member invites | Partial |
+| **Forecasting** | Plus tier: retirement, home, career break modeling | ML models (Prophet, ARIMA), scenarios | **Match** |
+| **AI Assistant** | CFP-trained, natural language, data-aware | LLM-powered, persistent chat, affordability engine | **Match** |
+| **Reports** | Sankey diagrams, custom reports, PDF | Sankey, PDF export, tax summary | **Match** |
+| **Credit Score** | Built-in tracking | Manual entry + tracking | Partial |
+| **Recurring/Subscriptions** | Calendar view, auto-detect, reminders | Calendar view, auto-detect, summary | **Match** |
+| **Goals** | Rebuilt v3, progress, projections | Full CRUD, auto-contribute, projections | **Match** |
+| **Cash Flow** | Projection months ahead, recurring-aware | Recurring-aware, 6-month projection | **Match** |
+| **Mobile** | iOS + Android, full feature parity | Responsive web (PWA-ready) | Partial |
+| **Notifications** | In-app, customizable | In-app bell, mark read, budget alerts | **Match** |
+| **Onboarding** | Polished wizard | Industry Standard-style wizard | **Match** |
 
 ---
 
