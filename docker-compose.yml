@@ -68,6 +68,8 @@ services:
     container_name: finbrain-web
     ports:
       - "5173:5173"
+    environment:
+      VITE_PROXY_TARGET: http://api:4000
     env_file:
       - apps/web/.env
     depends_on:
