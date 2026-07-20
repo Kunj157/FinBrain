@@ -19,6 +19,7 @@ import {
   Repeat,
   Briefcase,
   TrendingUp,
+  MessageSquare,
 } from 'lucide-react';
 
 const navItems = [
@@ -36,6 +37,7 @@ const navItems = [
   { icon: TrendingUp, label: 'Forecasting', path: '/forecasting' },
   { icon: Receipt, label: 'Receipts', path: '/receipts' },
   { icon: FileText, label: 'Reports', path: '/reports' },
+  { icon: MessageSquare, label: 'Advisor', path: '/advisor' },
   { icon: Sparkles, label: 'AI Insights', path: '/insights' },
 ];
 
@@ -110,7 +112,7 @@ export function Sidebar({ onNavigate }: { onNavigate?: () => void }) {
 
         <div className="mx-3 mb-4">
           <NavLink
-            to="/insights"
+            to="/advisor"
             className="rounded-xl bg-gradient-to-br from-emerald-500/5 to-teal-500/5 border border-emerald-500/10 p-4 block hover:from-emerald-500/10 hover:to-teal-500/10 transition-all duration-200 cursor-pointer"
           >
             <div className="flex items-center gap-3">
