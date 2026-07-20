@@ -1,5 +1,6 @@
 import { useState, useMemo, useCallback, useEffect } from 'react';
 import { Plus, PiggyBank, Pencil, Trash2, X, Check, Loader2, AlertTriangle, Layers } from 'lucide-react';
+import { ExplainViewButton } from '@/components/finance/explain-view-button';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Select } from '@/components/ui/select';
@@ -158,11 +159,14 @@ export default function Budgets() {
   return (
     <div className="space-y-6 animate-fade-in">
       <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-semibold tracking-tight">Budgets</h1>
-          <p className="text-sm text-muted-foreground mt-1">
-            {budgets.length} budget{budgets.length !== 1 ? 's' : ''} set
-          </p>
+        <div className="flex items-center gap-3">
+          <div>
+            <h1 className="text-2xl font-semibold tracking-tight">Budgets</h1>
+            <p className="text-sm text-muted-foreground mt-1">
+              {budgets.length} budget{budgets.length !== 1 ? 's' : ''} set
+            </p>
+          </div>
+          <ExplainViewButton viewName="Budgets" />
         </div>
         <Button onClick={openCreate} className="gap-2">
           <Plus className="h-4 w-4" />

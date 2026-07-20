@@ -2,6 +2,7 @@ import { useState, useMemo, useCallback, useEffect } from 'react';
 import {
   TrendingUp, TrendingDown, Calendar, Loader2, ArrowUpRight, ArrowDownRight,
 } from 'lucide-react';
+import { ExplainViewButton } from '@/components/finance/explain-view-button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/hooks/use-auth';
@@ -388,9 +389,12 @@ export default function Analytics() {
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between flex-wrap gap-3">
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight">Analytics</h1>
-          <p className="text-sm text-muted-foreground">Deep dive into your financial patterns</p>
+        <div className="flex items-center gap-3">
+          <div>
+            <h1 className="text-2xl font-bold tracking-tight">Analytics</h1>
+            <p className="text-sm text-muted-foreground">Deep dive into your financial patterns</p>
+          </div>
+          <ExplainViewButton viewName="Analytics" />
         </div>
         <div className="flex items-center gap-2 flex-wrap">
           <select

@@ -4,6 +4,7 @@ import {
   Check, AlertTriangle, Home, Car, GraduationCap, Plane, PiggyBank,
   Briefcase, Heart, CircleDollarSign, Coins, Zap,
 } from 'lucide-react';
+import { ExplainViewButton } from '@/components/finance/explain-view-button';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -242,9 +243,12 @@ export default function Goals() {
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight">Goals</h1>
-          <p className="text-sm text-muted-foreground">Track your savings goals and milestones</p>
+        <div className="flex items-center gap-3">
+          <div>
+            <h1 className="text-2xl font-bold tracking-tight">Goals</h1>
+            <p className="text-sm text-muted-foreground">Track your savings goals and milestones</p>
+          </div>
+          <ExplainViewButton viewName="Goals" />
         </div>
         <Button onClick={openCreate} size="sm">
           <Plus className="h-4 w-4 mr-2" />

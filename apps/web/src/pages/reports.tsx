@@ -3,6 +3,7 @@ import {
   FileText, Download, Printer, ChevronLeft, ChevronRight, Loader2,
   TrendingUp, TrendingDown, ArrowUpRight, ArrowDownRight, Receipt,
 } from 'lucide-react';
+import { ExplainViewButton } from '@/components/finance/explain-view-button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/hooks/use-auth';
@@ -317,9 +318,12 @@ export default function Reports() {
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight">Reports</h1>
-          <p className="text-sm text-muted-foreground">Generate and export financial reports</p>
+        <div className="flex items-center gap-3">
+          <div>
+            <h1 className="text-2xl font-bold tracking-tight">Reports</h1>
+            <p className="text-sm text-muted-foreground">Generate and export financial reports</p>
+          </div>
+          <ExplainViewButton viewName="Reports" />
         </div>
         <div className="flex gap-2">
           <Button variant="outline" size="sm" onClick={exportCSV}>

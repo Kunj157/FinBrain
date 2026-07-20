@@ -1,8 +1,9 @@
 import { useState, useEffect, useCallback } from 'react';
 import {
   TrendingUp, TrendingDown, PieChart, Plus, Loader2, Wallet,
-  ArrowUpRight, ArrowDownRight, Briefcase, X,
+  ArrowUpRight, ArrowDownRight, Briefcase, X, RefreshCw,
 } from 'lucide-react';
+import { ExplainViewButton } from '@/components/finance/explain-view-button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/hooks/use-auth';
@@ -148,14 +149,35 @@ export default function Investments() {
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight">Investments</h1>
-          <p className="text-sm text-muted-foreground">Track your portfolio performance</p>
+        <div className="flex items-center gap-3">
+          <div>
+            <h1 className="text-2xl font-bold tracking-tight">Investments</h1>
+            <p className="text-sm text-muted-foreground">Track your portfolio performance</p>
+          </div>
+          <ExplainViewButton viewName="Investments" />
         </div>
-        <Button size="sm" className="gap-2" onClick={() => setShowNewPortfolio(true)}>
-          <Plus className="h-4 w-4" />
-          New Portfolio
-        </Button>
+        <div className="flex items-center gap-2">
+          <Button
+            size="sm"
+            variant="outline"
+            className="gap-2"
+            onClick={async () => {
+              try {
+                await api.post('/investments/holdings/refresh-prices');
+                fetchData();
+              } catch {
+                // silent
+              }
+            }}
+          >
+            <RefreshCw className="h-4 w-4" />
+            Refresh Prices
+          </Button>
+          <Button size="sm" className="gap-2" onClick={() => setShowNewPortfolio(true)}>
+            <Plus className="h-4 w-4" />
+            New Portfolio
+          </Button>
+        </div>
       </div>
 
       {summary && (
