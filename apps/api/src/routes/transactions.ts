@@ -45,6 +45,7 @@ const querySchema = z.object({
   deleted: z.coerce.boolean().default(false),
   needsReview: z.coerce.boolean().optional(),
   reviewed: z.coerce.boolean().optional(),
+  householdMemberId: z.string().optional(),
 });
 
 const SORT_FIELD_MAP: Record<string, string> = {
@@ -61,10 +62,23 @@ router.get('/', async (req: Request, res: Response) => {
     return res.status(400).json({ success: false, error: 'Invalid query', details: parsed.error.format() });
   }
 
-  const { page, limit, type, categoryId, startDate, endDate, search, paymentMethod, sort, order, deleted, needsReview, reviewed } = parsed.data;
+  const { page, limit, type, categoryId, startDate, endDate, search, paymentMethod, sort, order, deleted, needsReview, reviewed, householdMemberId } = parsed.data;
+
+  // Build user filter - include household members if filtering by household
+  let userIds: string[] = [req.userId];
+  if (householdMemberId) {
+    // Get all members of the user's household
+    const membership = await prisma.householdMember.findFirst({
+      where: { userId: req.userId, status: 'ACTIVE' },
+      include: { household: { include: { members: { where: { status: 'ACTIVE' } } } } },
+    });
+    if (membership) {
+      userIds = membership.household.members.map((m) => m.userId);
+    }
+  }
 
   const where: Prisma.TransactionWhereInput = {
-    userId: req.userId,
+    userId: householdMemberId ? { in: userIds } : req.userId,
     deletedAt: deleted ? { not: null } : null,
     ...(type && { type }),
     ...(categoryId && { categoryId }),

@@ -25,6 +25,12 @@ interface Filters {
   search: string;
   sort: string;
   order: 'asc' | 'desc';
+  householdMemberId: string;
+}
+
+interface HouseholdMember {
+  userId: string;
+  user: { id: string; name: string; email: string; avatarUrl: string | null };
 }
 
 type FormMode = 'create' | 'edit';
@@ -33,7 +39,8 @@ export default function TransactionsPage() {
   const { user } = useAuth();
   const currency = (user?.currency || 'USD') as SharedCurrency;
 
-  const [filters, setFilters] = useState<Filters>({ type: '', categoryId: '', paymentMethod: '', search: '', sort: 'date', order: 'desc' });
+  const [filters, setFilters] = useState<Filters>({ type: '', categoryId: '', paymentMethod: '', search: '', sort: 'date', order: 'desc', householdMemberId: '' });
+  const [householdMembers, setHouseholdMembers] = useState<HouseholdMember[]>([]);
   const [page, setPage] = useState(1);
   const [showForm, setShowForm] = useState(false);
   const [clearing, setClearing] = useState(false);
@@ -58,6 +65,7 @@ export default function TransactionsPage() {
       if (filters.categoryId) params.set('categoryId', filters.categoryId);
       if (filters.paymentMethod) params.set('paymentMethod', filters.paymentMethod);
       if (filters.search) params.set('search', filters.search);
+    if (filters.householdMemberId) params.set('householdMemberId', filters.householdMemberId);
 
       const [txnRes, catRes] = await Promise.all([
         api.get(`/transactions?${params}`),
@@ -77,6 +85,15 @@ export default function TransactionsPage() {
   useEffect(() => {
     fetchData();
   }, [fetchData]);
+
+  // Fetch household members for filtering
+  useEffect(() => {
+    api.get('/households').then((res) => {
+      if (res.data.data?.members) {
+        setHouseholdMembers(res.data.data.members);
+      }
+    }).catch(() => {});
+  }, []);
 
   const categoryMap = useMemo(() => {
     const map: Record<string, string> = {};
@@ -191,6 +208,17 @@ export default function TransactionsPage() {
                 ...PAYMENT_METHODS.map((m) => ({ value: m.value, label: m.label })),
               ]}
             />
+            {householdMembers.length > 0 && (
+              <Select
+                value={filters.householdMemberId}
+                onValueChange={(value) => { setFilters((f) => ({ ...f, householdMemberId: value })); setPage(1); }}
+                options={[
+                  { value: '', label: 'My transactions' },
+                  { value: 'all', label: 'All household' },
+                  ...householdMembers.map((m) => ({ value: m.userId, label: m.user.name || m.user.email })),
+                ]}
+              />
+            )}
             {selected.size > 0 && (
               <Button variant="destructive" size="sm" onClick={handleBulkDelete} className="gap-1">
                 <Trash2 className="h-3 w-3" />
