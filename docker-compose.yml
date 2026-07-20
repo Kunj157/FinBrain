@@ -37,6 +37,7 @@ services:
       REDIS_URL: redis://redis:6379
       PORT: "4000"
       FRONTEND_URL: http://localhost:5173
+      DEV_MODE: "true"
     env_file:
       - apps/api/.env
     depends_on:

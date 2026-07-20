@@ -342,11 +342,11 @@ export default function Insights() {
     try {
       const answer = await sendChatMessage(question, messages);
       setMessages((prev) => [...prev, { role: 'assistant', content: answer }]);
-    } catch {
-      setMessages((prev) => [...prev, {
-        role: 'assistant',
-        content: 'Sorry, I encountered an error. Please make sure GROQ_API_KEY is set in apps/api/.env and try again. Get a free key at console.groq.com',
-      }]);
+    } catch (err: unknown) {
+      const msg = (err as { response?: { data?: { error?: string } } })?.response?.data?.error
+        || (err as Error)?.message
+        || 'An error occurred. Make sure the backend is running.';
+      setMessages((prev) => [...prev, { role: 'assistant', content: msg }]);
     } finally {
       setIsThinking(false);
     }

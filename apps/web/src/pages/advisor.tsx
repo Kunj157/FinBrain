@@ -159,10 +159,13 @@ export default function AdvisorPage() {
         const convsRes = await api.get('/advisor/conversations');
         setConversations(convsRes.data.data);
       }
-    } catch {
+    } catch (err: unknown) {
+      const msg = (err as { response?: { data?: { error?: string } } })?.response?.data?.error
+        || (err as Error)?.message
+        || 'An error occurred. Make sure the backend is running.';
       setMessages((prev) => [...prev, {
         role: 'assistant',
-        content: 'AI service not configured. Set GROQ_API_KEY in apps/api/.env to enable the advisor.',
+        content: msg,
       }]);
     } finally {
       setIsLoading(false);

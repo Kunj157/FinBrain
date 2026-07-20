@@ -84,11 +84,11 @@ export default function Dashboard() {
     try {
       const answer = await sendChatMessage(question, chatMessages);
       setChatMessages((prev) => [...prev, { role: 'assistant', content: answer }]);
-    } catch {
-      setChatMessages((prev) => [...prev, {
-        role: 'assistant',
-        content: 'AI service not configured. Set GROQ_API_KEY in apps/api/.env to enable.',
-      }]);
+    } catch (err: unknown) {
+      const msg = (err as { response?: { data?: { error?: string } } })?.response?.data?.error
+        || (err as Error)?.message
+        || 'An error occurred. Make sure the backend is running.';
+      setChatMessages((prev) => [...prev, { role: 'assistant', content: msg }]);
     } finally {
       setIsChatLoading(false);
     }

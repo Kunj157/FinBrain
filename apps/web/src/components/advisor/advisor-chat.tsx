@@ -33,11 +33,11 @@ export function AdvisorChat({ onAffordabilityResult }: Props) {
       if (structuredData?.type === 'affordability' && onAffordabilityResult) {
         onAffordabilityResult(structuredData);
       }
-    } catch {
-      setMessages((prev) => [...prev, {
-        role: 'assistant',
-        content: 'AI service not available. Configure GROQ_API_KEY.',
-      }]);
+    } catch (err: unknown) {
+      const msg = (err as { response?: { data?: { error?: string } } })?.response?.data?.error
+        || (err as Error)?.message
+        || 'An error occurred. Make sure the backend is running.';
+      setMessages((prev) => [...prev, { role: 'assistant', content: msg }]);
     } finally {
       setIsLoading(false);
     }
