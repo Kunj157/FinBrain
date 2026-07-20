@@ -1,4 +1,4 @@
-import { BrowserRouter, Routes, Route } from 'react-router-dom';
+import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { QueryClientProvider } from '@tanstack/react-query';
 import { queryClient } from '@/lib/query';
 import { AuthProvider } from '@/auth/auth-provider';
@@ -21,7 +21,6 @@ import Insights from '@/pages/insights';
 import SettingsPage from '@/pages/settings';
 import HelpPage from '@/pages/help';
 import AccountsPage from '@/pages/accounts';
-import RulesPage from '@/pages/rules';
 import RecurringPage from '@/pages/recurring';
 import InvestmentsPage from '@/pages/investments';
 import ForecastingPage from '@/pages/forecasting';
@@ -56,7 +55,7 @@ export default function App() {
               <Route path="/settings" element={<SettingsPage />} />
               <Route path="/help" element={<HelpPage />} />
               <Route path="/accounts" element={<AccountsPage />} />
-              <Route path="/rules" element={<RulesPage />} />
+              <Route path="/rules" element={<Navigate to="/settings" replace />} />
               <Route path="/recurring" element={<RecurringPage />} />
               <Route path="/investments" element={<InvestmentsPage />} />
               <Route path="/forecasting" element={<ForecastingPage />} />

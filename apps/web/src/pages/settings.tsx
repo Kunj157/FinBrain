@@ -4,10 +4,11 @@ import { Select } from '@/components/ui/select';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Dialog, DialogHeader, DialogTitle, DialogDescription, DialogContent, DialogFooter, DialogClose } from '@/components/ui/dialog';
 import { useNavigate } from 'react-router-dom';
-import { ArrowLeft, User, Mail, Calendar, Shield, Trash2, Loader2, Download, AlertTriangle, FileText, PiggyBank, Target, Building2, Receipt } from 'lucide-react';
+import { ArrowLeft, User, Mail, Calendar, Shield, Trash2, Loader2, Download, AlertTriangle, FileText, PiggyBank, Target, Building2, Receipt, ScrollText, Code } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import api from '@/lib/api';
 import type { Currency } from '@finbrain/shared';
+import { RulesSection } from '@/components/settings/rules-section';
 
 const CURRENCY_OPTIONS = [
   { value: 'USD', label: 'USD - US Dollar' },
@@ -19,13 +20,38 @@ const CURRENCY_OPTIONS = [
   { value: 'AUD', label: 'AUD - Australian Dollar' },
 ];
 
-const DATA_ITEMS = [
-  { icon: FileText, label: 'Transactions', description: 'All transaction history and notes' },
-  { icon: PiggyBank, label: 'Budgets', description: 'All budget categories and limits' },
-  { icon: Target, label: 'Goals', description: 'Savings goals and progress' },
-  { icon: Building2, label: 'Accounts', description: 'Connected accounts and balances' },
-  { icon: Receipt, label: 'Receipts', description: 'Uploaded receipt images' },
+const DATA_TYPES = [
+  { key: 'transactions', icon: FileText, label: 'Transactions', endpoint: '/transactions?limit=10000', filename: 'transactions', fields: ['date', 'description', 'amount', 'type', 'categoryName', 'accountName', 'merchant'] },
+  { key: 'budgets', icon: PiggyBank, label: 'Budgets', endpoint: '/budgets', filename: 'budgets', fields: ['categoryName', 'amount', 'spent', 'period', 'startDate'] },
+  { key: 'goals', icon: Target, label: 'Goals', endpoint: '/goals', filename: 'goals', fields: ['name', 'targetAmount', 'currentAmount', 'deadline', 'categoryName'] },
+  { key: 'accounts', icon: Building2, label: 'Accounts', endpoint: '/accounts', filename: 'accounts', fields: ['name', 'type', 'balance', 'currency', 'institution'] },
+  { key: 'receipts', icon: Receipt, label: 'Receipts', endpoint: '/transactions?limit=10000&hasReceipts=true', filename: 'receipts', fields: ['date', 'description', 'amount', 'receiptUrl'] },
 ];
+
+function downloadCSV(data: Record<string, unknown>[], fields: string[], filename: string) {
+  const header = fields.join(',');
+  const rows = data.map((row) =>
+    fields.map((f) => `"${String(row[f] ?? '').replace(/"/g, '""')}"`).join(',')
+  );
+  const csv = [header, ...rows].join('\n');
+  const blob = new Blob([csv], { type: 'text/csv' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `${filename}-${new Date().toISOString().slice(0, 10)}.csv`;
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+function downloadJSON(data: unknown, filename: string) {
+  const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `${filename}-${new Date().toISOString().slice(0, 10)}.json`;
+  a.click();
+  URL.revokeObjectURL(url);
+}
 
 export default function SettingsPage() {
   const { user, updateCurrency, signOut } = useAuth();
@@ -33,7 +59,7 @@ export default function SettingsPage() {
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [confirmEmail, setConfirmEmail] = useState('');
-  const [exporting, setExporting] = useState(false);
+  const [exportingKey, setExportingKey] = useState<string | null>(null);
 
   const memberSince = user?.createdAt
     ? new Date(user.createdAt).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })
@@ -43,38 +69,28 @@ export default function SettingsPage() {
     ? new Date(user.birthDate).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })
     : null;
 
-  const handleExportData = async () => {
-    setExporting(true);
+  const handleExport = async (key: string, format: 'csv' | 'json') => {
+    setExportingKey(key);
     try {
-      // Fetch all transactions (paginate through all pages)
-      const firstPage = await api.get('/transactions?limit=1000');
-      const total = firstPage.data.data.total || 0;
-      const limit = firstPage.data.data.limit || 100;
-      const pages = Math.ceil(total / limit);
-      let allTxns = [...(firstPage.data.data.data || [])];
-      for (let p = 2; p <= pages; p++) {
-        const pageRes = await api.get(`/transactions?page=${p}&limit=${limit}`);
-        allTxns = allTxns.concat(pageRes.data.data.data || []);
+      const dt = DATA_TYPES.find((d) => d.key === key);
+      if (!dt) return;
+      const res = await api.get(dt.endpoint);
+      let items: Record<string, unknown>[] = [];
+      const d = res.data.data;
+      if (Array.isArray(d)) {
+        items = d;
+      } else if (d?.data && Array.isArray(d.data)) {
+        items = d.data;
       }
-
-      const csvHeader = 'Date,Description,Amount,Category,Account';
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const csvRows = allTxns.map((t: any) =>
-        [t.date, `"${(t.description || '').replace(/"/g, '""')}"`, t.amount, t.categoryName || '', t.accountName || ''].join(',')
-      );
-      const csv = [csvHeader, ...csvRows].join('\n');
-
-      const blob = new Blob([csv], { type: 'text/csv' });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `finbrain-export-${new Date().toISOString().slice(0, 10)}.csv`;
-      a.click();
-      URL.revokeObjectURL(url);
+      if (format === 'csv') {
+        downloadCSV(items, dt.fields, dt.filename);
+      } else {
+        downloadJSON(items, dt.filename);
+      }
     } catch {
       // silent
     } finally {
-      setExporting(false);
+      setExportingKey(null);
     }
   };
 
@@ -177,32 +193,66 @@ export default function SettingsPage() {
         </CardContent>
       </Card>
 
-      {/* Security */}
+      {/* Rules */}
       <Card>
         <CardHeader>
           <CardTitle className="text-base flex items-center gap-2">
-            <Shield className="h-4 w-4" />
-            Security
+            <ScrollText className="h-4 w-4" />
+            Rules
           </CardTitle>
         </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="flex items-center justify-between p-4 rounded-lg bg-white/[0.02] border border-white/[0.04]">
-            <div className="flex items-center gap-3">
-              <Download className="h-4 w-4 text-muted-foreground" />
-              <div>
-                <p className="text-sm font-medium">Export Your Data</p>
-                <p className="text-xs text-muted-foreground">Download all transactions as a CSV file before making changes</p>
-              </div>
-            </div>
-            <Button variant="outline" size="sm" onClick={handleExportData} disabled={exporting} className="gap-2">
-              {exporting ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Download className="h-3.5 w-3.5" />}
-              {exporting ? 'Exporting...' : 'Export'}
-            </Button>
-          </div>
+        <CardContent>
+          <RulesSection />
         </CardContent>
       </Card>
 
-      {/* Danger Zone */}
+      {/* Export Data */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-base flex items-center gap-2">
+            <Download className="h-4 w-4" />
+            Export Data
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-3">
+          {DATA_TYPES.map((dt) => {
+            const Icon = dt.icon;
+            const isExporting = exportingKey === dt.key;
+            return (
+              <div key={dt.key} className="flex items-center justify-between p-3 rounded-lg bg-white/[0.02] border border-white/[0.06]">
+                <div className="flex items-center gap-3">
+                  <Icon className="h-4 w-4 text-muted-foreground" />
+                  <span className="text-sm">{dt.label}</span>
+                </div>
+                <div className="flex gap-2">
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => handleExport(dt.key, 'csv')}
+                    disabled={isExporting}
+                    className="gap-1.5 h-8 text-xs"
+                  >
+                    {isExporting ? <Loader2 className="h-3 w-3 animate-spin" /> : <FileText className="h-3 w-3" />}
+                    CSV
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => handleExport(dt.key, 'json')}
+                    disabled={isExporting}
+                    className="gap-1.5 h-8 text-xs"
+                  >
+                    {isExporting ? <Loader2 className="h-3 w-3 animate-spin" /> : <Code className="h-3 w-3" />}
+                    JSON
+                  </Button>
+                </div>
+              </div>
+            );
+          })}
+        </CardContent>
+      </Card>
+
+      {/* Security */}
       <Card className="border-red-500/20">
         <CardHeader>
           <CardTitle className="text-base flex items-center gap-2 text-red-400">
@@ -242,10 +292,10 @@ export default function SettingsPage() {
               <div>
                 <p className="text-sm font-medium text-red-400">You will lose access to:</p>
                 <ul className="mt-2 space-y-1.5">
-                  {DATA_ITEMS.map((item) => (
-                    <li key={item.label} className="flex items-center gap-2 text-sm text-muted-foreground">
+                  {DATA_TYPES.map((item) => (
+                    <li key={item.key} className="flex items-center gap-2 text-sm text-muted-foreground">
                       <item.icon className="h-3.5 w-3.5 text-red-400/60" />
-                      <span><span className="font-medium text-foreground">{item.label}</span> — {item.description}</span>
+                      <span>{item.label}</span>
                     </li>
                   ))}
                 </ul>
