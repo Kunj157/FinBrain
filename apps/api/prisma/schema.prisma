@@ -84,6 +84,15 @@ model User {
   auditLogs           AuditLog[]
   portfolios          Portfolio[]
 
+  advisorProfile      AdvisorProfile?
+  spendingPatterns    SpendingPattern[]
+  advisorMemories     AdvisorMemory[]
+  advisorConversations AdvisorConversation[]
+  advisorInsights     AdvisorInsight[]
+  scenarios           Scenario[]
+  budgetPlans         BudgetPlan[]
+  recurringPatterns   RecurringPattern[]
+
   @@map("users")
 }
 
@@ -148,6 +157,12 @@ model Transaction {
   isRecurring Boolean         @default(false)
   deletedAt   DateTime?
 
+  reviewed    Boolean         @default(false)
+  needsReview Boolean         @default(false)
+  originalName String?
+  pending     Boolean         @default(false)
+  externalId  String?
+
   userId String
   user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
 
@@ -161,6 +176,8 @@ model Transaction {
   @@index([userId, date])
   @@index([userId, categoryId])
   @@index([userId, deletedAt])
+  @@index([externalId])
+  @@index([userId, needsReview])
   @@map("transactions")
 }
 
@@ -173,6 +190,12 @@ model Budget {
   endDate   DateTime?
   spent     Float        @default(0)
   remaining Float?
+
+  budgetMode        String   @default("category")
+  bucketType        String?
+  rolloverEnabled   Boolean  @default(false)
+  rolloverAmount    Float    @default(0)
+  autoSuggested     Boolean  @default(false)
 
   userId     String
   user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
@@ -395,4 +418,188 @@ model Holding {
 
   @@index([portfolioId])
   @@map("holdings")
+}
+
+model AdvisorProfile {
+  id                    String   @id @default(cuid())
+  userId                String   @unique
+  user                  User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  dataStartDate         DateTime?
+  dataEndDate           DateTime?
+  transactionCount      Int      @default(0)
+  dataQualityScore      Int      @default(0)
+  confidence            String   @default("low")
+
+  monthlyIncomeAvg      Float    @default(0)
+  monthlyExpenseAvg     Float    @default(0)
+  savingsRateAvg        Float    @default(0)
+  emergencyFundMonths   Float    @default(0)
+  debtToIncomeRatio     Float    @default(0)
+  fixedExpenseRatio     Float    @default(0)
+  variableExpenseRatio  Float    @default(0)
+
+  incomeCadence         String?
+  riskLevel             String   @default("unknown")
+  advisorSummary        String?
+  profileJson           Json     @default("{}")
+
+  createdAt             DateTime @default(now())
+  updatedAt             DateTime @updatedAt
+
+  @@map("advisor_profiles")
+}
+
+model SpendingPattern {
+  id              String   @id @default(cuid())
+  userId          String
+  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  categoryId      String?
+  merchant        String?
+  patternType     String
+  cadence         String?
+  avgAmount       Float
+  minAmount       Float?
+  maxAmount       Float?
+  monthAvg        Float?
+  volatility      Float?
+  confidence      Float    @default(0)
+  sampleSize      Int      @default(0)
+  lastSeenAt      DateTime?
+  metadata        Json     @default("{}")
+
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@index([userId, patternType])
+  @@index([userId, categoryId])
+  @@map("spending_patterns")
+}
+
+model AdvisorMemory {
+  id            String   @id @default(cuid())
+  userId        String
+  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  memoryType    String
+  title         String
+  content       String
+  source        String
+  confidence    Float    @default(0)
+  importance    Int      @default(1)
+  validFrom     DateTime @default(now())
+  validUntil    DateTime?
+  metadata      Json     @default("{}")
+
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@index([userId, memoryType])
+  @@map("advisor_memories")
+}
+
+model AdvisorConversation {
+  id          String   @id @default(cuid())
+  userId      String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  title       String?
+  mode        String   @default("advisor")
+  metadata    Json     @default("{}")
+
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  messages    AdvisorMessage[]
+
+  @@map("advisor_conversations")
+}
+
+model AdvisorMessage {
+  id              String   @id @default(cuid())
+  conversationId  String
+  conversation    AdvisorConversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+
+  role            String
+  content         String
+  structuredData  Json?
+  feedback        String?
+  confidence      Float?
+
+  createdAt       DateTime @default(now())
+
+  @@map("advisor_messages")
+}
+
+model AdvisorInsight {
+  id            String   @id @default(cuid())
+  userId        String
+  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  type          String
+  title         String
+  summary       String
+  severity      String   @default("info")
+  priority      Int      @default(0)
+  status        String   @default("active")
+  evidence      Json     @default("[]")
+  actions       Json     @default("[]")
+  expiresAt     DateTime?
+
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@index([userId, status, priority])
+  @@map("advisor_insights")
+}
+
+model Scenario {
+  id              String   @id @default(cuid())
+  userId          String
+  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  name            String
+  scenarioType    String
+  input           Json
+  result          Json
+  recommendation  String
+  confidence      Float
+  createdAt       DateTime @default(now())
+
+  @@map("scenarios")
+}
+
+model BudgetPlan {
+  id          String   @id @default(cuid())
+  userId      String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  mode        String   @default("category")
+  month       DateTime
+  incomePlan  Float?
+  notes       String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@map("budget_plans")
+}
+
+model RecurringPattern {
+  id              String   @id @default(cuid())
+  userId          String
+  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  merchant        String
+  categoryId      String?
+  amountAvg       Float
+  amountLast      Float?
+  cadence         String
+  nextExpectedAt  DateTime?
+  lastSeenAt      DateTime?
+  status          String   @default("active")
+  confidence      Float    @default(0)
+  metadata        Json     @default("{}")
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@map("recurring_patterns")
 }
