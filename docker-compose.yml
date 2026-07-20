@@ -6,8 +6,6 @@ services:
       POSTGRES_USER: finbrain
       POSTGRES_PASSWORD: finbrain
       POSTGRES_DB: finbrain
-    ports:
-      - "5432:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
     healthcheck:
@@ -19,8 +17,6 @@ services:
   redis:
     image: redis:7-alpine
     container_name: finbrain-redis
-    ports:
-      - "6379:6379"
     volumes:
       - redis_data:/data
     healthcheck:
@@ -32,10 +28,15 @@ services:
   api:
     build:
       context: .
-      dockerfile: apps/api/Dockerfile
+      dockerfile: apps/api/Dockerfile.dev
     container_name: finbrain-api
     ports:
       - "4000:4000"
+    environment:
+      DATABASE_URL: postgresql://finbrain:finbrain@postgres:5432/finbrain
+      REDIS_URL: redis://redis:6379
+      PORT: "4000"
+      FRONTEND_URL: http://localhost:5173
     env_file:
       - apps/api/.env
     depends_on:
@@ -54,6 +55,7 @@ services:
     container_name: finbrain-ml
     ports:
       - "8000:8000"
+    command: ["uvicorn", "src.main:app", "--host", "0.0.0.0", "--port", "8000", "--reload"]
     volumes:
       - ./apps/ml-service/src:/app/src
       - ./apps/ml-service/data:/app/data
@@ -61,7 +63,7 @@ services:
   web:
     build:
       context: .
-      dockerfile: apps/web/Dockerfile
+      dockerfile: apps/web/Dockerfile.dev
     container_name: finbrain-web
     ports:
       - "5173:5173"
@@ -72,16 +74,6 @@ services:
     volumes:
       - ./apps/web/src:/app/apps/web/src
       - ./packages:/app/packages
-
-  # devbank:
-  #   Build from https://github.com/ranjankumar-gh/devbanksdk
-  #   or remove this block — the sample data generator provides equivalent functionality
-  #   image: ranjankumar/devbank-sdk:latest
-  #   container_name: finbrain-devbank
-  #   ports:
-  #     - "8001:8000"
-  #   environment:
-  #     - DEV_BANK_API_KEY=devbank-dev-key
 
 volumes:
   postgres_data:
