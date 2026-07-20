@@ -1,8 +1,8 @@
-# FinBrain vs Industry Standard — Feature Gap Analysis & Roadmap
+# FinBrain Feature Gap Analysis — Feature Gap Analysis & Roadmap
 
-> **Purpose**: Match Industry Standard's quality, then surpass it with a deeply personal AI financial assistant.
+> **Purpose**: Match industry-leading quality, then surpass it with a deeply personal AI financial advisor.
 > **Date**: July 2026
-> **Industry Standard Pricing**: Core $14.99/mo ($99.99/yr) | Plus $199/yr
+> **Benchmark**: Industry-leading personal finance platforms
 
 ---
 

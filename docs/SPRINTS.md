@@ -445,3 +445,27 @@ When merging `dev` → `main` for a release:
 - [ ] Tagged with version number
 - [ ] Deployed to staging and verified
 - [ ] Deployed to production
+
+---
+
+## Current State Addendum (July 2026)
+
+The original sprint plan above is partially superseded by the completed Waves 1-2 and the new Monarch-Quality Implementation Plan.
+
+### What's Done (supersedes earlier sprints)
+
+- Sprint 1 (Foundation): ✅ Complete
+- Sprint 2 (Data Ingestion): ✅ Complete
+- Sprint 3 (Finance Core): ✅ Complete
+- Wave 1 (LLM AI Assistant, Investment Holdings, Budget Alerts): ✅ Complete
+- Wave 2 (ML Forecasting, Sankey Diagrams, PDF Export, Cash Flow Projection): ✅ Complete
+
+### What's Next
+
+The detailed implementation plan lives in `docs/MONARCH_ADVISOR_IMPLEMENTATION_PLAN.md`. It covers 18 phases from data integrity through production readiness. The current active work is **Milestone A — Advisor Foundation** (Phases 0-4):
+
+- Phase 0: Documentation cleanup
+- Phase 1: Finance math helpers + data quality
+- Phase 2: Advisor profile, patterns, memory
+- Phase 3: Affordability engine + scenarios
+- Phase 4: Persistent advisor chat
