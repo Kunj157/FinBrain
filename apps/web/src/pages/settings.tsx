@@ -46,16 +46,20 @@ export default function SettingsPage() {
   const handleExportData = async () => {
     setExporting(true);
     try {
-      const [txnsRes] = await Promise.all([
-        api.get('/transactions'),
-        api.get('/accounts'),
-      ]);
-
-      const txns = txnsRes.data.data || [];
+      // Fetch all transactions (paginate through all pages)
+      const firstPage = await api.get('/transactions?limit=1000');
+      const total = firstPage.data.data.total || 0;
+      const limit = firstPage.data.data.limit || 100;
+      const pages = Math.ceil(total / limit);
+      let allTxns = [...(firstPage.data.data.data || [])];
+      for (let p = 2; p <= pages; p++) {
+        const pageRes = await api.get(`/transactions?page=${p}&limit=${limit}`);
+        allTxns = allTxns.concat(pageRes.data.data.data || []);
+      }
 
       const csvHeader = 'Date,Description,Amount,Category,Account';
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const csvRows = txns.map((t: any) =>
+      const csvRows = allTxns.map((t: any) =>
         [t.date, `"${(t.description || '').replace(/"/g, '""')}"`, t.amount, t.categoryName || '', t.accountName || ''].join(',')
       );
       const csv = [csvHeader, ...csvRows].join('\n');
