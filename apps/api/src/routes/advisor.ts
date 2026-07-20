@@ -407,6 +407,95 @@ router.post('/chat', async (req: Request, res: Response) => {
       data: { updatedAt: new Date() },
     });
 
+    // Auto-store memories from significant conversations
+    try {
+      const lowerMsg = message.toLowerCase();
+      const lowerReply = reply.toLowerCase();
+
+      // Store affordability decisions
+      if (structuredData?.type === 'affordability' && isAffordabilityQuestion(message)) {
+        const affordabilityData = structuredData as { decision: { decision: string; summary: string }; purchase: { itemName: string; amount: number | null } };
+        await storeMemory(req.userId, {
+          memoryType: 'financial_decision',
+          title: `Purchase consideration: ${affordabilityData.purchase?.itemName || 'unknown'}`,
+          content: `User asked about buying ${affordabilityData.purchase?.itemName || 'unknown'} for ${affordabilityData.purchase?.amount || 'unknown amount'}. Decision: ${affordabilityData.decision?.decision || 'unknown'}. ${affordabilityData.decision?.summary || ''}`,
+          source: 'advisor_chat',
+          confidence: 0.7,
+          importance: 6,
+        });
+      }
+
+      // Store user preferences detected from questions
+      if (lowerMsg.includes('save') || lowerMsg.includes('saving')) {
+        await storeMemory(req.userId, {
+          memoryType: 'user_preference',
+          title: 'User interested in savings',
+          content: `User asked about savings: "${message.slice(0, 200)}"`,
+          source: 'advisor_chat',
+          confidence: 0.5,
+          importance: 4,
+        });
+      }
+
+      if (lowerMsg.includes('invest') || lowerMsg.includes('portfolio') || lowerMsg.includes('stock')) {
+        await storeMemory(req.userId, {
+          memoryType: 'user_preference',
+          title: 'User interested in investments',
+          content: `User asked about investments: "${message.slice(0, 200)}"`,
+          source: 'advisor_chat',
+          confidence: 0.5,
+          importance: 4,
+        });
+      }
+
+      if (lowerMsg.includes('budget') || lowerMsg.includes('spending')) {
+        await storeMemory(req.userId, {
+          memoryType: 'user_preference',
+          title: 'User focused on budgeting',
+          content: `User asked about budgeting/spending: "${message.slice(0, 200)}"`,
+          source: 'advisor_chat',
+          confidence: 0.5,
+          importance: 4,
+        });
+      }
+
+      if (lowerMsg.includes('goal') || lowerMsg.includes('vacation') || lowerMsg.includes('emergency fund')) {
+        await storeMemory(req.userId, {
+          memoryType: 'user_preference',
+          title: 'User focused on goals',
+          content: `User asked about goals: "${message.slice(0, 200)}"`,
+          source: 'advisor_chat',
+          confidence: 0.5,
+          importance: 4,
+        });
+      }
+
+      // Store significant financial facts mentioned
+      if (lowerMsg.includes('rent') || lowerMsg.includes('mortgage')) {
+        await storeMemory(req.userId, {
+          memoryType: 'financial_fact',
+          title: 'Housing cost discussion',
+          content: `User mentioned housing costs: "${message.slice(0, 200)}"`,
+          source: 'advisor_chat',
+          confidence: 0.6,
+          importance: 5,
+        });
+      }
+
+      if (lowerMsg.includes('salary') || lowerMsg.includes('income') || lowerMsg.includes('raise')) {
+        await storeMemory(req.userId, {
+          memoryType: 'financial_fact',
+          title: 'Income discussion',
+          content: `User mentioned income: "${message.slice(0, 200)}"`,
+          source: 'advisor_chat',
+          confidence: 0.6,
+          importance: 5,
+        });
+      }
+    } catch {
+      // Memory storage is best-effort, don't fail the chat
+    }
+
     res.json({
       success: true,
       data: {
