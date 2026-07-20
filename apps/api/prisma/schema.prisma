@@ -92,8 +92,79 @@ model User {
   scenarios           Scenario[]
   budgetPlans         BudgetPlan[]
   recurringPatterns   RecurringPattern[]
+  creditScores        CreditScore[]
+
+  householdMemberships  HouseholdMember[]
+  membersInvited        HouseholdMember[] @relation("HouseholdMembersInvited")
+  householdInvitesSent  HouseholdInvite[] @relation("HouseholdInvitesSent")
 
   @@map("users")
+}
+
+enum HouseholdRole {
+  OWNER
+  ADMIN
+  MEMBER
+}
+
+enum HouseholdMemberStatus {
+  ACTIVE
+  INVITED
+  LEFT
+}
+
+model Household {
+  id        String   @id @default(cuid())
+  name      String
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  members   HouseholdMember[]
+  invites   HouseholdInvite[]
+
+  @@map("households")
+}
+
+model HouseholdMember {
+  id           String                @id @default(cuid())
+  role         HouseholdRole         @default(MEMBER)
+  status       HouseholdMemberStatus @default(ACTIVE)
+
+  householdId  String
+  household    Household             @relation(fields: [householdId], references: [id], onDelete: Cascade)
+
+  userId       String
+  user         User                  @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  invitedById  String?
+  invitedBy    User?                 @relation("HouseholdMembersInvited", fields: [invitedById], references: [id])
+
+  joinedAt     DateTime?
+  createdAt    DateTime              @default(now())
+  updatedAt    DateTime              @updatedAt
+
+  @@unique([householdId, userId])
+  @@map("household_members")
+}
+
+model HouseholdInvite {
+  id           String   @id @default(cuid())
+  email        String
+  token        String   @unique
+  role         HouseholdRole @default(MEMBER)
+  acceptedAt   DateTime?
+
+  householdId  String
+  household    Household @relation(fields: [householdId], references: [id], onDelete: Cascade)
+
+  invitedById  String
+  invitedBy    User      @relation("HouseholdInvitesSent", fields: [invitedById], references: [id])
+
+  createdAt    DateTime  @default(now())
+  expiresAt    DateTime
+
+  @@map("household_invites")
 }
 
 model Category {
@@ -103,6 +174,8 @@ model Category {
   color  String @default("#6b7280")
   parentId String?
   isCustom Boolean @default(false)
+
+  householdId String?
 
   userId String
   user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
@@ -128,6 +201,8 @@ model Account {
   currency  Currency    @default(USD)
   institution String?
   isActive  Boolean     @default(true)
+
+  householdId String?
 
   userId String
   user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
@@ -163,6 +238,8 @@ model Transaction {
   pending     Boolean         @default(false)
   externalId  String?
 
+  householdId String?
+
   userId String
   user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
 
@@ -196,6 +273,8 @@ model Budget {
   rolloverEnabled   Boolean  @default(false)
   rolloverAmount    Float    @default(0)
   autoSuggested     Boolean  @default(false)
+
+  householdId String?
 
   userId     String
   user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
@@ -234,6 +313,8 @@ model Goal {
   goalType      String   @default("custom")
   icon          String   @default("target")
   estimatedCompletion DateTime?
+
+  householdId String?
 
   userId     String
   user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
@@ -602,4 +683,20 @@ model RecurringPattern {
   updatedAt       DateTime @updatedAt
 
   @@map("recurring_patterns")
+}
+
+model CreditScore {
+  id        String   @id @default(cuid())
+  score     Int
+  provider  String   @default("manual")
+  date      DateTime @default(now())
+  factors   Json?
+
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+
+  @@index([userId, date])
+  @@map("credit_scores")
 }

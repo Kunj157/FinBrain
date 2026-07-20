@@ -25,6 +25,8 @@ import RecurringPage from '@/pages/recurring';
 import InvestmentsPage from '@/pages/investments';
 import ForecastingPage from '@/pages/forecasting';
 import AdvisorPage from '@/pages/advisor';
+import HouseholdPage from '@/pages/household';
+import CreditScorePage from '@/pages/credit-score';
 export default function App() {
   return (
     <QueryClientProvider client={queryClient}>
@@ -60,6 +62,8 @@ export default function App() {
               <Route path="/investments" element={<InvestmentsPage />} />
               <Route path="/forecasting" element={<ForecastingPage />} />
               <Route path="/advisor" element={<AdvisorPage />} />
+              <Route path="/household" element={<HouseholdPage />} />
+              <Route path="/credit-score" element={<CreditScorePage />} />
             </Route>
           </Routes>
         </AuthProvider>

@@ -1,7 +1,7 @@
 import { useState, useMemo, useCallback, useEffect } from 'react';
 import {
   FileText, Download, Printer, ChevronLeft, ChevronRight, Loader2,
-  TrendingUp, TrendingDown, ArrowUpRight, ArrowDownRight,
+  TrendingUp, TrendingDown, ArrowUpRight, ArrowDownRight, Receipt,
 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -63,6 +63,19 @@ export default function Reports() {
   const [loading, setLoading] = useState(true);
   const [reportType, setReportType] = useState<ReportType>('monthly');
   const [currentDate, setCurrentDate] = useState(new Date());
+  const [taxYear, setTaxYear] = useState(new Date().getFullYear());
+  const [deductibleCats, setDeductibleCats] = useState<Record<string, boolean>>(() => {
+    try {
+      const saved = localStorage.getItem('finbrain-deductible-cats');
+      return saved ? JSON.parse(saved) : {};
+    } catch { return {}; }
+  });
+
+  const toggleDeductible = (catId: string) => {
+    const next = { ...deductibleCats, [catId]: !deductibleCats[catId] };
+    setDeductibleCats(next);
+    localStorage.setItem('finbrain-deductible-cats', JSON.stringify(next));
+  };
 
   const fetchData = useCallback(async () => {
     setLoading(true);
@@ -537,6 +550,91 @@ export default function Reports() {
               <p className="text-sm font-medium mt-0.5">{report.categoryBreakdown.length}</p>
             </div>
           </div>
+        </CardContent>
+      </Card>
+
+      <Card className="stat-card">
+        <CardHeader className="pb-2">
+          <CardTitle className="text-sm font-medium flex items-center gap-2">
+            <Receipt className="h-4 w-4" />
+            Tax Summary — {taxYear}
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="flex items-center gap-2 mb-4">
+            <Button variant="ghost" size="sm" onClick={() => setTaxYear((y) => y - 1)} className="h-7 w-7 p-0">
+              <ChevronLeft className="h-3.5 w-3.5" />
+            </Button>
+            <span className="text-sm font-medium">{taxYear}</span>
+            <Button variant="ghost" size="sm" onClick={() => setTaxYear((y) => y + 1)} className="h-7 w-7 p-0">
+              <ChevronRight className="h-3.5 w-3.5" />
+            </Button>
+          </div>
+          {(() => {
+            const taxTxns = transactions.filter((t) => {
+              const d = new Date(t.date);
+              return t.type === 'expense' && d.getFullYear() === taxYear;
+            });
+            const byCategory = Object.entries(
+              taxTxns.reduce((acc, t) => {
+                acc[t.categoryId] = (acc[t.categoryId] || 0) + Math.abs(t.amount);
+                return acc;
+              }, {} as Record<string, number>)
+            )
+              .map(([id, amount]) => ({
+                id, name: catMap[id]?.name || 'Other',
+                amount, color: catMap[id]?.color || '#64748b',
+                deductible: !!deductibleCats[id],
+              }))
+              .sort((a, b) => b.amount - a.amount);
+
+            const totalDeductible = byCategory.filter((c) => c.deductible).reduce((s, c) => s + c.amount, 0);
+            const totalExpenses = byCategory.reduce((s, c) => s + c.amount, 0);
+
+            return (
+              <div className="space-y-3">
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-3">
+                  <div className="p-2.5 rounded-lg bg-white/[0.02]">
+                    <p className="text-[10px] text-muted-foreground">Total Expenses</p>
+                    <p className="text-sm font-medium">{formatCurrency(totalExpenses, currency)}</p>
+                  </div>
+                  <div className="p-2.5 rounded-lg bg-emerald-500/5">
+                    <p className="text-[10px] text-muted-foreground">Deductible</p>
+                    <p className="text-sm font-medium text-emerald-400">{formatCurrency(totalDeductible, currency)}</p>
+                  </div>
+                  <div className="p-2.5 rounded-lg bg-white/[0.02]">
+                    <p className="text-[10px] text-muted-foreground">Transactions</p>
+                    <p className="text-sm font-medium">{taxTxns.length}</p>
+                  </div>
+                  <div className="p-2.5 rounded-lg bg-white/[0.02]">
+                    <p className="text-[10px] text-muted-foreground">Categories</p>
+                    <p className="text-sm font-medium">{byCategory.length}</p>
+                  </div>
+                </div>
+                <p className="text-xs text-muted-foreground mb-2">
+                  Mark categories as tax deductible by clicking the checkbox:
+                </p>
+                {byCategory.map((c) => (
+                  <div key={c.id} className="flex items-center justify-between p-2 rounded-lg bg-white/[0.02] hover:bg-white/[0.04] transition-colors">
+                    <div className="flex items-center gap-2">
+                      <button onClick={() => toggleDeductible(c.id)} className="flex-shrink-0">
+                        <div className={`w-4 h-4 rounded border ${c.deductible ? 'bg-emerald-500 border-emerald-500' : 'border-gray-600'} flex items-center justify-center`}>
+                          {c.deductible && (
+                            <svg className="w-3 h-3 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
+                            </svg>
+                          )}
+                        </div>
+                      </button>
+                      <div className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: c.color }} />
+                      <span className="text-xs">{c.name}</span>
+                    </div>
+                    <span className="text-xs font-medium">{formatCurrency(c.amount, currency)}</span>
+                  </div>
+                ))}
+              </div>
+            );
+          })()}
         </CardContent>
       </Card>
     </div>

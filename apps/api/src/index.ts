@@ -28,6 +28,8 @@ import notificationsRoutes, { checkBudgetAlerts } from './routes/notifications';
 import forecastRoutes from './routes/forecast';
 import advisorRoutes from './routes/advisor';
 import dataQualityRoutes from './routes/data-quality';
+import householdRoutes from './routes/households';
+import creditScoreRoutes from './routes/credit-score';
 
 const app = express();
 const PORT = process.env.PORT || 4000;
@@ -71,6 +73,8 @@ app.use('/api/v1/notifications', notificationsRoutes);
 app.use('/api/v1/forecast', forecastRoutes);
 app.use('/api/v1/advisor', advisorRoutes);
 app.use('/api/v1/data-quality', dataQualityRoutes);
+app.use('/api/v1/households', householdRoutes);
+app.use('/api/v1/credit-score', creditScoreRoutes);
 
 app.get('/api/v1/audit-logs', async (req, res) => {
   const { entity, limit: l } = req.query;

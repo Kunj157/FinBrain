@@ -19,6 +19,8 @@ import {
   Briefcase,
   TrendingUp,
   MessageSquare,
+  Users,
+  Activity,
 } from 'lucide-react';
 
 const navItems = [
@@ -26,6 +28,8 @@ const navItems = [
 
   { icon: Building2, label: 'Accounts', path: '/accounts' },
   { icon: Briefcase, label: 'Investments', path: '/investments' },
+  { icon: Users, label: 'Household', path: '/household' },
+  { icon: Activity, label: 'Credit Score', path: '/credit-score' },
   { icon: ArrowRightLeft, label: 'Transactions', path: '/transactions' },
   { icon: Tags, label: 'Categories', path: '/categories' },
   { icon: PiggyBank, label: 'Budgets', path: '/budgets' },

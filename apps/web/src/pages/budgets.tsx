@@ -1,5 +1,5 @@
 import { useState, useMemo, useCallback, useEffect } from 'react';
-import { Plus, PiggyBank, Pencil, Trash2, X, Check, Loader2, AlertTriangle } from 'lucide-react';
+import { Plus, PiggyBank, Pencil, Trash2, X, Check, Loader2, AlertTriangle, Layers } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Select } from '@/components/ui/select';
@@ -22,6 +22,23 @@ interface Budget {
   remaining: number;
   createdAt: string;
   updatedAt: string;
+  budgetMode?: string;
+  bucketType?: string | null;
+}
+
+interface FlexCategory {
+  categoryId: string;
+  categoryName: string;
+  bucketType: string;
+  reason: string;
+}
+
+interface FlexPlan {
+  month: string;
+  fixed: Array<{ category: string; budget: number; spent: number }>;
+  flexible: Array<{ category: string; budget: number; spent: number }>;
+  nonMonthly: Array<{ category: string; budget: number; spent: number }>;
+  suggestedCategories: FlexCategory[];
 }
 
 type FormMode = 'create' | 'edit';
@@ -31,6 +48,24 @@ const PERIODS = [
   { value: 'monthly', label: 'Monthly' },
   { value: 'yearly', label: 'Yearly' },
 ] as const;
+
+const BUCKET_ICONS: Record<string, string> = {
+  fixed: '🔒',
+  flexible: '🔄',
+  non_monthly: '📅',
+};
+
+const BUCKET_COLORS: Record<string, string> = {
+  fixed: 'border-blue-500/30 bg-blue-500/5',
+  flexible: 'border-emerald-500/30 bg-emerald-500/5',
+  non_monthly: 'border-amber-500/30 bg-amber-500/5',
+};
+
+const BUCKET_HEADINGS: Record<string, { title: string; desc: string }> = {
+  fixed: { title: 'Fixed Expenses', desc: 'Consistent monthly bills (rent, insurance, subscriptions)' },
+  flexible: { title: 'Flexible Spending', desc: 'Variable monthly costs (groceries, dining, shopping)' },
+  non_monthly: { title: 'Non-Monthly', desc: 'Quarterly, annual, or irregular expenses' },
+};
 
 export default function Budgets() {
   const { user } = useAuth();
@@ -42,6 +77,9 @@ export default function Budgets() {
   const [showForm, setShowForm] = useState(false);
   const [formMode, setFormMode] = useState<FormMode>('create');
   const [editingBudget, setEditingBudget] = useState<Budget | null>(null);
+  const [budgetMode, setBudgetMode] = useState<'category' | 'flex'>('category');
+  const [flexPlan, setFlexPlan] = useState<FlexPlan | null>(null);
+  const [flexLoading, setFlexLoading] = useState(false);
 
   const fetchData = useCallback(async () => {
     setLoading(true);
@@ -104,6 +142,19 @@ export default function Budgets() {
     fetchData();
   }, [fetchData]);
 
+  const loadFlexPlan = useCallback(async () => {
+    setFlexLoading(true);
+    try {
+      const res = await api.get('/budgets/flex/plan');
+      setFlexPlan(res.data.data);
+    } catch { /* silent */ }
+    setFlexLoading(false);
+  }, []);
+
+  useEffect(() => {
+    if (budgetMode === 'flex') loadFlexPlan();
+  }, [budgetMode, loadFlexPlan]);
+
   return (
     <div className="space-y-6 animate-fade-in">
       <div className="flex items-center justify-between">
@@ -119,6 +170,127 @@ export default function Budgets() {
         </Button>
       </div>
 
+      <div className="flex bg-gray-800/50 rounded-lg p-0.5 w-fit">
+        <button
+          onClick={() => setBudgetMode('category')}
+          className={`px-3 py-1.5 rounded-md text-xs font-medium transition-all flex items-center gap-1.5 ${budgetMode === 'category' ? 'bg-gray-700 text-white' : 'text-gray-400 hover:text-white'}`}
+        >
+          <PiggyBank className="h-3.5 w-3.5" /> Category Budgets
+        </button>
+        <button
+          onClick={() => setBudgetMode('flex')}
+          className={`px-3 py-1.5 rounded-md text-xs font-medium transition-all flex items-center gap-1.5 ${budgetMode === 'flex' ? 'bg-gray-700 text-white' : 'text-gray-400 hover:text-white'}`}
+        >
+          <Layers className="h-3.5 w-3.5" /> Flex Budgets
+        </button>
+      </div>
+
+      {budgetMode === 'flex' ? (
+        flexLoading ? (
+          <div className="py-16 text-center">
+            <Loader2 className="h-10 w-10 text-muted-foreground/30 mx-auto animate-spin" />
+          </div>
+        ) : flexPlan ? (
+          <div className="space-y-6">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              {(['fixed', 'flexible', 'non_monthly'] as const).map((bucket) => {
+                const items = flexPlan[bucket === 'non_monthly' ? 'nonMonthly' : bucket === 'flexible' ? 'flexible' : 'fixed'];
+                const totalBudgeted = items.reduce((s, i) => s + i.budget, 0);
+                const totalSpentInBucket = items.reduce((s, i) => s + i.spent, 0);
+                return (
+                  <Card key={bucket} className={`${BUCKET_COLORS[bucket]} border`}>
+                    <CardHeader>
+                      <CardTitle className="text-xs text-muted-foreground flex items-center gap-1.5">
+                        <span>{BUCKET_ICONS[bucket]}</span> {BUCKET_HEADINGS[bucket].title}
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <p className="text-xl font-semibold">{formatCurrency(totalBudgeted, currency)}</p>
+                      <p className="text-xs text-muted-foreground">{formatCurrency(totalSpentInBucket, currency)} spent</p>
+                    </CardContent>
+                  </Card>
+                );
+              })}
+            </div>
+
+            {(['fixed', 'flexible', 'non_monthly'] as const).map((bucket) => {
+              const items = flexPlan[bucket === 'non_monthly' ? 'nonMonthly' : bucket === 'flexible' ? 'flexible' : 'fixed'];
+              if (items.length === 0) return null;
+              return (
+                <Card key={bucket} className="border-white/[0.06]">
+                  <CardHeader>
+                    <CardTitle className="text-sm font-medium flex items-center gap-2">
+                      <span>{BUCKET_ICONS[bucket]}</span>
+                      {BUCKET_HEADINGS[bucket].title}
+                    </CardTitle>
+                    <p className="text-xs text-muted-foreground">{BUCKET_HEADINGS[bucket].desc}</p>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="space-y-3">
+                      {items.map((item, idx) => {
+                        const pct = item.budget > 0 ? Math.min((item.spent / item.budget) * 100, 100) : 0;
+                        return (
+                          <div key={idx}>
+                            <div className="flex items-center justify-between text-sm mb-1">
+                              <span className="text-white">{item.category}</span>
+                              <div className="flex items-center gap-2">
+                                <span className="text-muted-foreground">{formatCurrency(item.spent, currency)}</span>
+                                <span className="text-white font-medium">/ {formatCurrency(item.budget, currency)}</span>
+                              </div>
+                            </div>
+                            <div className="relative h-1.5 rounded-full bg-white/[0.06] overflow-hidden">
+                              <div
+                                className={`absolute inset-y-0 left-0 rounded-full transition-all ${
+                                  pct >= 100 ? 'bg-rose-500' : pct >= 90 ? 'bg-amber-500' : 'bg-emerald-500'
+                                }`}
+                                style={{ width: `${pct}%` }}
+                              />
+                            </div>
+                            <div className="text-xs text-muted-foreground mt-0.5">{pct.toFixed(0)}%</div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </CardContent>
+                </Card>
+              );
+            })}
+
+            {flexPlan.suggestedCategories.length > 0 && (
+              <Card className="border-white/[0.06]">
+                <CardHeader>
+                  <CardTitle className="text-sm font-medium">Suggested Bucket Assignments</CardTitle>
+                  <p className="text-xs text-muted-foreground">
+                    Based on your spending patterns, these categories have been classified:
+                  </p>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-2">
+                    {flexPlan.suggestedCategories.map((sc) => (
+                      <div key={sc.categoryId} className="flex items-center justify-between p-2 bg-gray-800/50 rounded-lg">
+                        <div className="flex items-center gap-2">
+                          <span>{BUCKET_ICONS[sc.bucketType] || '📦'}</span>
+                          <span className="text-sm text-white">{sc.categoryName}</span>
+                        </div>
+                        <span className="text-xs text-muted-foreground">{sc.bucketType.replace('_', ' ')}</span>
+                      </div>
+                    ))}
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+          </div>
+        ) : (
+          <div className="py-16 text-center">
+            <Layers className="h-10 w-10 text-muted-foreground/30 mx-auto" />
+            <p className="text-sm text-muted-foreground mt-3">No flex budgets found</p>
+            <p className="text-xs text-muted-foreground/60 mt-1">
+              Set up category budgets first, then switch to flex view
+            </p>
+          </div>
+        )
+      ) : (
+        <>
       {budgets.length > 0 && (
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
           <Card>
@@ -260,6 +432,8 @@ export default function Budgets() {
               );
             })}
         </div>
+      )}
+      </>
       )}
 
       {showForm && (

@@ -9,6 +9,9 @@ import {
   ChevronUp,
   Loader2,
   Repeat,
+  List,
+  ChevronLeft,
+  ChevronRight,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -33,6 +36,9 @@ const FREQUENCY_LABELS: Record<string, string> = {
   yearly: 'Yearly',
 };
 
+const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+const DAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+
 export default function Recurring() {
   const { user } = useAuth();
   const currency = (user?.currency || 'USD') as SharedCurrency;
@@ -42,6 +48,9 @@ export default function Recurring() {
   const [loading, setLoading] = useState(true);
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [showInactive, setShowInactive] = useState(false);
+  const [view, setView] = useState<'list' | 'calendar'>('list');
+  const [calendarMonth, setCalendarMonth] = useState(new Date().getMonth());
+  const [calendarYear, setCalendarYear] = useState(new Date().getFullYear());
 
   const fetchData = useCallback(async () => {
     setLoading(true);
@@ -59,14 +68,32 @@ export default function Recurring() {
   useEffect(() => { fetchData(); }, [fetchData]);
 
   const now = new Date();
-  const upcomingPatterns = patterns.filter(p => {
-    const next = new Date(p.nextExpectedDate);
-    return next >= now;
-  });
-  const pastPatterns = patterns.filter(p => {
-    const next = new Date(p.nextExpectedDate);
-    return next < now;
-  });
+  const upcomingPatterns = patterns.filter(p => new Date(p.nextExpectedDate) >= now);
+  const pastPatterns = patterns.filter(p => new Date(p.nextExpectedDate) < now);
+
+  const daysInMonth = new Date(calendarYear, calendarMonth + 1, 0).getDate();
+  const firstDayOfWeek = new Date(calendarYear, calendarMonth, 1).getDay();
+  const calendarDays = Array.from({ length: daysInMonth }, (_, i) => i + 1);
+
+  const patternsByDate: Record<number, RecurringPattern[]> = {};
+  for (const p of patterns) {
+    const d = new Date(p.nextExpectedDate);
+    if (d.getMonth() === calendarMonth && d.getFullYear() === calendarYear) {
+      const day = d.getDate();
+      if (!patternsByDate[day]) patternsByDate[day] = [];
+      patternsByDate[day].push(p);
+    }
+  }
+
+  function prevMonth() {
+    if (calendarMonth === 0) { setCalendarMonth(11); setCalendarYear(y => y - 1); }
+    else setCalendarMonth(m => m - 1);
+  }
+
+  function nextMonth() {
+    if (calendarMonth === 11) { setCalendarMonth(0); setCalendarYear(y => y + 1); }
+    else setCalendarMonth(m => m + 1);
+  }
 
   return (
     <div className="space-y-6 animate-fade-in">
@@ -77,10 +104,26 @@ export default function Recurring() {
             Detected bills and subscriptions from your transaction history
           </p>
         </div>
-        <Button variant="outline" size="sm" onClick={fetchData} className="gap-2">
-          <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
-          Refresh
-        </Button>
+        <div className="flex items-center gap-2">
+          <div className="flex bg-gray-800/50 rounded-lg p-0.5">
+            <button
+              onClick={() => setView('list')}
+              className={`px-3 py-1.5 rounded-md text-xs font-medium transition-all ${view === 'list' ? 'bg-gray-700 text-white' : 'text-gray-400 hover:text-white'}`}
+            >
+              <List className="h-3.5 w-3.5 inline mr-1" /> List
+            </button>
+            <button
+              onClick={() => setView('calendar')}
+              className={`px-3 py-1.5 rounded-md text-xs font-medium transition-all ${view === 'calendar' ? 'bg-gray-700 text-white' : 'text-gray-400 hover:text-white'}`}
+            >
+              <Calendar className="h-3.5 w-3.5 inline mr-1" /> Calendar
+            </button>
+          </div>
+          <Button variant="outline" size="sm" onClick={fetchData} className="gap-2">
+            <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
+            Refresh
+          </Button>
+        </div>
       </div>
 
       {summary && (
@@ -140,6 +183,63 @@ export default function Recurring() {
             Import more transactions to detect recurring patterns
           </p>
         </div>
+      ) : view === 'calendar' ? (
+        <Card className="border-white/[0.06]">
+          <CardContent className="p-4">
+            <div className="flex items-center justify-between mb-4">
+              <button onClick={prevMonth} className="p-1 hover:bg-white/[0.04] rounded">
+                <ChevronLeft className="h-5 w-5 text-muted-foreground" />
+              </button>
+              <h3 className="text-sm font-medium">
+                {MONTHS[calendarMonth]} {calendarYear}
+              </h3>
+              <button onClick={nextMonth} className="p-1 hover:bg-white/[0.04] rounded">
+                <ChevronRight className="h-5 w-5 text-muted-foreground" />
+              </button>
+            </div>
+            <div className="grid grid-cols-7 gap-px bg-white/[0.04] rounded-lg overflow-hidden">
+              {DAYS.map(d => (
+                <div key={d} className="bg-gray-900/60 p-2 text-center">
+                  <span className="text-[10px] font-medium text-muted-foreground uppercase">{d}</span>
+                </div>
+              ))}
+              {Array.from({ length: firstDayOfWeek }).map((_, i) => (
+                <div key={`empty-${i}`} className="bg-gray-900/60 p-2 min-h-[80px]" />
+              ))}
+              {calendarDays.map(day => {
+                const dayPatterns = patternsByDate[day] || [];
+                const isToday = day === new Date().getDate() && calendarMonth === new Date().getMonth() && calendarYear === new Date().getFullYear();
+                return (
+                  <div
+                    key={day}
+                    className={`bg-gray-900/60 p-1.5 min-h-[80px] hover:bg-gray-800/60 transition-colors ${isToday ? 'ring-1 ring-emerald-500/30' : ''}`}
+                  >
+                    <span className={`text-xs font-medium ${isToday ? 'text-emerald-400' : 'text-muted-foreground'}`}>
+                      {day}
+                    </span>
+                    <div className="mt-1 space-y-0.5">
+                      {dayPatterns.slice(0, 3).map(p => (
+                        <div
+                          key={p.id}
+                          className="text-[10px] px-1 py-0.5 rounded truncate"
+                          style={{ backgroundColor: `${p.categoryColor}20`, color: p.categoryColor }}
+                          title={`${p.merchant}: ${formatCurrency(p.avgAmount, currency)}`}
+                        >
+                          {p.merchant}
+                        </div>
+                      ))}
+                      {dayPatterns.length > 3 && (
+                        <div className="text-[10px] text-muted-foreground px-1">
+                          +{dayPatterns.length - 3} more
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </CardContent>
+        </Card>
       ) : (
         <div className="space-y-4">
           {upcomingPatterns.length > 0 && (

@@ -4,7 +4,7 @@ import { Select } from '@/components/ui/select';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Dialog, DialogHeader, DialogTitle, DialogDescription, DialogContent, DialogFooter, DialogClose } from '@/components/ui/dialog';
 import { useNavigate } from 'react-router-dom';
-import { ArrowLeft, User, Mail, Calendar, Shield, Trash2, Loader2, Download, AlertTriangle, FileText, PiggyBank, Target, Building2, Receipt, ScrollText, Code } from 'lucide-react';
+import { ArrowLeft, User, Mail, Calendar, Shield, Trash2, Loader2, Download, AlertTriangle, FileText, PiggyBank, Target, Building2, Receipt, ScrollText, Code, Bell } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import api from '@/lib/api';
 import type { Currency } from '@finbrain/shared';
@@ -60,6 +60,33 @@ export default function SettingsPage() {
   const [deleting, setDeleting] = useState(false);
   const [confirmEmail, setConfirmEmail] = useState('');
   const [exportingKey, setExportingKey] = useState<string | null>(null);
+
+  const [notifPrefs, setNotifPrefs] = useState<Record<string, boolean>>(() => {
+    try {
+      const saved = localStorage.getItem('finbrain-notif-prefs');
+      return saved ? JSON.parse(saved) : {
+        budget_alerts: true,
+        goal_milestones: true,
+        weekly_summary: false,
+        unusual_activity: true,
+        tips: false,
+      };
+    } catch { return {}; }
+  });
+
+  const updateNotifPref = (key: string, value: boolean) => {
+    const next = { ...notifPrefs, [key]: value };
+    setNotifPrefs(next);
+    try { localStorage.setItem('finbrain-notif-prefs', JSON.stringify(next)); } catch { /* ignore */ }
+  };
+
+  const NOTIF_TYPES = [
+    { key: 'budget_alerts', label: 'Budget Alerts', desc: 'When budgets reach 75%, 90%, or 100% utilization' },
+    { key: 'goal_milestones', label: 'Goal Milestones', desc: 'When goals reach key progress points' },
+    { key: 'unusual_activity', label: 'Unusual Activity', desc: 'Unusual spending patterns or large transactions' },
+    { key: 'weekly_summary', label: 'Weekly Summary', desc: 'Weekly financial summary and insights' },
+    { key: 'tips', label: 'Financial Tips', desc: 'Personalized tips to improve your finances' },
+  ];
 
   const memberSince = user?.createdAt
     ? new Date(user.createdAt).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })
@@ -190,6 +217,34 @@ export default function SettingsPage() {
               options={CURRENCY_OPTIONS}
             />
           </div>
+        </CardContent>
+      </Card>
+
+      {/* Notifications */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-base flex items-center gap-2">
+            <Bell className="h-4 w-4" />
+            Notifications
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-3">
+          {NOTIF_TYPES.map((nt) => (
+            <div key={nt.key} className="flex items-center justify-between p-3 rounded-lg bg-white/[0.02] border border-white/[0.06]">
+              <div>
+                <p className="text-sm font-medium">{nt.label}</p>
+                <p className="text-xs text-muted-foreground">{nt.desc}</p>
+              </div>
+              <button
+                onClick={() => updateNotifPref(nt.key, !notifPrefs[nt.key])}
+                className={`relative w-10 h-5 rounded-full transition-colors ${notifPrefs[nt.key] ? 'bg-emerald-500' : 'bg-gray-600'}`}
+              >
+                <span
+                  className={`absolute top-0.5 left-0.5 w-4 h-4 rounded-full bg-white transition-transform ${notifPrefs[nt.key] ? 'translate-x-5' : ''}`}
+                />
+              </button>
+            </div>
+          ))}
         </CardContent>
       </Card>
 
