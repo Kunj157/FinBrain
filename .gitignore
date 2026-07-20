@@ -10,6 +10,10 @@ coverage/
 *.tsbuildinfo
 .turbo/
 
+# Agent context (local only, never push)
+AGENTS.md
+memory/
+
 # Python
 __pycache__/
 *.pyc
