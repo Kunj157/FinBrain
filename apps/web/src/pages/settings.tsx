@@ -307,6 +307,37 @@ export default function SettingsPage() {
         </CardContent>
       </Card>
 
+      {/* Scheduled Reports */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-base flex items-center gap-2">
+            <FileText className="h-4 w-4" />
+            Scheduled Reports
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <p className="text-sm text-muted-foreground">
+            Set up automatic report delivery to your email.
+          </p>
+          <div className="flex items-center gap-3">
+            <input
+              type="email"
+              placeholder="your@email.com"
+              defaultValue={user?.email || ''}
+              className="flex-1 h-10 px-3 rounded-lg bg-white/[0.03] border border-white/[0.06] text-sm text-foreground placeholder:text-muted-foreground/50 focus:outline-none focus:ring-2 focus:ring-emerald-500/20"
+            />
+            <select className="h-10 px-3 rounded-lg bg-white/[0.03] border border-white/[0.06] text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-emerald-500/20">
+              <option value="monthly">Monthly</option>
+              <option value="quarterly">Quarterly</option>
+              <option value="annual">Annual</option>
+            </select>
+            <Button size="sm" onClick={() => { api.post('/scheduled-reports', { reportType: 'monthly', email: user?.email || '' }).then(() => alert('Report scheduled!')).catch(() => {}); }}>
+              Schedule
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
+
       {/* Security */}
       <Card className="border-red-500/20">
         <CardHeader>

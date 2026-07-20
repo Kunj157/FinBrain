@@ -30,6 +30,7 @@ import advisorRoutes from './routes/advisor';
 import dataQualityRoutes from './routes/data-quality';
 import householdRoutes from './routes/households';
 import creditScoreRoutes from './routes/credit-score';
+import scheduledReportRoutes from './routes/scheduled-reports';
 
 const app = express();
 const PORT = process.env.PORT || 4000;
@@ -75,6 +76,7 @@ app.use('/api/v1/advisor', advisorRoutes);
 app.use('/api/v1/data-quality', dataQualityRoutes);
 app.use('/api/v1/households', householdRoutes);
 app.use('/api/v1/credit-score', creditScoreRoutes);
+app.use('/api/v1/scheduled-reports', scheduledReportRoutes);
 
 app.get('/api/v1/audit-logs', async (req, res) => {
   const { entity, limit: l } = req.query;
