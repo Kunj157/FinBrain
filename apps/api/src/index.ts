@@ -26,6 +26,8 @@ import aiRoutes from './routes/ai';
 import investmentsRoutes from './routes/investments';
 import notificationsRoutes, { checkBudgetAlerts } from './routes/notifications';
 import forecastRoutes from './routes/forecast';
+import advisorRoutes from './routes/advisor';
+import dataQualityRoutes from './routes/data-quality';
 
 const app = express();
 const PORT = process.env.PORT || 4000;
@@ -67,6 +69,8 @@ app.use('/api/v1/ai', aiRoutes);
 app.use('/api/v1/investments', investmentsRoutes);
 app.use('/api/v1/notifications', notificationsRoutes);
 app.use('/api/v1/forecast', forecastRoutes);
+app.use('/api/v1/advisor', advisorRoutes);
+app.use('/api/v1/data-quality', dataQualityRoutes);
 
 app.get('/api/v1/audit-logs', async (req, res) => {
   const { entity, limit: l } = req.query;
