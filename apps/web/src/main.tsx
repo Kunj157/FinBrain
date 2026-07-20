@@ -34,3 +34,12 @@ createRoot(document.getElementById('root')!).render(
     </Root>
   </StrictMode>,
 );
+
+// Register service worker for PWA offline support
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('/sw.js').catch(() => {
+      // Service worker registration failed silently
+    });
+  });
+}
