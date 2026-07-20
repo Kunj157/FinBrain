@@ -43,6 +43,8 @@ const querySchema = z.object({
   sort: z.string().default('date'),
   order: z.enum(['asc', 'desc']).default('desc'),
   deleted: z.coerce.boolean().default(false),
+  needsReview: z.coerce.boolean().optional(),
+  reviewed: z.coerce.boolean().optional(),
 });
 
 const SORT_FIELD_MAP: Record<string, string> = {
@@ -59,7 +61,7 @@ router.get('/', async (req: Request, res: Response) => {
     return res.status(400).json({ success: false, error: 'Invalid query', details: parsed.error.format() });
   }
 
-  const { page, limit, type, categoryId, startDate, endDate, search, paymentMethod, sort, order, deleted } = parsed.data;
+  const { page, limit, type, categoryId, startDate, endDate, search, paymentMethod, sort, order, deleted, needsReview, reviewed } = parsed.data;
 
   const where: Prisma.TransactionWhereInput = {
     userId: req.userId,
@@ -69,6 +71,8 @@ router.get('/', async (req: Request, res: Response) => {
     ...(paymentMethod && { paymentMethod }),
     ...(startDate && { date: { gte: new Date(startDate) } }),
     ...(endDate && { date: { lte: new Date(endDate + 'T23:59:59.999Z') } }),
+    ...(needsReview !== undefined && { needsReview }),
+    ...(reviewed !== undefined && { reviewed }),
     ...(search && {
       OR: [
         { description: { contains: search, mode: 'insensitive' } },

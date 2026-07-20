@@ -2,6 +2,7 @@ import { Router, type Request, type Response } from 'express';
 import { z } from 'zod';
 import { type Budget } from '@prisma/client';
 import { prisma } from '../prisma';
+import { suggestBudgets, autoSuggestBudgets, detectFlexCategories } from '../services/budget-suggest';
 
 const router = Router();
 
@@ -156,6 +157,75 @@ router.delete('/:id', async (req: Request, res: Response) => {
 
   await prisma.budget.delete({ where: { id: req.params.id } });
   res.json({ success: true, message: 'Budget deleted' });
+});
+
+router.get('/suggest/auto', async (req: Request, res: Response) => {
+  try {
+    const suggestions = await suggestBudgets(req.userId);
+    res.json({ success: true, data: suggestions });
+  } catch (err) {
+    console.error('Budget suggestion error:', err);
+    res.status(500).json({ success: false, error: 'Failed to generate suggestions' });
+  }
+});
+
+router.post('/suggest/auto', async (req: Request, res: Response) => {
+  try {
+    const budgets = await autoSuggestBudgets(req.userId);
+    res.json({ success: true, data: budgets, message: `Created ${budgets.length} auto-suggested budget(s)` });
+  } catch (err) {
+    console.error('Auto-suggest error:', err);
+    res.status(500).json({ success: false, error: 'Failed to auto-suggest budgets' });
+  }
+});
+
+router.get('/flex/categories', async (req: Request, res: Response) => {
+  try {
+    const categories = await detectFlexCategories(req.userId);
+    res.json({ success: true, data: categories });
+  } catch (err) {
+    console.error('Flex categories error:', err);
+    res.status(500).json({ success: false, error: 'Failed to detect flex categories' });
+  }
+});
+
+router.get('/flex/plan', async (req: Request, res: Response) => {
+  try {
+    const now = new Date();
+    const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+
+    const budgets = await prisma.budget.findMany({
+      where: { userId: req.userId, startDate: monthStart },
+      include: { category: { select: { name: true } } },
+    });
+
+    const categories = await detectFlexCategories(req.userId);
+
+    const plan = {
+      month: monthStart.toISOString(),
+      fixed: budgets.filter((b) => b.bucketType === 'fixed').map((b) => ({
+        category: b.category?.name || 'Unknown',
+        budget: b.amount,
+        spent: b.spent,
+      })),
+      flexible: budgets.filter((b) => b.bucketType === 'flexible' || !b.bucketType).map((b) => ({
+        category: b.category?.name || 'Unknown',
+        budget: b.amount,
+        spent: b.spent,
+      })),
+      nonMonthly: budgets.filter((b) => b.bucketType === 'non_monthly').map((b) => ({
+        category: b.category?.name || 'Unknown',
+        budget: b.amount,
+        spent: b.spent,
+      })),
+      suggestedCategories: categories,
+    };
+
+    res.json({ success: true, data: plan });
+  } catch (err) {
+    console.error('Flex plan error:', err);
+    res.status(500).json({ success: false, error: 'Failed to get flex plan' });
+  }
 });
 
 export default router;
