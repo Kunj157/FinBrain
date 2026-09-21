@@ -4,6 +4,50 @@ import { detectRecurring } from '../services/recurring-detector';
 
 const router = Router();
 
+async function checkBillReminders(userId: string) {
+  const patterns = await detectRecurring(userId);
+  const now = new Date();
+  const alerts: Array<{ title: string; message: string; type: string }> = [];
+
+  for (const p of patterns) {
+    const nextDate = new Date(p.nextExpectedDate);
+    const daysUntil = Math.ceil((nextDate.getTime() - now.getTime()) / 86400000);
+
+    if (daysUntil >= 0 && daysUntil <= 3) {
+      alerts.push({
+        title: `Upcoming: ${p.merchant}`,
+        message: `${p.merchant} (${p.amount.toFixed(2)}) is due in ${daysUntil === 0 ? '1 day' : `${daysUntil} days`}.`,
+        type: 'bill_reminder',
+      });
+    }
+
+    if (daysUntil < -7) {
+      alerts.push({
+        title: `Missed: ${p.merchant}`,
+        message: `${p.merchant} (${p.amount.toFixed(2)}) was expected ${Math.abs(daysUntil)} days ago and hasn't been marked as paid.`,
+        type: 'missed_payment',
+      });
+    }
+  }
+
+  for (const alert of alerts) {
+    const existing = await prisma.notification.findFirst({
+      where: {
+        userId,
+        title: alert.title,
+        type: alert.type,
+        createdAt: { gte: new Date(Date.now() - 24 * 60 * 60 * 1000) },
+      },
+    });
+    if (!existing) {
+      await prisma.notification.create({
+        data: { userId, title: alert.title, message: alert.message, type: alert.type },
+      });
+    }
+  }
+  return alerts;
+}
+
 router.get('/', async (req: Request, res: Response) => {
   try {
     const patterns = await detectRecurring(req.userId);
@@ -14,6 +58,8 @@ router.get('/', async (req: Request, res: Response) => {
       const now = new Date();
       return next.getMonth() === now.getMonth() && next.getFullYear() === now.getFullYear();
     });
+
+    try { await checkBillReminders(req.userId); } catch { /* best-effort */ }
 
     res.json({
       success: true,
@@ -30,6 +76,36 @@ router.get('/', async (req: Request, res: Response) => {
   } catch (error) {
     console.error('Recurring detection error:', error);
     res.status(500).json({ success: false, error: 'Failed to detect recurring transactions' });
+  }
+});
+
+router.get('/reminders', async (req: Request, res: Response) => {
+  try {
+    const alerts = await checkBillReminders(req.userId);
+    res.json({ success: true, data: alerts });
+  } catch (error) {
+    console.error('Reminders error:', error);
+    res.status(500).json({ success: false, error: 'Failed to check reminders' });
+  }
+});
+
+router.post('/:id/dismiss-reminder', async (req: Request, res: Response) => {
+  try {
+    const pattern = req.params.id;
+    const existing = await prisma.notification.findFirst({
+      where: {
+        userId: req.userId,
+        title: { contains: pattern },
+        type: { in: ['bill_reminder', 'missed_payment'] },
+      },
+    });
+    if (existing) {
+      await prisma.notification.update({ where: { id: existing.id }, data: { read: true } });
+    }
+    res.json({ success: true, message: 'Reminder dismissed' });
+  } catch (error) {
+    console.error('Dismiss reminder error:', error);
+    res.status(500).json({ success: false, error: 'Failed to dismiss reminder' });
   }
 });
 
