@@ -1,7 +1,7 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useCallback } from 'react';
 import {
   TrendingUp, TrendingDown, Minus, Loader2, BarChart3,
-  Plus, X, Check, GitCompare, Home, Briefcase, TrendingUp as RentUp,
+  Plus, X, Check, GitCompare,
 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -71,9 +71,23 @@ export default function Forecasting() {
   const [compareData, setCompareData] = useState<Array<{ id: string; name: string; result: Record<string, unknown> }>>([]);
   const [netWorthProj, setNetWorthProj] = useState<{ currentNetWorth: number; monthlyNetFlow: number; projections: Array<{ month: string; netWorth: number }> } | null>(null);
 
+  const fetchForecast = useCallback(async () => {
+    setLoading(true);
+    setError('');
+    try {
+      const res = await api.post('/forecast', { periods });
+      setData(res.data.data);
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : 'Failed to load forecast';
+      setError(msg);
+    } finally {
+      setLoading(false);
+    }
+  }, [periods]);
+
   useEffect(() => {
     fetchForecast();
-  }, [periods]);
+  }, [fetchForecast]);
 
   useEffect(() => {
     if (activeTab === 'scenarios') {
@@ -118,20 +132,6 @@ export default function Forecasting() {
     } catch { /* silent */ }
   }
 
-  async function fetchForecast() {
-    setLoading(true);
-    setError('');
-    try {
-      const res = await api.post('/forecast', { periods });
-      setData(res.data.data);
-    } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : 'Failed to load forecast';
-      setError(msg);
-    } finally {
-      setLoading(false);
-    }
-  }
-
   const currentForecast = useMemo(() => {
     if (!data) return null;
     return data.forecasts[selectedMetric];
@@ -154,7 +154,6 @@ export default function Forecasting() {
     const avgNet = avgIncome - avgExpense;
 
     const maForecast = net.models.moving_average.forecast;
-    const lrForecast = net.models.linear_regression.forecast;
     const nextMonthForecast = maForecast.length > 0 ? maForecast[0] : avgNet;
 
     const trend = values.length >= 2 ? values[values.length - 1] - values[values.length - 2] : 0;
@@ -283,8 +282,11 @@ export default function Forecasting() {
         </div>
       )}
 
-      <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
-        <div className="flex gap-1 p-1 rounded-lg bg-white/5">
+      {/* Both groups wrap: side by side they exceed the content width at
+          common laptop sizes, which pushed the last model tab off-screen and
+          gave the whole page a horizontal scrollbar. */}
+      <div className="flex flex-wrap items-center gap-4">
+        <div className="flex flex-wrap gap-1 p-1 rounded-lg bg-white/5">
           {METRIC_OPTIONS.map((opt) => (
             <Button
               key={opt.key}
@@ -297,7 +299,7 @@ export default function Forecasting() {
             </Button>
           ))}
         </div>
-        <div className="flex gap-1 p-1 rounded-lg bg-white/5">
+        <div className="flex flex-wrap gap-1 p-1 rounded-lg bg-white/5">
           {MODEL_OPTIONS.map((opt) => (
             <Button
               key={opt.key}
