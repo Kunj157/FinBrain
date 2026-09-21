@@ -183,9 +183,9 @@ export default function Investments() {
       </div>
 
       {summary && (
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-          <Card className="stat-card">
-            <CardContent className="p-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
+          <Card>
+            <CardContent>
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-xs text-muted-foreground">Total Value</p>
@@ -195,8 +195,8 @@ export default function Investments() {
               </div>
             </CardContent>
           </Card>
-          <Card className="stat-card">
-            <CardContent className="p-4">
+          <Card>
+            <CardContent>
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-xs text-muted-foreground">Total Cost</p>
@@ -206,8 +206,8 @@ export default function Investments() {
               </div>
             </CardContent>
           </Card>
-          <Card className="stat-card">
-            <CardContent className="p-4">
+          <Card>
+            <CardContent>
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-xs text-muted-foreground">Gain/Loss</p>
@@ -227,8 +227,8 @@ export default function Investments() {
               </p>
             </CardContent>
           </Card>
-          <Card className="stat-card">
-            <CardContent className="p-4">
+          <Card>
+            <CardContent>
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-xs text-muted-foreground">Asset Allocation</p>
@@ -326,7 +326,7 @@ export default function Investments() {
           {portfolios.map((p) => (
             <Card
               key={p.id}
-              className="stat-card cursor-pointer hover:border-emerald-500/20 transition-colors"
+              className="cursor-pointer hover:border-emerald-500/20 transition-colors"
               onClick={() => fetchPortfolioDetail(p.id)}
             >
               <CardContent className="p-5">
@@ -371,7 +371,7 @@ export default function Investments() {
 
       {(topMovers.gainers.length > 0 || topMovers.losers.length > 0) && !selectedPortfolio && (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <Card className="stat-card">
+          <Card>
             <CardHeader className="pb-2"><CardTitle className="text-sm font-medium flex items-center gap-2"><TrendingUp className="h-4 w-4 text-emerald-400" /> Top Gainers</CardTitle></CardHeader>
             <CardContent>
               {topMovers.gainers.map((g) => (
@@ -388,7 +388,7 @@ export default function Investments() {
               ))}
             </CardContent>
           </Card>
-          <Card className="stat-card">
+          <Card>
             <CardHeader className="pb-2"><CardTitle className="text-sm font-medium flex items-center gap-2"><TrendingDown className="h-4 w-4 text-rose-400" /> Top Losers</CardTitle></CardHeader>
             <CardContent>
               {topMovers.losers.map((l) => (

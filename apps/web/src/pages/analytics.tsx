@@ -446,7 +446,7 @@ export default function Analytics() {
       </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <Card className="stat-card">
+        <Card>
           <CardContent className="p-4">
             <div className="flex items-center gap-3">
               <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-emerald-500/10">
@@ -459,7 +459,7 @@ export default function Analytics() {
             </div>
           </CardContent>
         </Card>
-        <Card className="stat-card">
+        <Card>
           <CardContent className="p-4">
             <div className="flex items-center gap-3">
               <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-rose-500/10">
@@ -472,7 +472,7 @@ export default function Analytics() {
             </div>
           </CardContent>
         </Card>
-        <Card className="stat-card">
+        <Card>
           <CardContent className="p-4">
             <div className="flex items-center gap-3">
               <div className={`flex h-10 w-10 items-center justify-center rounded-lg ${stats.net >= 0 ? 'bg-emerald-500/10' : 'bg-rose-500/10'}`}>
@@ -485,7 +485,7 @@ export default function Analytics() {
             </div>
           </CardContent>
         </Card>
-        <Card className="stat-card">
+        <Card>
           <CardContent className="p-4">
             <div className="flex items-center gap-3">
               <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-blue-500/10">
@@ -501,7 +501,7 @@ export default function Analytics() {
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-        <Card className="stat-card">
+        <Card>
           <CardHeader className="pb-2">
             <CardTitle className="text-sm font-medium">Monthly Income vs Expenses</CardTitle>
           </CardHeader>
@@ -517,7 +517,7 @@ export default function Analytics() {
             </div>
           </CardContent>
         </Card>
-        <Card className="stat-card">
+        <Card>
           <CardHeader className="pb-2">
             <CardTitle className="text-sm font-medium">Cumulative Trend</CardTitle>
           </CardHeader>
@@ -541,7 +541,7 @@ export default function Analytics() {
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-        <Card className="stat-card">
+        <Card>
           <CardHeader className="pb-2">
             <CardTitle className="text-sm font-medium">Spending by Day of Week</CardTitle>
           </CardHeader>
@@ -557,7 +557,7 @@ export default function Analytics() {
             </div>
           </CardContent>
         </Card>
-        <Card className="stat-card">
+        <Card>
           <CardHeader className="pb-2">
             <CardTitle className="text-sm font-medium">Category Breakdown</CardTitle>
           </CardHeader>
@@ -581,7 +581,7 @@ export default function Analytics() {
         </Card>
       </div>
 
-      <Card className="stat-card">
+      <Card>
         <CardHeader className="pb-2">
           <CardTitle className="text-sm font-medium">Top Merchants</CardTitle>
         </CardHeader>
@@ -605,7 +605,7 @@ export default function Analytics() {
       </Card>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-        <Card className="stat-card">
+        <Card>
           <CardHeader className="pb-2">
             <CardTitle className="text-sm font-medium">Year-over-Year Spending</CardTitle>
           </CardHeader>
@@ -625,7 +625,7 @@ export default function Analytics() {
             </div>
           </CardContent>
         </Card>
-        <Card className="stat-card">
+        <Card>
           <CardHeader className="pb-2">
             <CardTitle className="text-sm font-medium">Cash Flow Projection</CardTitle>
           </CardHeader>

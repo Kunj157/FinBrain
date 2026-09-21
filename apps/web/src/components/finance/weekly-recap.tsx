@@ -46,7 +46,7 @@ export function WeeklyRecap() {
 
   if (loading) {
     return (
-      <Card className="stat-card">
+      <Card>
         <CardContent className="p-6 flex items-center justify-center">
           <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
         </CardContent>
@@ -59,7 +59,7 @@ export function WeeklyRecap() {
   const isPositive = recap.netCashFlow >= 0;
 
   return (
-    <Card className="stat-card">
+    <Card>
       <CardHeader className="pb-3">
         <div className="flex items-center justify-between">
           <CardTitle className="text-sm font-medium flex items-center gap-2">

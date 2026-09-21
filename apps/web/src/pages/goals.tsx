@@ -259,7 +259,7 @@ export default function Goals() {
       </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <Card className="stat-card">
+        <Card>
           <CardContent className="p-4">
             <div className="flex items-center gap-3">
               <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-emerald-500/10">
@@ -272,7 +272,7 @@ export default function Goals() {
             </div>
           </CardContent>
         </Card>
-        <Card className="stat-card">
+        <Card>
           <CardContent className="p-4">
             <div className="flex items-center gap-3">
               <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-blue-500/10">
@@ -285,7 +285,7 @@ export default function Goals() {
             </div>
           </CardContent>
         </Card>
-        <Card className="stat-card">
+        <Card>
           <CardContent className="p-4">
             <div className="flex items-center gap-3">
               <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-emerald-500/10">
@@ -298,7 +298,7 @@ export default function Goals() {
             </div>
           </CardContent>
         </Card>
-        <Card className="stat-card">
+        <Card>
           <CardContent className="p-4">
             <div className="flex items-center gap-3">
               <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-amber-500/10">
@@ -336,7 +336,7 @@ export default function Goals() {
             const isExpanded = expandedGoal === goal.id;
 
             return (
-              <Card key={goal.id} className="stat-card card-hover">
+              <Card key={goal.id} className="card-hover">
                 <CardContent className="p-5">
                   <div className="flex items-start justify-between mb-3">
                     <div className="flex items-center gap-3">

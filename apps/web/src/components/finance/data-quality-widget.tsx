@@ -44,7 +44,7 @@ export function DataQualityWidget() {
 
   if (loading) {
     return (
-      <Card className="stat-card">
+      <Card>
         <CardContent className="p-6 flex items-center justify-center">
           <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
         </CardContent>
@@ -59,7 +59,7 @@ export function DataQualityWidget() {
   const highIssues = quality.issues.filter((i) => i.severity === 'high');
 
   return (
-    <Card className="stat-card">
+    <Card>
       <CardHeader className="pb-3">
         <CardTitle className="text-sm font-medium flex items-center gap-2">
           <ShieldCheck className="h-4 w-4 text-emerald-400" />

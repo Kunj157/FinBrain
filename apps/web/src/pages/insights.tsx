@@ -393,7 +393,7 @@ export default function Insights() {
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <Card className="stat-card lg:col-span-1">
+        <Card className="lg:col-span-1">
           <CardContent className="p-6">
             <div className="flex flex-col items-center text-center">
               <div className="relative w-32 h-32 mb-4">
@@ -447,7 +447,7 @@ export default function Insights() {
             Smart Insights
           </h2>
           {insights.length === 0 ? (
-            <Card className="stat-card">
+            <Card>
               <CardContent className="p-8 text-center">
                 <Sparkles className="h-8 w-8 text-muted-foreground/30 mx-auto mb-3" />
                 <p className="text-sm text-muted-foreground">Add more transactions to unlock AI insights</p>
@@ -458,7 +458,7 @@ export default function Insights() {
               {insights.map((insight) => {
                 const Icon = insight.icon;
                 return (
-                  <Card key={insight.id} className="stat-card">
+                  <Card key={insight.id}>
                     <CardContent className="p-4">
                       <div className="flex gap-3">
                         <div className={`flex h-9 w-9 items-center justify-center rounded-lg flex-shrink-0 ${
@@ -488,7 +488,7 @@ export default function Insights() {
         </div>
       </div>
 
-      <Card className="stat-card">
+      <Card>
         <CardHeader className="pb-3">
           <CardTitle className="text-sm font-medium flex items-center gap-2">
             <Brain className="h-4 w-4 text-emerald-400" />

@@ -177,7 +177,7 @@ export default function Forecasting() {
           <h1 className="text-2xl font-bold tracking-tight">Forecasting</h1>
           <p className="text-sm text-muted-foreground">Predict future income, expenses, and cash flow</p>
         </div>
-        <Card className="stat-card">
+        <Card>
           <CardContent className="p-8 text-center">
             <p className="text-sm text-muted-foreground">{error}</p>
             <Button variant="outline" size="sm" className="mt-4" onClick={fetchForecast}>
@@ -222,7 +222,7 @@ export default function Forecasting() {
       {activeTab === 'forecast' && (<>
         {summaryStats && (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-          <Card className="stat-card">
+          <Card>
             <CardContent className="p-4">
               <div className="flex items-center gap-3">
                 <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-emerald-500/10">
@@ -235,7 +235,7 @@ export default function Forecasting() {
               </div>
             </CardContent>
           </Card>
-          <Card className="stat-card">
+          <Card>
             <CardContent className="p-4">
               <div className="flex items-center gap-3">
                 <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-rose-500/10">
@@ -248,7 +248,7 @@ export default function Forecasting() {
               </div>
             </CardContent>
           </Card>
-          <Card className="stat-card">
+          <Card>
             <CardContent className="p-4">
               <div className="flex items-center gap-3">
                 <div className={`flex h-10 w-10 items-center justify-center rounded-lg ${summaryStats.avgNet >= 0 ? 'bg-blue-500/10' : 'bg-rose-500/10'}`}>
@@ -263,7 +263,7 @@ export default function Forecasting() {
               </div>
             </CardContent>
           </Card>
-          <Card className="stat-card">
+          <Card>
             <CardContent className="p-4">
               <div className="flex items-center gap-3">
                 <div className={`flex h-10 w-10 items-center justify-center rounded-lg ${summaryStats.nextMonthForecast >= 0 ? 'bg-emerald-500/10' : 'bg-rose-500/10'}`}>
@@ -312,7 +312,7 @@ export default function Forecasting() {
         </div>
       </div>
 
-      <Card className="stat-card">
+      <Card>
         <CardHeader className="pb-2">
           <CardTitle className="text-sm font-medium">
             {METRIC_OPTIONS.find((m) => m.key === selectedMetric)?.label} Forecast — {MODEL_OPTIONS.find((m) => m.key === selectedModel)?.label}
@@ -422,7 +422,7 @@ export default function Forecasting() {
         </CardContent>
       </Card>
 
-      <Card className="stat-card">
+      <Card>
         <CardHeader className="pb-2">
           <CardTitle className="text-sm font-medium">All Models Comparison</CardTitle>
         </CardHeader>
@@ -499,7 +499,7 @@ export default function Forecasting() {
           </div>
 
           {compareData.length >= 2 && (
-            <Card className="stat-card">
+            <Card>
               <CardHeader className="pb-2"><CardTitle className="text-sm font-medium">Scenario Comparison</CardTitle></CardHeader>
               <CardContent>
                 <div className="overflow-x-auto">
@@ -553,7 +553,7 @@ export default function Forecasting() {
               {scenarios.map((s) => {
                 const result = s.result as Record<string, unknown>;
                 return (
-                  <Card key={s.id} className="stat-card">
+                  <Card key={s.id}>
                     <CardContent className="p-4">
                       <div className="flex items-start justify-between mb-2">
                         <div>
@@ -651,7 +651,7 @@ export default function Forecasting() {
           ) : (
             <>
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                <Card className="stat-card">
+                <Card>
                   <CardContent className="p-4">
                     <p className="text-xs text-muted-foreground">Current Net Worth</p>
                     <p className={`text-xl font-bold ${netWorthProj.currentNetWorth >= 0 ? 'text-emerald-400' : 'text-rose-400'}`}>
@@ -659,7 +659,7 @@ export default function Forecasting() {
                     </p>
                   </CardContent>
                 </Card>
-                <Card className="stat-card">
+                <Card>
                   <CardContent className="p-4">
                     <p className="text-xs text-muted-foreground">Monthly Net Flow</p>
                     <p className={`text-xl font-bold ${netWorthProj.monthlyNetFlow >= 0 ? 'text-emerald-400' : 'text-rose-400'}`}>
@@ -667,7 +667,7 @@ export default function Forecasting() {
                     </p>
                   </CardContent>
                 </Card>
-                <Card className="stat-card">
+                <Card>
                   <CardContent className="p-4">
                     <p className="text-xs text-muted-foreground">24-Month Projection</p>
                     <p className={`text-xl font-bold ${(netWorthProj.projections[23]?.netWorth || 0) >= 0 ? 'text-emerald-400' : 'text-rose-400'}`}>
@@ -677,7 +677,7 @@ export default function Forecasting() {
                 </Card>
               </div>
 
-              <Card className="stat-card">
+              <Card>
                 <CardHeader className="pb-2"><CardTitle className="text-sm font-medium">Net Worth Projection — 24 Months</CardTitle></CardHeader>
                 <CardContent>
                   <div className="flex items-end gap-1 overflow-x-auto pb-2">
