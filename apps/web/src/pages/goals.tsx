@@ -62,6 +62,7 @@ const GOAL_TYPES = [
   { value: 'education', label: 'Education' },
   { value: 'retirement', label: 'Retirement' },
   { value: 'wedding', label: 'Wedding' },
+  { value: 'debt_payoff', label: 'Debt Payoff' },
   { value: 'other', label: 'Other' },
 ] as const;
 
@@ -117,6 +118,7 @@ export default function Goals() {
   const [saving, setSaving] = useState(false);
   const [deleting, setDeleting] = useState<string | null>(null);
   const [expandedGoal, setExpandedGoal] = useState<string | null>(null);
+  const [simAmount, setSimAmount] = useState<Record<string, string>>({});
 
   const fetchData = useCallback(async () => {
     setLoading(true);
@@ -470,6 +472,40 @@ export default function Goals() {
                           },
                         }}
                       />
+                    </div>
+                  )}
+
+                  {isExpanded && goal.progress < 100 && (
+                    <div className="mt-3 p-3 rounded-lg bg-white/[0.02] border border-white/5">
+                      <p className="text-xs font-medium text-muted-foreground mb-2">What if I increase my contribution?</p>
+                      <div className="flex items-center gap-2">
+                        <span className="text-xs text-muted-foreground">$</span>
+                        <input
+                          type="number"
+                          value={simAmount[goal.id] || ''}
+                          onChange={(e) => setSimAmount({ ...simAmount, [goal.id]: e.target.value })}
+                          placeholder="Monthly amount"
+                          min="0"
+                          className="flex-1 h-7 px-2 rounded bg-white/5 border border-white/10 text-xs focus:outline-none focus:ring-1 focus:ring-emerald-500/50"
+                        />
+                      </div>
+                      {simAmount[goal.id] && parseFloat(simAmount[goal.id]) > 0 && (
+                        <div className="mt-2 space-y-1">
+                          {(() => {
+                            const remaining = goal.targetAmount - goal.currentAmount;
+                            const monthly = parseFloat(simAmount[goal.id]);
+                            const monthsToGoal = Math.ceil(remaining / monthly);
+                            const currentPace = goal.daysLeft !== null && goal.daysLeft > 0 ? goal.daysLeft / 30 : remaining / Math.max((goal.currentAmount / Math.max(((Date.now() - new Date(goal.createdAt).getTime()) / 86400000) / 30), 1), 1);
+                            const savedMonths = Math.max(0, Math.round(currentPace - monthsToGoal));
+                            return (
+                              <>
+                                <p className="text-xs text-emerald-400">At ${monthly}/month: goal reached in ~{monthsToGoal} months</p>
+                                {savedMonths > 0 && <p className="text-xs text-muted-foreground">That's {savedMonths} months faster than your current pace</p>}
+                              </>
+                            );
+                          })()}
+                        </div>
+                      )}
                     </div>
                   )}
                 </CardContent>
