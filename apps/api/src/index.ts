@@ -1,3 +1,9 @@
+// Must precede the route imports. Express 4 does not await async handlers, so
+// a rejected promise never reaches next() and the request hangs until the
+// client or proxy times out. This patches the router to forward rejections to
+// the error handler below, which covers every async handler in the app.
+import 'express-async-errors';
+
 import express from 'express';
 import cors from 'cors';
 import helmet from 'helmet';
