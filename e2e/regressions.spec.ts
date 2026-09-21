@@ -68,8 +68,12 @@ test.describe('dashboard headline figures', () => {
 
     if (!hasAccounts) return;
 
-    const netWorth = parseMoney((await page.getByText('NET WORTH').locator('..').textContent()) ?? '0');
-    const cashFlow = parseMoney((await page.getByText('NET CASH FLOW').locator('..').textContent()) ?? '0');
+    const netWorth = parseMoney(
+      (await page.getByText('NET WORTH').locator('..').textContent()) ?? '0',
+    );
+    const cashFlow = parseMoney(
+      (await page.getByText('NET CASH FLOW').locator('..').textContent()) ?? '0',
+    );
     expect(netWorth, 'net worth must not be a copy of cash flow').not.toBe(cashFlow);
   });
 
@@ -126,7 +130,10 @@ test.describe('pages that aggregate the full transaction history', () => {
 test.describe('accounts', () => {
   // Bug: the net worth trend chart drew a curve from an empty dataset, and
   // balances were interpolated with a hardcoded '$' so a zero printed "+$0".
-  test('shows an empty state and no trend chart before any account exists', async ({ page, request }) => {
+  test('shows an empty state and no trend chart before any account exists', async ({
+    page,
+    request,
+  }) => {
     // Drive the branch off the API rather than a rendered string, so the test
     // asserts rather than quietly skipping when the copy changes.
     const res = await request.get('http://localhost:4000/api/v1/accounts');
@@ -155,7 +162,9 @@ test.describe('advisor', () => {
   // Bug: the advisor profile was built once and cached forever, so an account
   // whose profile predated its first import stayed pinned at
   // "Insufficient data (0 transactions)".
-  test('reflects the seeded transaction history rather than a stale profile', async ({ request }) => {
+  test('reflects the seeded transaction history rather than a stale profile', async ({
+    request,
+  }) => {
     const res = await request.get('http://localhost:4000/api/v1/advisor/profile');
     expect(res.ok()).toBe(true);
 
