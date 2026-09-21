@@ -15,7 +15,7 @@ export function AdvisorChat({ onAffordabilityResult }: Props) {
   const endRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    endRef.current?.scrollIntoView({ behavior: 'smooth' });
+    endRef.current?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
   }, [messages]);
 
   const handleSend = async () => {

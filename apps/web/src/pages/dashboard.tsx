@@ -103,7 +103,7 @@ export default function Dashboard() {
     if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleChatSend(); }
   };
 
-  useEffect(() => { chatEndRef.current?.scrollIntoView({ behavior: 'smooth' }); }, [chatMessages]);
+  useEffect(() => { chatEndRef.current?.scrollIntoView({ behavior: 'smooth', block: 'nearest' }); }, [chatMessages]);
 
   const handleLayoutSave = () => { saveDashboardLayout(widgetLayout); setIsEditingLayout(false); };
 

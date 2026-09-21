@@ -109,7 +109,7 @@ export default function AdvisorPage() {
   }, [fetchData]);
 
   useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
   }, [messages]);
 
   const loadConversation = async (convId: string) => {

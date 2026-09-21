@@ -325,7 +325,7 @@ export default function Insights() {
   useEffect(() => { fetchData(); }, [fetchData]);
 
   useEffect(() => {
-    chatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+    chatEndRef.current?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
   }, [messages]);
 
   const health = useMemo(
