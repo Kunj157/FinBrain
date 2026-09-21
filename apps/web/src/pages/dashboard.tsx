@@ -1,4 +1,4 @@
-import { Wallet, TrendingUp, TrendingDown, PiggyBank, ArrowRightLeft, Target, Brain, Sparkles, Loader2, Building2, Plus, X, Send, Shield, Eye, Upload, Lock, Settings, Check } from 'lucide-react';
+import { Wallet, TrendingUp, TrendingDown, PiggyBank, ArrowRightLeft, Target, Brain, Sparkles, Loader2, AlertCircle, Plus, X, Send, Shield, Eye, Upload, Lock, Settings, Check } from 'lucide-react';
 import { useMemo, useEffect, useState, useCallback, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { StatCard } from '@/components/finance/stat-card';
@@ -14,7 +14,6 @@ import {
   DashboardGrid,
   loadDashboardLayout,
   saveDashboardLayout,
-  AVAILABLE_WIDGETS,
   type WidgetId,
 } from '@/components/finance/dashboard-widgets';
 import { useAuth } from '@/hooks/use-auth';
@@ -38,6 +37,7 @@ export default function Dashboard() {
   const [onboardingAction, setOnboardingAction] = useState<string | null>(null);
   const [advisorInsights, setAdvisorInsights] = useState<Array<{ id: string; type: string; title: string; summary: string; severity: string; actions: string[] }>>([]);
   const [insightsLoading, setInsightsLoading] = useState(false);
+  const [loadError, setLoadError] = useState<string | null>(null);
 
   // Dashboard layout state
   const [widgetLayout, setWidgetLayout] = useState<WidgetId[]>(() => loadDashboardLayout());
@@ -52,24 +52,21 @@ export default function Dashboard() {
       ]);
       setAllTransactions(txnRes.data.data.data);
       setCategories(catRes.data.data);
-      if (nwRes?.data?.data) setNetWorth(nwRes.data.data);
+      setLoadError(null);
 
-      // If no accounts exist, calculate net worth from transactions
-      if (!nwRes?.data?.data || nwRes.data.data.netWorth === 0) {
-        const txns = txnRes.data.data.data;
-        const totalIncome = txns.filter((t: Transaction) => t.type === 'income').reduce((s: number, t: Transaction) => s + Math.abs(t.amount), 0);
-        const totalExpenses = txns.filter((t: Transaction) => t.type === 'expense').reduce((s: number, t: Transaction) => s + Math.abs(t.amount), 0);
-        if (totalIncome > 0 || totalExpenses > 0) {
-          setNetWorth({ netWorth: totalIncome - totalExpenses });
-        }
-      }
+      // Net worth is only meaningful once real accounts are linked. It is
+      // deliberately NOT derived from transactions: income minus expenses is
+      // cash flow, not net worth, and presenting it under that label
+      // contradicts the accounts page.
+      setNetWorth(nwRes?.data?.data?.accounts?.length ? nwRes.data.data : null);
 
       setInsightsLoading(true);
       api.get('/advisor/insights').then((res) => {
         setAdvisorInsights(res.data.data || []);
       }).catch(() => {}).finally(() => setInsightsLoading(false));
-    } catch {
-      // silent
+    } catch (error) {
+      console.error('Dashboard load failed:', error);
+      setLoadError('We could not load your dashboard. Please try again.');
     } finally {
       setLoading(false);
     }
@@ -150,6 +147,19 @@ export default function Dashboard() {
     return <div className="flex items-center justify-center min-h-[60vh]"><Loader2 className="h-8 w-8 text-muted-foreground animate-spin" /></div>;
   }
 
+  if (loadError) {
+    return (
+      <div className="flex min-h-[60vh] flex-col items-center justify-center gap-4 text-center">
+        <AlertCircle className="h-10 w-10 text-destructive" aria-hidden="true" />
+        <div className="space-y-1">
+          <p className="font-medium">Something went wrong</p>
+          <p className="text-sm text-muted-foreground">{loadError}</p>
+        </div>
+        <Button onClick={() => { setLoading(true); fetchData(); }}>Try again</Button>
+      </div>
+    );
+  }
+
   const hasData = allTransactions.length > 0;
 
   // Widget renderers
@@ -157,11 +167,11 @@ export default function Dashboard() {
     switch (id) {
       case 'stat-cards':
         return (
-          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-5">
+          <div className={`grid gap-4 sm:grid-cols-2 ${netWorth ? 'xl:grid-cols-5' : 'xl:grid-cols-4'}`}>
             {netWorth && <StatCard title="Net Worth" value={netWorth.netWorth} icon={Wallet} variant={netWorth.netWorth >= 0 ? 'positive' : 'negative'} currency={currency} />}
-            <StatCard title="Current Balance" value={summary.currentBalance} icon={Wallet} variant={summary.currentBalance >= 0 ? 'positive' : 'negative'} currency={currency} />
+            <StatCard title="Net Cash Flow" value={summary.currentBalance} icon={Wallet} variant={summary.currentBalance >= 0 ? 'positive' : 'negative'} currency={currency} />
             <StatCard title="Monthly Income" value={summary.monthlyIncome} change={summary.incomeChange} icon={TrendingUp} variant="positive" currency={currency} />
-            <StatCard title="Monthly Expenses" value={summary.monthlyExpenses} change={summary.expenseChange} icon={TrendingDown} variant="negative" currency={currency} />
+            <StatCard title="Monthly Expenses" value={summary.monthlyExpenses} change={summary.expenseChange} icon={TrendingDown} variant="negative" currency={currency} lowerIsBetter />
             <StatCard title="Total Savings" value={summary.savings} icon={PiggyBank} variant={summary.savings >= 0 ? 'positive' : 'negative'} currency={currency} />
           </div>
         );
