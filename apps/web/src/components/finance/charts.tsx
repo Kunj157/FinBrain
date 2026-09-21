@@ -37,11 +37,22 @@ const chartDefaults = {
 export function IncomeExpenseChart({ transactions }: { transactions: Transaction[] }) {
   const data = useMemo(() => {
     const months: Record<string, { income: number; expense: number }> = {};
-    const now = new Date();
-    for (let i = 5; i >= 0; i--) {
-      const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
-      const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
-      months[key] = { income: 0, expense: 0 };
+    // Use the most recent transaction date as reference
+    if (transactions.length > 0) {
+      const sortedDates = transactions.map((t) => new Date(t.date).getTime()).sort((a, b) => b - a);
+      const latestDate = new Date(sortedDates[0]);
+      for (let i = 5; i >= 0; i--) {
+        const d = new Date(latestDate.getFullYear(), latestDate.getMonth() - i, 1);
+        const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+        months[key] = { income: 0, expense: 0 };
+      }
+    } else {
+      const now = new Date();
+      for (let i = 5; i >= 0; i--) {
+        const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+        const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+        months[key] = { income: 0, expense: 0 };
+      }
     }
 
     for (const txn of transactions) {
@@ -170,11 +181,23 @@ export function CategoryChart({ transactions, categories }: { transactions: Tran
 export function SpendingTrend({ transactions }: { transactions: Transaction[] }) {
   const data = useMemo(() => {
     const days: Record<string, number> = {};
-    const now = new Date();
-    for (let i = 29; i >= 0; i--) {
-      const d = new Date(now.getFullYear(), now.getMonth(), now.getDate() - i);
-      const key = d.toISOString().split('T')[0];
-      days[key] = 0;
+    // Use the most recent transaction date as reference, not 'now'
+    const expenseTxns = transactions.filter((t) => t.type === 'expense' && !t.deletedAt);
+    if (expenseTxns.length === 0) {
+      // No expense data, use last 30 days from now
+      const now = new Date();
+      for (let i = 29; i >= 0; i--) {
+        const d = new Date(now.getFullYear(), now.getMonth(), now.getDate() - i);
+        days[d.toISOString().split('T')[0]] = 0;
+      }
+    } else {
+      // Find the most recent transaction date
+      const sortedDates = expenseTxns.map((t) => new Date(t.date).getTime()).sort((a, b) => b - a);
+      const latestDate = new Date(sortedDates[0]);
+      for (let i = 29; i >= 0; i--) {
+        const d = new Date(latestDate.getFullYear(), latestDate.getMonth(), latestDate.getDate() - i);
+        days[d.toISOString().split('T')[0]] = 0;
+      }
     }
 
     for (const txn of transactions) {
