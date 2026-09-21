@@ -58,6 +58,7 @@ export default function SettingsPage() {
   const navigate = useNavigate();
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [deleting, setDeleting] = useState(false);
+  const [deleteError, setDeleteError] = useState('');
   const [confirmEmail, setConfirmEmail] = useState('');
   const [exportingKey, setExportingKey] = useState<string | null>(null);
 
@@ -124,14 +125,17 @@ export default function SettingsPage() {
   const handleDelete = async () => {
     if (confirmEmail !== user?.email) return;
     setDeleting(true);
+    setDeleteError('');
     try {
       await api.delete('/auth/profile');
       signOut();
       navigate('/');
-    } catch {
+    } catch (e: unknown) {
+      const msg = (e instanceof Error && 'response' in e)
+        ? (e as { response?: { data?: { error?: string } } }).response?.data?.error
+        : undefined;
+      setDeleteError(msg || 'Failed to delete account. Please try again.');
       setDeleting(false);
-      setConfirmEmail('');
-      setShowDeleteModal(false);
     }
   };
 
@@ -362,8 +366,8 @@ export default function SettingsPage() {
       </Card>
 
       {/* Delete Confirmation Modal */}
-      <Dialog open={showDeleteModal} onClose={() => { setShowDeleteModal(false); setConfirmEmail(''); }}>
-        <DialogClose onClose={() => { setShowDeleteModal(false); setConfirmEmail(''); }} />
+      <Dialog open={showDeleteModal} onClose={() => { setShowDeleteModal(false); setConfirmEmail(''); setDeleteError(''); }}>
+        <DialogClose onClose={() => { setShowDeleteModal(false); setConfirmEmail(''); setDeleteError(''); }} />
         <DialogHeader>
           <DialogTitle className="text-red-400">Delete Account</DialogTitle>
           <DialogDescription>
@@ -401,12 +405,17 @@ export default function SettingsPage() {
               className="w-full h-10 px-3 rounded-lg bg-white/[0.03] border border-white/[0.06] text-sm text-foreground placeholder:text-muted-foreground/50 focus:outline-none focus:ring-2 focus:ring-red-500/20 focus:border-red-500/30 transition-all"
             />
           </div>
+          {deleteError && (
+            <div className="rounded-lg bg-red-500/10 border border-red-500/20 p-3">
+              <p className="text-sm text-red-400">{deleteError}</p>
+            </div>
+          )}
         </DialogContent>
 
         <DialogFooter>
           <Button
             variant="outline"
-            onClick={() => { setShowDeleteModal(false); setConfirmEmail(''); }}
+            onClick={() => { setShowDeleteModal(false); setConfirmEmail(''); setDeleteError(''); }}
           >
             Cancel
           </Button>

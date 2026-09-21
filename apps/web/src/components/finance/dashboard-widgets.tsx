@@ -53,7 +53,7 @@ export const AVAILABLE_WIDGETS: WidgetConfig[] = [
 ];
 
 function getDefaultLayout(): WidgetId[] {
-  return AVAILABLE_WIDGETS.sort((a, b) => a.defaultOrder - b.defaultOrder).map((w) => w.id);
+  return [...AVAILABLE_WIDGETS].sort((a, b) => a.defaultOrder - b.defaultOrder).map((w) => w.id);
 }
 
 export function loadDashboardLayout(): WidgetId[] {
@@ -66,12 +66,18 @@ export function loadDashboardLayout(): WidgetId[] {
         return parsed;
       }
     }
-  } catch {}
+  } catch {
+    // Corrupt or unavailable storage (private mode, quota) — fall back to defaults.
+  }
   return getDefaultLayout();
 }
 
 export function saveDashboardLayout(layout: WidgetId[]): void {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(layout));
+  try {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(layout));
+  } catch {
+    // Storage unavailable (private mode, quota) — layout stays session-only.
+  }
 }
 
 interface SortableWidgetProps {

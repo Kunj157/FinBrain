@@ -54,6 +54,16 @@ export default function Dashboard() {
       setCategories(catRes.data.data);
       if (nwRes?.data?.data) setNetWorth(nwRes.data.data);
 
+      // If no accounts exist, calculate net worth from transactions
+      if (!nwRes?.data?.data || nwRes.data.data.netWorth === 0) {
+        const txns = txnRes.data.data.data;
+        const totalIncome = txns.filter((t: Transaction) => t.type === 'income').reduce((s: number, t: Transaction) => s + Math.abs(t.amount), 0);
+        const totalExpenses = txns.filter((t: Transaction) => t.type === 'expense').reduce((s: number, t: Transaction) => s + Math.abs(t.amount), 0);
+        if (totalIncome > 0 || totalExpenses > 0) {
+          setNetWorth({ netWorth: totalIncome - totalExpenses });
+        }
+      }
+
       setInsightsLoading(true);
       api.get('/advisor/insights').then((res) => {
         setAdvisorInsights(res.data.data || []);
