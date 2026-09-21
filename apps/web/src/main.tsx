@@ -35,11 +35,15 @@ createRoot(document.getElementById('root')!).render(
   </StrictMode>,
 );
 
-// Register service worker for PWA offline support
-if ('serviceWorker' in navigator) {
+// Register the service worker for PWA offline support.
+//
+// Production only: in dev the worker's cache sits in front of Vite's module
+// graph and serves stale modules straight through HMR, which makes edits
+// look like they had no effect.
+if (import.meta.env.PROD && 'serviceWorker' in navigator) {
   window.addEventListener('load', () => {
-    navigator.serviceWorker.register('/sw.js').catch(() => {
-      // Service worker registration failed silently
+    navigator.serviceWorker.register('/sw.js').catch((error) => {
+      console.warn('Service worker registration failed:', error);
     });
   });
 }
