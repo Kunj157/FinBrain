@@ -82,6 +82,7 @@ export default function Investments() {
     currentPrice: '',
     assetType: 'stock',
   });
+  const [topMovers, setTopMovers] = useState<{ gainers: Array<{ symbol: string; name: string; gainLossPercent: number; dailyChangePercent: number }>; losers: Array<{ symbol: string; name: string; gainLossPercent: number; dailyChangePercent: number }> }>({ gainers: [], losers: [] });
 
   const fetchData = useCallback(async () => {
     setLoading(true);
@@ -92,6 +93,7 @@ export default function Investments() {
       ]);
       setSummary(summaryRes.data.data);
       setPortfolios(portfoliosRes.data.data);
+      api.get('/investments/top-movers').then((r) => setTopMovers(r.data.data)).catch(() => {});
     } catch {
       // silent
     } finally {
@@ -364,6 +366,45 @@ export default function Investments() {
               </CardContent>
             </Card>
           )}
+        </div>
+      )}
+
+      {(topMovers.gainers.length > 0 || topMovers.losers.length > 0) && !selectedPortfolio && (
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <Card className="stat-card">
+            <CardHeader className="pb-2"><CardTitle className="text-sm font-medium flex items-center gap-2"><TrendingUp className="h-4 w-4 text-emerald-400" /> Top Gainers</CardTitle></CardHeader>
+            <CardContent>
+              {topMovers.gainers.map((g) => (
+                <div key={g.symbol} className="flex items-center justify-between py-2 border-b border-white/[0.02] last:border-0">
+                  <div>
+                    <p className="text-sm font-medium">{g.symbol}</p>
+                    <p className="text-xs text-muted-foreground">{g.name}</p>
+                  </div>
+                  <div className="text-right">
+                    <p className="text-sm font-medium text-emerald-400">+{g.gainLossPercent}%</p>
+                    <p className="text-xs text-muted-foreground">Today: {g.dailyChangePercent >= 0 ? '+' : ''}{g.dailyChangePercent}%</p>
+                  </div>
+                </div>
+              ))}
+            </CardContent>
+          </Card>
+          <Card className="stat-card">
+            <CardHeader className="pb-2"><CardTitle className="text-sm font-medium flex items-center gap-2"><TrendingDown className="h-4 w-4 text-rose-400" /> Top Losers</CardTitle></CardHeader>
+            <CardContent>
+              {topMovers.losers.map((l) => (
+                <div key={l.symbol} className="flex items-center justify-between py-2 border-b border-white/[0.02] last:border-0">
+                  <div>
+                    <p className="text-sm font-medium">{l.symbol}</p>
+                    <p className="text-xs text-muted-foreground">{l.name}</p>
+                  </div>
+                  <div className="text-right">
+                    <p className="text-sm font-medium text-rose-400">{l.gainLossPercent}%</p>
+                    <p className="text-xs text-muted-foreground">Today: {l.dailyChangePercent >= 0 ? '+' : ''}{l.dailyChangePercent}%</p>
+                  </div>
+                </div>
+              ))}
+            </CardContent>
+          </Card>
         </div>
       )}
 
