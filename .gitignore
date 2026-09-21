@@ -41,3 +41,9 @@ docker-data/
 *.swo
 apps/web/.vite/
 apps/api/uploads/
+
+# Playwright
+playwright-report/
+test-results/
+blob-report/
+.playwright/

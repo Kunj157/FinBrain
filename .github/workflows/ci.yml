@@ -42,9 +42,51 @@ jobs:
       - run: pnpm install --frozen-lockfile
       - run: pnpm test
 
+  e2e:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: finbrain_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    env:
+      DATABASE_URL: postgresql://postgres:postgres@localhost:5432/finbrain_test
+      # No CLERK_SECRET_KEY: the API's DEV_MODE bypass and the web app's
+      # DevAuthProvider stand in for a hosted sign-in the suite cannot script.
+      DEV_MODE: "true"
+      VITE_CLERK_PUBLISHABLE_KEY: ""
+      FRONTEND_URL: http://localhost:5173
+      PORT: "4000"
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: "pnpm"
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm --filter @finbrain/api exec prisma db push --skip-generate
+      - run: pnpm exec playwright install --with-deps chromium
+      - run: pnpm test:e2e
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: playwright-report
+          path: playwright-report/
+          retention-days: 7
+
   build:
     runs-on: ubuntu-latest
-    needs: [lint-typecheck, test]
+    needs: [lint-typecheck, test, e2e]
     strategy:
       matrix:
         node-version: [20]
