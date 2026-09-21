@@ -585,10 +585,19 @@ router.post('/messages/:id/feedback', async (req: Request, res: Response) => {
   }
 
   try {
-    await prisma.advisorMessage.updateMany({
-      where: { id: req.params.id },
+    // Scope by the owning conversation. Without this any authenticated user
+    // could set feedback on another user's advisor message by guessing its id.
+    const { count } = await prisma.advisorMessage.updateMany({
+      where: { id: req.params.id, conversation: { userId: req.userId } },
       data: { feedback: parsed.data.feedback },
     });
+
+    if (count === 0) {
+      // Same response whether the message is absent or someone else's, so the
+      // endpoint cannot be used to probe for valid ids.
+      return res.status(404).json({ success: false, error: 'Message not found' });
+    }
+
     res.json({ success: true, message: 'Feedback recorded' });
   } catch (err) {
     console.error('Feedback error:', err);
