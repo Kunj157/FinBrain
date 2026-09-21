@@ -1,6 +1,7 @@
 import { Router, type Request, type Response } from 'express';
 import { z } from 'zod';
 import { prisma } from '../prisma';
+import { roundMoney } from '../services/finance-math';
 import { buildAdvisorProfile, getAdvisorProfile } from '../services/advisor/profile-engine';
 import { buildSpendingPatterns, getSpendingPatterns } from '../services/advisor/pattern-engine';
 import { buildAdvisorContext, contextToString } from '../services/advisor/context-builder';
@@ -153,7 +154,10 @@ router.post('/affordability', async (req: Request, res: Response) => {
 router.post('/scenarios', async (req: Request, res: Response) => {
   const schema = z.object({
     name: z.string().min(1),
-    scenarioType: z.enum(['income_change', 'expense_change', 'purchase', 'career_break', 'new_job', 'custom']),
+    scenarioType: z.enum([
+      'income_change', 'expense_change', 'purchase', 'career_break', 'new_job',
+      'home_purchase', 'rent_increase', 'retirement', 'custom',
+    ]),
     input: z.record(z.unknown()),
   });
 
@@ -168,6 +172,65 @@ router.post('/scenarios', async (req: Request, res: Response) => {
   } catch (err) {
     console.error('Scenario creation error:', err);
     res.status(500).json({ success: false, error: 'Failed to create scenario' });
+  }
+});
+
+router.post('/scenarios/compare', async (req: Request, res: Response) => {
+  const schema = z.object({ ids: z.array(z.string()).min(2).max(4) });
+  const parsed = schema.safeParse(req.body);
+  if (!parsed.success) {
+    return res.status(400).json({ success: false, error: 'Provide 2-4 scenario IDs' });
+  }
+
+  try {
+    const scenarios = await prisma.scenario.findMany({
+      where: { id: { in: parsed.data.ids }, userId: req.userId },
+    });
+    if (scenarios.length < 2) {
+      return res.status(404).json({ success: false, error: 'Not enough scenarios found' });
+    }
+    res.json({ success: true, data: scenarios });
+  } catch (err) {
+    console.error('Scenario compare error:', err);
+    res.status(500).json({ success: false, error: 'Failed to compare scenarios' });
+  }
+});
+
+router.get('/net-worth-projection', async (req: Request, res: Response) => {
+  try {
+    const months = Math.min(parseInt(req.query.months as string) || 12, 60);
+    const profile = await prisma.advisorProfile.findUnique({ where: { userId: req.userId } });
+    if (!profile) return res.json({ success: true, data: { projections: [] } });
+
+    const accounts = await prisma.account.findMany({ where: { userId: req.userId } });
+    const totalAssets = accounts.reduce((s, a) => s + Math.max(0, a.balance), 0);
+    const totalDebts = accounts.reduce((s, a) => s + Math.abs(Math.min(0, a.balance)), 0);
+    const currentNetWorth = totalAssets - totalDebts;
+
+    const monthlyNet = profile.monthlyIncomeAvg - profile.monthlyExpenseAvg;
+    const projections: Array<{ month: string; netWorth: number }> = [];
+    const now = new Date();
+
+    for (let i = 1; i <= months; i++) {
+      const d = new Date(now);
+      d.setMonth(d.getMonth() + i);
+      projections.push({
+        month: d.toISOString().slice(0, 7),
+        netWorth: roundMoney(currentNetWorth + monthlyNet * i),
+      });
+    }
+
+    res.json({
+      success: true,
+      data: {
+        currentNetWorth: roundMoney(currentNetWorth),
+        monthlyNetFlow: roundMoney(monthlyNet),
+        projections,
+      },
+    });
+  } catch (err) {
+    console.error('Net worth projection error:', err);
+    res.status(500).json({ success: false, error: 'Failed to compute projection' });
   }
 });
 

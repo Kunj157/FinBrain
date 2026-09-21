@@ -16,6 +16,37 @@ export interface ScenarioResult {
   goalDelays: Array<{ name: string; delayDays: number }>;
   recommendation: string;
   confidence: number;
+  monthlyProjections?: Array<{ month: string; balance: number }>;
+  netWorthProjection?: number;
+}
+
+function computeMonthlyProjections(
+  currentBalance: number,
+  savingsBalance: number,
+  adjustedIncome: number,
+  adjustedExpenses: number,
+  oneTimeExpense: number,
+  months: number,
+  inflationRate: number,
+): Array<{ month: string; balance: number }> {
+  const projections: Array<{ month: string; balance: number }> = [];
+  let balance = currentBalance + savingsBalance;
+  const now = new Date();
+
+  for (let i = 1; i <= months; i++) {
+    const inflatedExpenses = adjustedExpenses * Math.pow(1 + inflationRate / 100, i / 12);
+    const income = adjustedIncome * Math.pow(1 + (inflationRate * 0.5) / 100, i / 12);
+    balance += income - inflatedExpenses;
+    if (i === 1) balance -= oneTimeExpense;
+
+    const d = new Date(now);
+    d.setMonth(d.getMonth() + i);
+    projections.push({
+      month: d.toISOString().slice(0, 7),
+      balance: roundMoney(balance),
+    });
+  }
+  return projections;
 }
 
 export async function createScenario(userId: string, input: ScenarioInput): Promise<ScenarioResult> {
@@ -33,6 +64,10 @@ export async function createScenario(userId: string, input: ScenarioInput): Prom
     .filter((a) => a.type === 'savings')
     .reduce((s, a) => s + a.balance, 0);
 
+  const totalInvestments = accounts
+    .filter((a) => a.type === 'investment')
+    .reduce((s, a) => s + a.balance, 0);
+
   const monthlyIncome = profile.monthlyIncomeAvg;
   const monthlyExpenses = profile.monthlyExpenseAvg;
 
@@ -41,6 +76,7 @@ export async function createScenario(userId: string, input: ScenarioInput): Prom
   let oneTimeExpense = 0;
 
   const scenarioInput = input.input as Record<string, unknown>;
+  const inflationRate = (scenarioInput.inflationRate as number) || 2;
 
   if (input.scenarioType === 'income_change') {
     const changePercent = (scenarioInput.changePercent as number) || 0;
@@ -57,7 +93,58 @@ export async function createScenario(userId: string, input: ScenarioInput): Prom
   } else if (input.scenarioType === 'new_job') {
     const salary = (scenarioInput.annualSalary as number) || 0;
     adjustedIncome = salary / 12;
+  } else if (input.scenarioType === 'home_purchase') {
+    const downPayment = (scenarioInput.downPayment as number) || 0;
+    const monthlyMortgage = (scenarioInput.monthlyMortgage as number) || 0;
+    oneTimeExpense = downPayment;
+    adjustedExpenses = monthlyExpenses + monthlyMortgage;
+  } else if (input.scenarioType === 'rent_increase') {
+    const increasePercent = (scenarioInput.increasePercent as number) || 0;
+    adjustedExpenses = monthlyExpenses * (1 + increasePercent / 100);
+  } else if (input.scenarioType === 'retirement') {
+    const yearsToRetire = (scenarioInput.yearsToRetire as number) || 10;
+    const monthlyRetirementIncome = (scenarioInput.monthlyRetirementIncome as number) || monthlyExpenses * 0.8;
+    const projections = computeMonthlyProjections(
+      currentBalance, savingsBalance, adjustedIncome, adjustedExpenses, 0, yearsToRetire * 12, inflationRate,
+    );
+    const retirementBalance = projections[projections.length - 1]?.balance || 0;
+    const monthsUntilExhausted = monthlyRetirementIncome > 0
+      ? Math.floor(retirementBalance / monthlyRetirementIncome)
+      : 0;
+
+    const result: ScenarioResult = {
+      projectedBalance: roundMoney(retirementBalance),
+      monthlyNetFlow: roundMoney(monthlyRetirementIncome),
+      emergencyFundImpact: 0,
+      savingsRateChange: 0,
+      goalDelays: [],
+      recommendation: monthsUntilExhausted > 240
+        ? `You could sustain retirement for ${Math.floor(monthsUntilExhausted / 12)} years with this plan.`
+        : monthsUntilExhausted > 120
+        ? `This plan sustains ~${Math.floor(monthsUntilExhausted / 12)} years. Consider increasing savings to extend it.`
+        : `This plan only sustains ${Math.floor(monthsUntilExhausted / 12)} years — insufficient for retirement.`,
+      confidence: profile.confidence === 'high' ? 0.7 : profile.confidence === 'medium' ? 0.4 : 0.2,
+      monthlyProjections: projections.slice(0, 24),
+      netWorthProjection: roundMoney(retirementBalance + totalInvestments),
+    };
+
+    await prisma.scenario.create({
+      data: {
+        userId,
+        name: input.name,
+        scenarioType: input.scenarioType,
+        input: input.input as unknown as Prisma.InputJsonValue,
+        result: result as unknown as Prisma.InputJsonValue,
+        recommendation: result.recommendation,
+        confidence: result.confidence,
+      },
+    });
+    return result;
   }
+
+  const monthlyProjections = computeMonthlyProjections(
+    currentBalance, savingsBalance, adjustedIncome, adjustedExpenses, oneTimeExpense, 24, inflationRate,
+  );
 
   const monthlyNetFlow = adjustedIncome - adjustedExpenses;
   const projectedBalance = currentBalance + monthlyNetFlow * 12 - oneTimeExpense;
@@ -104,6 +191,8 @@ export async function createScenario(userId: string, input: ScenarioInput): Prom
     goalDelays,
     recommendation,
     confidence,
+    monthlyProjections,
+    netWorthProjection: roundMoney(projectedBalance + totalInvestments),
   };
 
   await prisma.scenario.create({
