@@ -12,8 +12,14 @@ import { createScenario, getUserScenarios, getScenario, deleteScenario } from '.
 import { generateInsights, storeInsights, getStoredInsights, dismissInsight } from '../services/advisor/insight-engine';
 import { generateWeeklyRecap } from '../services/advisor/weekly-recap-engine';
 import { detectAnomalies } from '../services/advisor/anomaly-engine';
+import { chatCompletion, isLlmConfigured, type ChatMessage } from '../services/llm';
 
 const router = Router();
+
+// How many past messages of a conversation are replayed to the model. Enough
+// for the thread to stay coherent without letting an old conversation grow
+// the prompt (and its cost) without bound.
+const HISTORY_TURNS = 20;
 
 const ADVISOR_SYSTEM_PROMPT = `You are FinBrain Advisor, a personal financial advisor AI. You have access to the user's complete financial data and your job is to help them make informed financial decisions.
 
@@ -347,7 +353,10 @@ router.get('/conversations/:id', async (req: Request, res: Response) => {
 router.post('/chat', async (req: Request, res: Response) => {
   const schema = z.object({
     message: z.string().min(1).max(2000),
-    conversationId: z.string().optional(),
+    // The client sends null for the first message of a new conversation.
+    // `.optional()` alone accepts undefined but rejects null, which made
+    // every new conversation fail with a 400 before it ever reached the model.
+    conversationId: z.string().nullish(),
   });
 
   const parsed = schema.safeParse(req.body);
@@ -357,10 +366,7 @@ router.post('/chat', async (req: Request, res: Response) => {
 
   const { message, conversationId } = parsed.data;
 
-  const groqKey = process.env.GROQ_API_KEY;
-  const openaiKey = process.env.OPENAI_API_KEY;
-
-  if (!groqKey && !openaiKey) {
+  if (!isLlmConfigured()) {
     return res.status(503).json({
       success: false,
       error: 'AI service not configured. Set GROQ_API_KEY in apps/api/.env',
@@ -413,48 +419,27 @@ router.post('/chat', async (req: Request, res: Response) => {
       });
     }
 
+    // Take the NEWEST turns, then restore chronological order. Ordering
+    // ascending with a take of 20 kept the *oldest* twenty messages, so once
+    // a conversation passed twenty turns it froze on its opening exchange and
+    // every later question was answered without its own context.
+    //
+    // The current message is already persisted above, so this includes it —
+    // it must not be appended again or the model sees the question twice.
     const recentMessages = await prisma.advisorMessage.findMany({
       where: { conversationId: convId },
-      orderBy: { createdAt: 'asc' },
-      take: 20,
+      orderBy: { createdAt: 'desc' },
+      take: HISTORY_TURNS,
     });
 
-    for (const m of recentMessages) {
+    for (const m of recentMessages.reverse()) {
       if (m.role === 'user' || m.role === 'assistant') {
         messages.push({ role: m.role, content: m.content });
       }
     }
 
-    messages.push({ role: 'user', content: message });
-
-    let reply: string;
-    if (groqKey) {
-      const model = process.env.GROQ_MODEL || 'llama-3.1-8b-instant';
-      const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${groqKey}`,
-        },
-        body: JSON.stringify({ model, messages, max_tokens: 1024, temperature: 0.7 }),
-      });
-      if (!response.ok) throw new Error(`LLM error: ${response.status}`);
-      const data = await response.json() as { choices: Array<{ message: { content: string } }> };
-      reply = data.choices[0]?.message?.content || 'No response generated.';
-    } else {
-      const model = process.env.OPENAI_MODEL || 'gpt-4o-mini';
-      const response = await fetch('https://api.openai.com/v1/chat/completions', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${openaiKey}`,
-        },
-        body: JSON.stringify({ model, messages, max_tokens: 1024, temperature: 0.7 }),
-      });
-      if (!response.ok) throw new Error(`LLM error: ${response.status}`);
-      const data = await response.json() as { choices: Array<{ message: { content: string } }> };
-      reply = data.choices[0]?.message?.content || 'No response generated.';
-    }
+    const completion = await chatCompletion(messages as ChatMessage[]);
+    const reply = completion.content;
 
     await prisma.advisorMessage.create({
       data: {
