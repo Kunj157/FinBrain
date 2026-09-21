@@ -254,8 +254,25 @@ export async function buildAdvisorProfile(userId: string): Promise<AdvisorProfil
   return profileData;
 }
 
+// A profile older than this is rebuilt even when the transaction count is
+// unchanged, so edited amounts, recategorisations and deletions eventually
+// work their way into the advice.
+const PROFILE_MAX_AGE_MS = 6 * 60 * 60 * 1000;
+
 export async function getAdvisorProfile(userId: string): Promise<AdvisorProfileData | null> {
   const existing = await prisma.advisorProfile.findUnique({ where: { userId } });
   if (!existing) return buildAdvisorProfile(userId);
+
+  // The profile used to be built once and then served from cache forever.
+  // Anyone whose profile was first computed before they imported their
+  // history stayed permanently stuck on "Insufficient data (0 transactions)",
+  // which disabled every downstream advisor feature.
+  const liveCount = await prisma.transaction.count({ where: { userId, deletedAt: null } });
+  const isStale =
+    existing.transactionCount !== liveCount ||
+    Date.now() - existing.updatedAt.getTime() > PROFILE_MAX_AGE_MS;
+
+  if (isStale) return buildAdvisorProfile(userId);
+
   return existing as unknown as AdvisorProfileData;
 }
