@@ -1,4 +1,3 @@
-import { type Transaction, type Account, type Prisma } from '@prisma/client';
 import { prisma } from '../prisma';
 import { getTransactionAmountAbs } from './finance-math';
 

@@ -31,7 +31,7 @@ import recurringRoutes from './routes/recurring';
 import searchRoutes from './routes/search';
 import aiRoutes from './routes/ai';
 import investmentsRoutes from './routes/investments';
-import notificationsRoutes, { checkBudgetAlerts } from './routes/notifications';
+import notificationsRoutes from './routes/notifications';
 import forecastRoutes from './routes/forecast';
 import advisorRoutes from './routes/advisor';
 import dataQualityRoutes from './routes/data-quality';

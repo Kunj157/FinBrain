@@ -86,10 +86,9 @@ router.post('/re-categorize', async (req: Request, res: Response) => {
       return res.json({ success: true, data: { message: 'No transactions to re-categorize.', updated: 0 } });
     }
 
-    const categories = await prisma.category.findMany({
+    await prisma.category.findMany({
       where: { userId: req.userId },
     });
-    const catByName = new Map(categories.map(c => [c.name, c.id]));
 
     let updated = 0;
     const results: { merchant: string; oldCategory: string; newCategory: string }[] = [];

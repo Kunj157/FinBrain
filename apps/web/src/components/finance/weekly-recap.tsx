@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import {
   Calendar, TrendingUp, TrendingDown, DollarSign, Repeat,
-  Target, PiggyBank, Loader2, ChevronDown, ChevronUp, Lightbulb,
+  Target, Loader2, ChevronDown, ChevronUp, Lightbulb,
 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';

@@ -1,7 +1,6 @@
 import { Router, type Request, type Response } from 'express';
 import { prisma } from '../prisma';
-import { computeDataQualityScore, detectDuplicateTransactions, detectMissingCategories } from '../services/data-quality';
-import { getTransactionAmountAbs } from '../services/finance-math';
+import { computeDataQualityScore, detectDuplicateTransactions } from '../services/data-quality';
 
 const router = Router();
 

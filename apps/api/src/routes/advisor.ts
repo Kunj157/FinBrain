@@ -3,10 +3,10 @@ import { z } from 'zod';
 import { prisma } from '../prisma';
 import { roundMoney } from '../services/finance-math';
 import { buildAdvisorProfile, getAdvisorProfile } from '../services/advisor/profile-engine';
-import { buildSpendingPatterns, getSpendingPatterns } from '../services/advisor/pattern-engine';
+import { getSpendingPatterns } from '../services/advisor/pattern-engine';
 import { buildAdvisorContext, contextToString } from '../services/advisor/context-builder';
 import { storeMemory, getMemories, deleteMemory, clearAllMemories } from '../services/advisor/memory-service';
-import { parsePurchaseMessage, isAffordabilityQuestion } from '../services/advisor/purchase-parser';
+import { isAffordabilityQuestion } from '../services/advisor/purchase-parser';
 import { runAffordabilityCheck, handleAffordabilityFromChat } from '../services/advisor/affordability-engine';
 import { createScenario, getUserScenarios, getScenario, deleteScenario } from '../services/advisor/scenario-engine';
 import { generateInsights, storeInsights, getStoredInsights, dismissInsight } from '../services/advisor/insight-engine';
@@ -473,7 +473,6 @@ router.post('/chat', async (req: Request, res: Response) => {
     // Auto-store memories from significant conversations
     try {
       const lowerMsg = message.toLowerCase();
-      const lowerReply = reply.toLowerCase();
 
       // Store affordability decisions
       if (structuredData?.type === 'affordability' && isAffordabilityQuestion(message)) {

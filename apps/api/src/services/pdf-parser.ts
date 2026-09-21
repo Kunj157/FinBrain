@@ -53,7 +53,6 @@ function parseGermanAmount(text: string): number | null {
   // German format: comma is decimal separator, dot is thousands separator
   // Standard format: dot is decimal separator
   const hasComma = raw.includes(',');
-  const hasDot = raw.includes('.');
 
   if (hasComma) {
     // European/German format: 1.234,56 or 400,00
@@ -125,9 +124,6 @@ const SKIP_LINES: RegExp[] = [
   /^\s*Telefax\s+\+/,
   /^\s*[A-Z][a-z]+\s+\([A-Z][a-z]+\)\s*$/,
 ];
-
-// Lines that indicate a transaction type (German bank statements)
-const TXN_TYPE_RE = /^(überw\.|lastschrift|debitk\.|gutschr\.|bargeldausz\.|entgeltabrechnung)/i;
 
 export function parsePdfText(text: string): { transactions: ParsedTransaction[]; openingBalance: number | null } {
   // Split into lines, preserving trailing spaces for right-aligned amounts

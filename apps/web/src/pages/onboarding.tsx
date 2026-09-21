@@ -27,7 +27,7 @@ export default function Onboarding() {
   const navigate = useNavigate();
   const { user } = useAuth();
   const [step, setStep] = useState<Step>('welcome');
-  const [selected, setSelected] = useState<string | null>(null);
+  const [, setSelected] = useState<string | null>(null);
 
   const handleComplete = () => {
     navigate('/dashboard');

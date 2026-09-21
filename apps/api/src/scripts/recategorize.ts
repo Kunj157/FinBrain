@@ -11,10 +11,9 @@ async function main() {
 
   console.log(`Found ${transactions.length} transactions`);
 
-  const categories = await prisma.category.findMany({
+  await prisma.category.findMany({
     where: { userId: DEV_USER_ID },
   });
-  const catByName = new Map(categories.map(c => [c.name, c.id]));
 
   let updated = 0;
   const changes: { merchant: string; old: string; new: string }[] = [];

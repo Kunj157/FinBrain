@@ -20,7 +20,7 @@ export async function generateWeeklyRecap(userId: string): Promise<WeeklyRecap> 
   const weekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
   const twoWeeksAgo = new Date(now.getTime() - 14 * 24 * 60 * 60 * 1000);
 
-  const [thisWeekTxns, lastWeekTxns, budgets, goals, accounts, holdings] = await Promise.all([
+  const [thisWeekTxns, lastWeekTxns, budgets, goals, , holdings] = await Promise.all([
     prisma.transaction.findMany({
       where: { userId, deletedAt: null, date: { gte: weekAgo } },
       include: { category: { select: { name: true } } },
@@ -52,9 +52,6 @@ export async function generateWeeklyRecap(userId: string): Promise<WeeklyRecap> 
     .slice(0, 5)
     .map(([category, amount]) => ({ category, amount: roundMoney(amount) }));
 
-  const thisWeekMerchants = new Set(
-    thisWeekTxns.filter((t) => t.isRecurring).map((t) => t.merchant || t.description)
-  );
   const lastWeekMerchants = new Set(
     lastWeekTxns.filter((t) => t.isRecurring).map((t) => t.merchant || t.description)
   );
@@ -91,12 +88,6 @@ export async function generateWeeklyRecap(userId: string): Promise<WeeklyRecap> 
     target: g.targetAmount,
     progressPercent: g.targetAmount > 0 ? roundMoney((g.currentAmount / g.targetAmount) * 100) : 0,
   }));
-
-  const totalAssets = accounts
-    .filter((a) => ['checking', 'savings', 'investment', 'real_estate'].includes(a.type))
-    .reduce((s, a) => s + a.balance, 0);
-
-  const lastWeekAssets = totalAssets - netCashFlow;
 
   const investmentValue = holdings.reduce((s, h) => s + (h.currentPrice || h.avgCostBasis) * h.quantity, 0);
   const investmentCost = holdings.reduce((s, h) => s + h.avgCostBasis * h.quantity, 0);

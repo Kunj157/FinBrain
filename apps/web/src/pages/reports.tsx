@@ -10,7 +10,7 @@ import { useAuth } from '@/hooks/use-auth';
 import api from '@/lib/api';
 import { fetchAllTransactions } from '@/lib/transactions';
 import { LoadError } from '@/components/ui/load-error';
-import { formatCurrency, formatDate } from '@/lib/utils';
+import { formatCurrency } from '@/lib/utils';
 import { SankeyFlow } from '@/components/finance/sankey';
 import type { Transaction, Category, Currency as SharedCurrency } from '@finbrain/shared';
 import jsPDF from 'jspdf';

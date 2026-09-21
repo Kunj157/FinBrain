@@ -460,7 +460,6 @@ function BudgetForm({
   budget,
   categories,
   existingBudgetIds,
-  currency,
   onClose,
   onSave,
 }: {

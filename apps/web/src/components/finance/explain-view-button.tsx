@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Brain, Loader2, X, Send } from 'lucide-react';
+import { Brain, Loader2, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import api from '@/lib/api';
 

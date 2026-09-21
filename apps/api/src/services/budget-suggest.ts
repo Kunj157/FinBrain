@@ -34,8 +34,6 @@ export async function suggestBudgets(userId: string): Promise<BudgetSuggestion[]
   const catMonths: Record<string, { total: number; months: number; amounts: number[] }> = {};
   for (const t of transactions) {
     const catId = t.categoryId;
-    const catName = t.category?.name || 'Other';
-    const monthKey = `${new Date(t.date).getFullYear()}-${new Date(t.date).getMonth()}`;
 
     if (!catMonths[catId]) {
       catMonths[catId] = { total: 0, months: 0, amounts: [] };
@@ -43,8 +41,6 @@ export async function suggestBudgets(userId: string): Promise<BudgetSuggestion[]
     catMonths[catId].total += Math.abs(t.amount);
     catMonths[catId].amounts.push(Math.abs(t.amount));
   }
-
-  const monthsInPeriod = 3;
 
   for (const catId of Object.keys(catMonths)) {
     const monthSet = new Set(

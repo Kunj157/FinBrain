@@ -7,7 +7,7 @@ interface SankeyFlowProps {
   currency: string;
 }
 
-export function SankeyFlow({ income, expenses, currency }: SankeyFlowProps) {
+export function SankeyFlow({ income, expenses }: SankeyFlowProps) {
   const data = useMemo(() => {
     if (income.length === 0 || expenses.length === 0) return null;
 

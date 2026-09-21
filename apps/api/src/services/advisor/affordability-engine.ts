@@ -1,5 +1,4 @@
 import { prisma } from '../../prisma';
-import { roundMoney, computeTotalAssets } from '../finance-math';
 import { getAdvisorProfile } from './profile-engine';
 import { evaluateAffordability, type AffordabilityInput, type AffordabilityDecision } from './recommendation-rules';
 import { parsePurchaseMessage, type ParsedPurchase } from './purchase-parser';

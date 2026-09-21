@@ -74,7 +74,6 @@ const DAY_NAMES = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 export default function Analytics() {
   const { user } = useAuth();
   const currency = (user?.currency || 'USD') as SharedCurrency;
-  const now = useMemo(() => new Date(), []); // ponytail: stable reference for forecast calc
 
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);

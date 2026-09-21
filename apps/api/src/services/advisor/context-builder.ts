@@ -1,6 +1,6 @@
 import { prisma } from '../../prisma';
 import { getAdvisorProfile, type AdvisorProfileData } from './profile-engine';
-import { sumIncome, sumExpenses, roundMoney, computeRunway, computeNetWorth } from '../finance-math';
+import { roundMoney } from '../finance-math';
 
 export interface AdvisorContext {
   profile: AdvisorProfileData;
@@ -49,7 +49,6 @@ export async function buildAdvisorContext(userId: string): Promise<AdvisorContex
   if (!profile) throw new Error('Could not build advisor profile');
 
   const now = new Date();
-  const thirtyDaysAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
   const sixMonthsAgo = new Date(now);
   sixMonthsAgo.setMonth(sixMonthsAgo.getMonth() - 6);
 
@@ -75,10 +74,6 @@ export async function buildAdvisorContext(userId: string): Promise<AdvisorContex
     type: t.type,
     category: t.category?.name || 'Other',
   }));
-
-  const totalAssets = accounts
-    .filter((a) => ['checking', 'savings', 'investment', 'real_estate'].includes(a.type))
-    .reduce((s, a) => s + a.balance, 0);
 
   const currentBalance = accounts
     .filter((a) => a.type === 'checking')

@@ -1,13 +1,12 @@
 import { useState, useMemo, useCallback, useEffect } from 'react';
 import {
-  Plus, Target, Pencil, Trash2, X, Loader2, TrendingUp, Calendar,
+  Plus, Target, Pencil, Trash2, X, Loader2, TrendingUp,
   Check, AlertTriangle, Home, Car, GraduationCap, Plane, PiggyBank,
   Briefcase, Heart, CircleDollarSign, Coins, Zap,
 } from 'lucide-react';
 import { ExplainViewButton } from '@/components/finance/explain-view-button';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
 import { useAuth } from '@/hooks/use-auth';
 import api from '@/lib/api';
 import { formatCurrency } from '@/lib/utils';

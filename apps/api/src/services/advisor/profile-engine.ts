@@ -1,4 +1,4 @@
-import { type Prisma, type Transaction, type Account, type Budget, type Goal, type Holding } from '@prisma/client';
+import { type Prisma, type Transaction, type Budget } from '@prisma/client';
 import { prisma } from '../../prisma';
 import {
   sumIncome,
@@ -12,8 +12,6 @@ import {
   roundMoney,
 } from '../finance-math';
 import { computeConfidence, type ConfidenceFactors } from './confidence';
-
-type TxnWithCategory = Transaction & { category?: { name: string } | null };
 
 export interface AdvisorProfileData {
   dataStartDate: Date | null;

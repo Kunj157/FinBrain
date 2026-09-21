@@ -1,9 +1,8 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { Brain, Send, Loader2, MessageCircle, History, Sparkles, TrendingUp, TrendingDown, DollarSign, AlertTriangle, CheckCircle2, XCircle, ChevronDown, ChevronUp, Lightbulb, Target, Shield } from 'lucide-react';
+import { Brain, Send, Loader2, History, AlertTriangle, CheckCircle2, XCircle, ChevronDown, ChevronUp, Lightbulb, Target, Shield } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { useAuth } from '@/hooks/use-auth';
 import api from '@/lib/api';
 import { formatCurrency } from '@/lib/utils';
 
@@ -78,14 +77,13 @@ const suggestedQuestions = [
 ];
 
 export default function AdvisorPage() {
-  const { user } = useAuth();
   const [profile, setProfile] = useState<AdvisorProfile | null>(null);
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [activeConvId, setActiveConvId] = useState<string | null>(null);
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [chatInput, setChatInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
-  const [isProfileLoading, setIsProfileLoading] = useState(true);
+  const [, setIsProfileLoading] = useState(true);
   const [showHistory, setShowHistory] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
