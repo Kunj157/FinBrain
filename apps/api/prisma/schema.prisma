@@ -159,7 +159,7 @@ model HouseholdInvite {
   household    Household @relation(fields: [householdId], references: [id], onDelete: Cascade)
 
   invitedById  String
-  invitedBy    User      @relation("HouseholdInvitesSent", fields: [invitedById], references: [id])
+  invitedBy    User      @relation("HouseholdInvitesSent", fields: [invitedById], references: [id], onDelete: Cascade)
 
   createdAt    DateTime  @default(now())
   expiresAt    DateTime
