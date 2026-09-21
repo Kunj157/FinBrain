@@ -8,6 +8,7 @@ import express from 'express';
 import cors from 'cors';
 import helmet from 'helmet';
 import morgan from 'morgan';
+import rateLimit from 'express-rate-limit';
 
 import { ensureDevUser, prisma } from './prisma';
 import { seedDefaultCategories } from './seed-defaults';
@@ -50,6 +51,33 @@ app.get('/api/v1/health', (_req, res) => {
   res.json({ status: 'ok', service: 'finbrain-api', timestamp: new Date().toISOString() });
 });
 
+// Rate limits are keyed by authenticated user where possible; falling back to
+// IP alone would let one NATed office exhaust a shared bucket.
+const keyByUser = (req: express.Request) => req.userId || req.ip || 'unknown';
+
+const generalLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 1000,
+  standardHeaders: true,
+  legacyHeaders: false,
+  keyGenerator: keyByUser,
+  message: { success: false, error: 'Too many requests. Please slow down.' },
+});
+
+// The AI routes call a paid completions API on every request. Without a cap,
+// an authenticated user can run up an unbounded bill by holding down a key.
+const aiLimiter = rateLimit({
+  windowMs: 60 * 1000,
+  max: 20,
+  standardHeaders: true,
+  legacyHeaders: false,
+  keyGenerator: keyByUser,
+  message: {
+    success: false,
+    error: 'You are sending messages too quickly. Please wait a moment.',
+  },
+});
+
 app.use('/api/v1', (req, res, next) => {
   if (req.path === '/health' || !process.env.CLERK_SECRET_KEY || process.env.DEV_MODE === 'true') {
     if (!process.env.CLERK_SECRET_KEY || process.env.DEV_MODE === 'true') {
@@ -59,6 +87,11 @@ app.use('/api/v1', (req, res, next) => {
   }
   return requireAuth(req, res, next);
 });
+
+// Applied after auth so the limiter can key on req.userId.
+app.use('/api/v1', generalLimiter);
+app.use('/api/v1/ai', aiLimiter);
+app.use('/api/v1/advisor/chat', aiLimiter);
 
 app.use('/api/v1/plaid', plaidRoutes);
 app.use('/api/v1/import', csvImportRoutes);
