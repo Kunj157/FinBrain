@@ -5,8 +5,10 @@ import {
 import { ExplainViewButton } from '@/components/finance/explain-view-button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
+import { LoadError } from '@/components/ui/load-error';
 import { useAuth } from '@/hooks/use-auth';
 import api from '@/lib/api';
+import { fetchAllTransactions } from '@/lib/transactions';
 import { formatCurrency } from '@/lib/utils';
 import {
   Chart as ChartJS,
@@ -78,6 +80,7 @@ export default function Analytics() {
   const [categories, setCategories] = useState<Category[]>([]);
   const [recurringPatterns, setRecurringPatterns] = useState<Array<{ amount: number; frequency: string; monthlyCost: number; merchant: string }>>([]);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState<string | null>(null);
   const [period, setPeriod] = useState<TimePeriod>('6m');
   const [txnType, setTxnType] = useState<TxnType>('all');
   const [categoryFilter, setCategoryFilter] = useState<string>('all');
@@ -85,16 +88,18 @@ export default function Analytics() {
   const fetchData = useCallback(async () => {
     setLoading(true);
     try {
-      const [txnRes, catRes, recurRes] = await Promise.all([
-        api.get('/transactions?limit=5000'),
+      const [txns, catRes, recurRes] = await Promise.all([
+        fetchAllTransactions(),
         api.get('/categories'),
         api.get('/recurring').catch(() => ({ data: { data: { patterns: [] } } })),
       ]);
-      setTransactions(txnRes.data.data.data);
+      setTransactions(txns);
       setCategories(catRes.data.data);
       setRecurringPatterns(recurRes.data.data?.patterns || []);
-    } catch {
-      // silent
+      setLoadError(null);
+    } catch (error) {
+      console.error('Analytics load failed:', error);
+      setLoadError('We could not load your analytics. Please try again.');
     } finally {
       setLoading(false);
     }
@@ -384,6 +389,10 @@ export default function Analytics() {
         <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
       </div>
     );
+  }
+
+  if (loadError) {
+    return <LoadError message={loadError} onRetry={fetchData} />;
   }
 
   return (

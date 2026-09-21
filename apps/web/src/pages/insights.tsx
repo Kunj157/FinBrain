@@ -8,6 +8,8 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/hooks/use-auth';
 import api from '@/lib/api';
+import { fetchAllTransactions } from '@/lib/transactions';
+import { LoadError } from '@/components/ui/load-error';
 import { sendChatMessage } from '@/lib/ai-chat';
 import { formatCurrency } from '@/lib/utils';
 import type { Transaction, Category, Budget, Goal, Currency as SharedCurrency } from '@finbrain/shared';
@@ -292,6 +294,7 @@ export default function Insights() {
   const [budgets, setBudgets] = useState<Budget[]>([]);
   const [goals, setGoals] = useState<Goal[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState<string | null>(null);
   const [chatInput, setChatInput] = useState('');
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [isThinking, setIsThinking] = useState(false);
@@ -300,18 +303,20 @@ export default function Insights() {
   const fetchData = useCallback(async () => {
     setLoading(true);
     try {
-      const [txnRes, catRes, budgetRes, goalRes] = await Promise.all([
-        api.get('/transactions?limit=5000'),
+      const [txns, catRes, budgetRes, goalRes] = await Promise.all([
+        fetchAllTransactions(),
         api.get('/categories'),
         api.get('/budgets'),
         api.get('/goals'),
       ]);
-      setTransactions(txnRes.data.data.data);
+      setTransactions(txns);
       setCategories(catRes.data.data);
       setBudgets(budgetRes.data.data);
       setGoals(goalRes.data.data);
-    } catch {
-      // silent
+      setLoadError(null);
+    } catch (error) {
+      console.error('Insights load failed:', error);
+      setLoadError('We could not load your insights. Please try again.');
     } finally {
       setLoading(false);
     }
@@ -368,6 +373,10 @@ export default function Insights() {
         <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
       </div>
     );
+  }
+
+  if (loadError) {
+    return <LoadError message={loadError} onRetry={fetchData} />;
   }
 
   return (

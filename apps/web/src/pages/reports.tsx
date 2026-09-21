@@ -8,6 +8,8 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/hooks/use-auth';
 import api from '@/lib/api';
+import { fetchAllTransactions } from '@/lib/transactions';
+import { LoadError } from '@/components/ui/load-error';
 import { formatCurrency, formatDate } from '@/lib/utils';
 import { SankeyFlow } from '@/components/finance/sankey';
 import type { Transaction, Category, Currency as SharedCurrency } from '@finbrain/shared';
@@ -62,6 +64,7 @@ export default function Reports() {
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState<string | null>(null);
   const [reportType, setReportType] = useState<ReportType>('monthly');
   const [currentDate, setCurrentDate] = useState(new Date());
   const [taxYear, setTaxYear] = useState(new Date().getFullYear());
@@ -81,14 +84,16 @@ export default function Reports() {
   const fetchData = useCallback(async () => {
     setLoading(true);
     try {
-      const [txnRes, catRes] = await Promise.all([
-        api.get('/transactions?limit=5000'),
+      const [txns, catRes] = await Promise.all([
+        fetchAllTransactions(),
         api.get('/categories'),
       ]);
-      setTransactions(txnRes.data.data.data);
+      setTransactions(txns);
       setCategories(catRes.data.data);
-    } catch {
-      // silent
+      setLoadError(null);
+    } catch (error) {
+      console.error('Reports load failed:', error);
+      setLoadError('We could not load your reports. Please try again.');
     } finally {
       setLoading(false);
     }
@@ -313,6 +318,10 @@ export default function Reports() {
         <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
       </div>
     );
+  }
+
+  if (loadError) {
+    return <LoadError message={loadError} onRetry={fetchData} />;
   }
 
   return (

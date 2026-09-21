@@ -1,10 +1,11 @@
-import { Wallet, TrendingUp, TrendingDown, PiggyBank, ArrowRightLeft, Target, Brain, Sparkles, Loader2, AlertCircle, Plus, X, Send, Shield, Eye, Upload, Lock, Settings, Check } from 'lucide-react';
+import { Wallet, TrendingUp, TrendingDown, PiggyBank, ArrowRightLeft, Target, Brain, Sparkles, Loader2, Plus, X, Send, Shield, Eye, Upload, Lock, Settings, Check } from 'lucide-react';
 import { useMemo, useEffect, useState, useCallback, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { StatCard } from '@/components/finance/stat-card';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import { LoadError } from '@/components/ui/load-error';
 import { PlaidLinkButton } from '@/components/finance/plaid-link';
 import { CsvImport } from '@/components/finance/csv-import';
 import { WeeklyRecap } from '@/components/finance/weekly-recap';
@@ -148,16 +149,7 @@ export default function Dashboard() {
   }
 
   if (loadError) {
-    return (
-      <div className="flex min-h-[60vh] flex-col items-center justify-center gap-4 text-center">
-        <AlertCircle className="h-10 w-10 text-destructive" aria-hidden="true" />
-        <div className="space-y-1">
-          <p className="font-medium">Something went wrong</p>
-          <p className="text-sm text-muted-foreground">{loadError}</p>
-        </div>
-        <Button onClick={() => { setLoading(true); fetchData(); }}>Try again</Button>
-      </div>
-    );
+    return <LoadError message={loadError} onRetry={() => { setLoading(true); fetchData(); }} />;
   }
 
   const hasData = allTransactions.length > 0;
