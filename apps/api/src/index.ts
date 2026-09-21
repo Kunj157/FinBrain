@@ -8,7 +8,7 @@ import express from 'express';
 import cors from 'cors';
 import helmet from 'helmet';
 import morgan from 'morgan';
-import rateLimit from 'express-rate-limit';
+import rateLimit, { ipKeyGenerator } from 'express-rate-limit';
 
 import { ensureDevUser, prisma } from './prisma';
 import { seedDefaultCategories } from './seed-defaults';
@@ -53,7 +53,11 @@ app.get('/api/v1/health', (_req, res) => {
 
 // Rate limits are keyed by authenticated user where possible; falling back to
 // IP alone would let one NATed office exhaust a shared bucket.
-const keyByUser = (req: express.Request) => req.userId || req.ip || 'unknown';
+// ipKeyGenerator normalises IPv6 to its /64 prefix. Using req.ip directly
+// would let an IPv6 client rotate addresses within its own subnet to get a
+// fresh bucket per request.
+const keyByUser = (req: express.Request) =>
+  req.userId || ipKeyGenerator(req.ip ?? '') || 'unknown';
 
 const generalLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
