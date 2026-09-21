@@ -9,6 +9,8 @@
     "lint": "pnpm -r run lint",
     "typecheck": "pnpm -r run typecheck",
     "test": "pnpm -r run test",
+    "test:e2e": "playwright test",
+    "test:e2e:ui": "playwright test --ui",
     "clean": "pnpm -r run clean",
     "format": "prettier --write \"**/*.{ts,tsx,js,jsx,json,css,md}\"",
     "format:check": "prettier --check \"**/*.{ts,tsx,js,jsx,json,css,md}\""
@@ -19,6 +21,7 @@
   },
   "packageManager": "pnpm@9.15.9",
   "devDependencies": {
+    "@playwright/test": "^1.63.0",
     "dotenv-cli": "^11.0.0"
   }
 }

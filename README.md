@@ -67,17 +67,21 @@ FinBrain is a full-stack AI-powered personal finance tracker built as a monorepo
 | Cash Flow Projection (recurring-aware, 6-month) | ✅ Done |
 | Public Landing Page | ✅ Done |
 | Mobile Responsive Layout | ✅ Done |
-| Categorization Rules Engine (CRUD, not auto-applied) | ⚠️ Partial |
-| ML Forecasting (Prophet, ARIMA) | 📋 Planned |
-| Sankey Diagrams (money flow) | 📋 Planned |
-| PDF Report Export | 📋 Planned |
-| Cash Flow Projection (recurring-aware) | 📋 Planned |
-| Couples / Household Accounts | 📋 Planned |
-| Credit Score Tracking | 📋 Planned |
-| Recurring Calendar View | 📋 Planned |
-| Flex Budgeting (fixed/non-monthly/flexible buckets) | 📋 Planned |
+| Categorization Rules Engine (CRUD, auto-apply) | ✅ Done |
+| Advisor Profile & Memory Layer | ✅ Done |
+| Deterministic Affordability Engine | ✅ Done |
+| Persistent Advisor Chat (multi-turn) | ✅ Done |
+| AI Insights & Weekly Recap | ✅ Done |
+| Couples / Household Accounts | ✅ Done |
+| Credit Score Tracking | ✅ Done |
+| Recurring Calendar View & Bill Reminders | ✅ Done |
+| Flex Budgeting (fixed/non-monthly/flexible buckets) | ✅ Done |
+| Tax Summary Report | ✅ Done |
+| Data Quality Dashboard | ✅ Done |
+| Scenario Simulator | ✅ Done |
+| Spending Pattern Detection | ✅ Done |
+| Anomaly Detection | ✅ Done |
 | Customizable Dashboard (drag-and-drop) | 📋 Planned |
-| Tax Summary Report | 📋 Planned |
 | Scheduled Reports (email) | 📋 Planned |
 | Mobile Apps (React Native / Capacitor) | 📋 Planned |
 
@@ -213,8 +217,11 @@ Current feature branches: `feat/phase4-phase5-gaps`, `feat/quality-polish-phase1
 |------|-------|--------|
 | 1 | LLM AI Assistant, Investment Tracking, Budget Alerts | ✅ Complete |
 | 2 | ML Forecasting, Sankey Diagrams, PDF Export, Cash Flow | ✅ Complete |
-| 3 | Couples/Household, Credit Score, Flex Budgeting, Calendar View | 📋 Planned |
-| 4 | Notification Center polish, Customizable Dashboard, Mobile Apps | 📋 Planned |
+| 3 | Advisor Foundation: Finance Math, Data Quality, Profile Engine | 📋 Planned |
+| 4 | Advisor: Affordability Engine, Persistent Chat, Insights | 📋 Planned |
+| 5 | Flex Budgeting, Recurring Calendar, Household/Couples | 📋 Planned |
+| 6 | Credit Score, Investment Intelligence, Forecasting v2 | 📋 Planned |
+| 7 | Reports, UX Polish, Mobile PWA, Security, Billing | 📋 Planned |
 
 See [FEATURE_ROADMAP.md](./docs/FEATURE_ROADMAP.md) for the full gap analysis vs Industry Standard.
 

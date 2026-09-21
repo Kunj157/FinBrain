@@ -100,6 +100,12 @@ export async function checkBudgetAlerts(userId: string) {
         message: `You've used ${pct}% of your ${budget.period} ${catName} budget. ${((100 - pct)).toFixed(0)}% remaining.`,
         type: 'budget_alert',
       });
+    } else if (utilization >= 50) {
+      alerts.push({
+        title: `${catName} Budget Halfway`,
+        message: `You've used ${pct}% of your ${budget.period} ${catName} budget. ${((100 - pct)).toFixed(0)}% remaining.`,
+        type: 'budget_halfway',
+      });
     }
   }
 

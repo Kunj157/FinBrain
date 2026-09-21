@@ -1,6 +1,7 @@
 import { Router, type Request, type Response } from 'express';
 import { z } from 'zod';
 import { prisma } from '../prisma';
+import { getQuote, getQuotes } from '../services/market-data';
 
 const router = Router();
 
@@ -191,6 +192,123 @@ router.get('/summary', async (req: Request, res: Response) => {
       portfolioCount: portfolios.length,
       holdingCount: portfolios.reduce((sum, p) => sum + p.holdings.length, 0),
       allocation,
+    },
+  });
+});
+
+// Market data endpoints
+router.get('/market/quote/:symbol', async (req: Request, res: Response) => {
+  const quote = await getQuote(req.params.symbol.toUpperCase());
+  if (!quote) {
+    return res.status(404).json({ success: false, error: 'Quote not found' });
+  }
+  res.json({ success: true, data: quote });
+});
+
+router.post('/market/quotes', async (req: Request, res: Response) => {
+  const schema = z.object({
+    symbols: z.array(z.string().min(1).max(10)).min(1).max(20),
+  });
+  const parsed = schema.safeParse(req.body);
+  if (!parsed.success) {
+    return res.status(400).json({ success: false, error: 'Invalid input' });
+  }
+  const quotes = await getQuotes(parsed.data.symbols.map((s) => s.toUpperCase()));
+  res.json({ success: true, data: quotes });
+});
+
+router.put('/holdings/:id/price', async (req: Request, res: Response) => {
+  const schema = z.object({
+    currentPrice: z.number().positive(),
+  });
+  const parsed = schema.safeParse(req.body);
+  if (!parsed.success) {
+    return res.status(400).json({ success: false, error: 'Invalid input' });
+  }
+
+  const holding = await prisma.holding.findFirst({
+    where: { id: req.params.id, portfolio: { userId: req.userId } },
+  });
+  if (!holding) {
+    return res.status(404).json({ success: false, error: 'Holding not found' });
+  }
+
+  await prisma.holding.update({
+    where: { id: req.params.id },
+    data: { currentPrice: parsed.data.currentPrice },
+  });
+
+  res.json({ success: true, message: 'Price updated' });
+});
+
+router.post('/holdings/refresh-prices', async (req: Request, res: Response) => {
+  const portfolios = await prisma.portfolio.findMany({
+    where: { userId: req.userId },
+    include: { holdings: true },
+  });
+
+  const symbols = [...new Set(portfolios.flatMap((p) => p.holdings.map((h) => h.symbol)))];
+  if (symbols.length === 0) {
+    return res.json({ success: true, data: { updated: 0 } });
+  }
+
+  const quotes = await getQuotes(symbols);
+  const quoteMap = new Map(quotes.map((q) => [q.symbol, q.price]));
+
+  let updated = 0;
+  for (const portfolio of portfolios) {
+    for (const holding of portfolio.holdings) {
+      const price = quoteMap.get(holding.symbol);
+      if (price) {
+        await prisma.holding.update({
+          where: { id: holding.id },
+          data: { currentPrice: price },
+        });
+        updated++;
+      }
+    }
+  }
+
+  res.json({ success: true, data: { updated, quotes: quotes.length } });
+});
+
+router.get('/top-movers', async (req: Request, res: Response) => {
+  const portfolios = await prisma.portfolio.findMany({
+    where: { userId: req.userId },
+    include: { holdings: true },
+  });
+
+  const allHoldings = portfolios.flatMap((p) => p.holdings);
+  if (allHoldings.length === 0) {
+    return res.json({ success: true, data: { gainers: [], losers: [] } });
+  }
+
+  const symbols = [...new Set(allHoldings.map((h) => h.symbol))];
+  const quotes = await getQuotes(symbols);
+  const quoteMap = new Map(quotes.map((q) => [q.symbol, q]));
+
+  const movers = allHoldings.map((h) => {
+    const quote = quoteMap.get(h.symbol);
+    const price = h.currentPrice || 0;
+    const gainLoss = (price - h.avgCostBasis) * h.quantity;
+    const gainLossPercent = h.avgCostBasis > 0 ? ((price - h.avgCostBasis) / h.avgCostBasis) * 100 : 0;
+    return {
+      symbol: h.symbol,
+      name: h.name,
+      gainLoss: Math.round(gainLoss * 100) / 100,
+      gainLossPercent: Math.round(gainLossPercent * 100) / 100,
+      currentPrice: quote?.price || price,
+      dailyChange: quote?.change || 0,
+      dailyChangePercent: quote?.changePercent || 0,
+    };
+  });
+
+  const sorted = [...movers].sort((a, b) => b.gainLossPercent - a.gainLossPercent);
+  res.json({
+    success: true,
+    data: {
+      gainers: sorted.filter((m) => m.gainLossPercent > 0).slice(0, 5),
+      losers: sorted.filter((m) => m.gainLossPercent < 0).slice(-5).reverse(),
     },
   });
 });

@@ -31,6 +31,27 @@ const createTransactionSchema = z.object({
 
 const updateTransactionSchema = createTransactionSchema.partial();
 
+// Bulk import accepts the same fields as a single create, except that
+// categoryId may be absent or unknown — the handler resolves those against
+// the user's own categories and falls back to an ML suggestion. Everything
+// else is validated identically, so an import cannot smuggle in a negative
+// amount or an unparseable date that a single create would have rejected.
+const bulkTransactionSchema = z.object({
+  items: z
+    .array(
+      createTransactionSchema.extend({
+        categoryId: z.string().optional(),
+        date: z.string().refine((value) => !Number.isNaN(Date.parse(value)), {
+          message: 'date must be a parseable date string',
+        }),
+      }),
+    )
+    .min(1)
+    // Bounded so a single request cannot pin the event loop building
+    // thousands of ML category suggestions.
+    .max(1000),
+});
+
 const querySchema = z.object({
   page: z.coerce.number().min(1).default(1),
   limit: z.coerce.number().min(1).max(1000).default(20),
@@ -43,6 +64,9 @@ const querySchema = z.object({
   sort: z.string().default('date'),
   order: z.enum(['asc', 'desc']).default('desc'),
   deleted: z.coerce.boolean().default(false),
+  needsReview: z.coerce.boolean().optional(),
+  reviewed: z.coerce.boolean().optional(),
+  householdMemberId: z.string().optional(),
 });
 
 const SORT_FIELD_MAP: Record<string, string> = {
@@ -59,16 +83,31 @@ router.get('/', async (req: Request, res: Response) => {
     return res.status(400).json({ success: false, error: 'Invalid query', details: parsed.error.format() });
   }
 
-  const { page, limit, type, categoryId, startDate, endDate, search, paymentMethod, sort, order, deleted } = parsed.data;
+  const { page, limit, type, categoryId, startDate, endDate, search, paymentMethod, sort, order, deleted, needsReview, reviewed, householdMemberId } = parsed.data;
+
+  // Build user filter - include household members if filtering by household
+  let userIds: string[] = [req.userId];
+  if (householdMemberId) {
+    // Get all members of the user's household
+    const membership = await prisma.householdMember.findFirst({
+      where: { userId: req.userId, status: 'ACTIVE' },
+      include: { household: { include: { members: { where: { status: 'ACTIVE' } } } } },
+    });
+    if (membership) {
+      userIds = membership.household.members.map((m) => m.userId);
+    }
+  }
 
   const where: Prisma.TransactionWhereInput = {
-    userId: req.userId,
+    userId: householdMemberId ? { in: userIds } : req.userId,
     deletedAt: deleted ? { not: null } : null,
     ...(type && { type }),
     ...(categoryId && { categoryId }),
     ...(paymentMethod && { paymentMethod }),
     ...(startDate && { date: { gte: new Date(startDate) } }),
     ...(endDate && { date: { lte: new Date(endDate + 'T23:59:59.999Z') } }),
+    ...(needsReview !== undefined && { needsReview }),
+    ...(reviewed !== undefined && { reviewed }),
     ...(search && {
       OR: [
         { description: { contains: search, mode: 'insensitive' } },
@@ -173,10 +212,15 @@ router.delete('/:id', async (req: Request, res: Response) => {
 
 router.post('/bulk', async (req: Request, res: Response) => {
   try {
-    const { items } = req.body;
-    if (!Array.isArray(items) || items.length === 0) {
-      return res.status(400).json({ success: false, error: 'items array is required' });
+    const parsed = bulkTransactionSchema.safeParse(req.body);
+    if (!parsed.success) {
+      return res.status(400).json({
+        success: false,
+        error: 'Invalid items',
+        details: parsed.error.format(),
+      });
     }
+    const { items } = parsed.data;
 
     const categories = await prisma.category.findMany({
       where: { userId: req.userId },
@@ -184,10 +228,10 @@ router.post('/bulk', async (req: Request, res: Response) => {
     const validCatIds = new Set(categories.map((c) => c.id));
     const fallbackCat = categories.find((c) => c.name === 'Other') || categories[0];
 
-    const data = await Promise.all(items.map(async (item: Record<string, unknown>) => {
-      let categoryId = item.categoryId as string;
+    const data = await Promise.all(items.map(async (item) => {
+      let categoryId = item.categoryId ?? '';
       if (!validCatIds.has(categoryId)) {
-        const suggestion = await suggestCategoryWithML(req.userId, (item.merchant as string) || '', (item.description as string) || '');
+        const suggestion = await suggestCategoryWithML(req.userId, item.merchant || '', item.description);
         if (suggestion?.categoryId && validCatIds.has(suggestion.categoryId)) {
           categoryId = suggestion.categoryId;
         } else {
@@ -196,19 +240,18 @@ router.post('/bulk', async (req: Request, res: Response) => {
       }
       return {
         userId: req.userId,
-        type: (item.type || 'expense') as 'income' | 'expense',
-        amount: item.amount as number,
-        currency: (item.currency || 'USD') as 'USD' | 'EUR' | 'GBP' | 'INR' | 'JPY' | 'CAD' | 'AUD',
-        description: item.description as string,
-        merchant: (item.merchant as string) || null,
+        type: item.type,
+        amount: item.amount,
+        currency: item.currency,
+        description: item.description,
+        merchant: item.merchant || null,
         categoryId,
-        paymentMethod: (item.paymentMethod || 'other') as 'cash' | 'credit_card' | 'debit_card' | 'bank_transfer' | 'upi' | 'other',
-        date: new Date(item.date as string),
-        notes: (item.notes as string) || null,
-        status: (item.status || 'cleared') as 'pending' | 'cleared' | 'flagged',
-        isRecurring: (item.isRecurring as boolean) || false,
+        paymentMethod: item.paymentMethod,
+        date: new Date(item.date),
+        notes: item.notes || null,
+        status: item.status,
+        isRecurring: item.isRecurring,
       };
-
     }));
 
     const result = await prisma.transaction.createMany({ data });

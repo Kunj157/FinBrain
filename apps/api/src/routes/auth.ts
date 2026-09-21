@@ -1,6 +1,11 @@
 import { Router } from 'express';
 import bcrypt from 'bcryptjs';
+import { createClerkClient } from '@clerk/backend';
 import { prisma } from '../prisma';
+
+const clerkClient = process.env.CLERK_SECRET_KEY
+  ? createClerkClient({ secretKey: process.env.CLERK_SECRET_KEY })
+  : null;
 
 const router = Router();
 
@@ -92,6 +97,14 @@ router.delete('/profile', async (req, res) => {
     if (!user) return res.status(404).json({ success: false, error: 'User not found' });
 
     await prisma.user.delete({ where: { id: req.userId } });
+
+    if (clerkClient) {
+      try {
+        await clerkClient.users.deleteUser(user.clerkId);
+      } catch (e) {
+        console.error('Clerk user deletion failed (DB already deleted):', e);
+      }
+    }
 
     res.json({ success: true, data: { message: 'Account deleted successfully' } });
   } catch (error) {

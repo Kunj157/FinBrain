@@ -1,7 +1,14 @@
+// Must precede the route imports. Express 4 does not await async handlers, so
+// a rejected promise never reaches next() and the request hangs until the
+// client or proxy times out. This patches the router to forward rejections to
+// the error handler below, which covers every async handler in the app.
+import 'express-async-errors';
+
 import express from 'express';
 import cors from 'cors';
 import helmet from 'helmet';
 import morgan from 'morgan';
+import rateLimit, { ipKeyGenerator } from 'express-rate-limit';
 
 import { ensureDevUser, prisma } from './prisma';
 import { seedDefaultCategories } from './seed-defaults';
@@ -24,8 +31,13 @@ import recurringRoutes from './routes/recurring';
 import searchRoutes from './routes/search';
 import aiRoutes from './routes/ai';
 import investmentsRoutes from './routes/investments';
-import notificationsRoutes, { checkBudgetAlerts } from './routes/notifications';
+import notificationsRoutes from './routes/notifications';
 import forecastRoutes from './routes/forecast';
+import advisorRoutes from './routes/advisor';
+import dataQualityRoutes from './routes/data-quality';
+import householdRoutes from './routes/households';
+import creditScoreRoutes from './routes/credit-score';
+import scheduledReportRoutes from './routes/scheduled-reports';
 
 const app = express();
 const PORT = process.env.PORT || 4000;
@@ -39,15 +51,51 @@ app.get('/api/v1/health', (_req, res) => {
   res.json({ status: 'ok', service: 'finbrain-api', timestamp: new Date().toISOString() });
 });
 
+// Rate limits are keyed by authenticated user where possible; falling back to
+// IP alone would let one NATed office exhaust a shared bucket.
+// ipKeyGenerator normalises IPv6 to its /64 prefix. Using req.ip directly
+// would let an IPv6 client rotate addresses within its own subnet to get a
+// fresh bucket per request.
+const keyByUser = (req: express.Request) =>
+  req.userId || ipKeyGenerator(req.ip ?? '') || 'unknown';
+
+const generalLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 1000,
+  standardHeaders: true,
+  legacyHeaders: false,
+  keyGenerator: keyByUser,
+  message: { success: false, error: 'Too many requests. Please slow down.' },
+});
+
+// The AI routes call a paid completions API on every request. Without a cap,
+// an authenticated user can run up an unbounded bill by holding down a key.
+const aiLimiter = rateLimit({
+  windowMs: 60 * 1000,
+  max: 20,
+  standardHeaders: true,
+  legacyHeaders: false,
+  keyGenerator: keyByUser,
+  message: {
+    success: false,
+    error: 'You are sending messages too quickly. Please wait a moment.',
+  },
+});
+
 app.use('/api/v1', (req, res, next) => {
-  if (req.path === '/health' || !process.env.CLERK_SECRET_KEY) {
-    if (!process.env.CLERK_SECRET_KEY) {
+  if (req.path === '/health' || !process.env.CLERK_SECRET_KEY || process.env.DEV_MODE === 'true') {
+    if (!process.env.CLERK_SECRET_KEY || process.env.DEV_MODE === 'true') {
       req.userId = 'dev-user-001';
     }
     return next();
   }
   return requireAuth(req, res, next);
 });
+
+// Applied after auth so the limiter can key on req.userId.
+app.use('/api/v1', generalLimiter);
+app.use('/api/v1/ai', aiLimiter);
+app.use('/api/v1/advisor/chat', aiLimiter);
 
 app.use('/api/v1/plaid', plaidRoutes);
 app.use('/api/v1/import', csvImportRoutes);
@@ -67,6 +115,11 @@ app.use('/api/v1/ai', aiRoutes);
 app.use('/api/v1/investments', investmentsRoutes);
 app.use('/api/v1/notifications', notificationsRoutes);
 app.use('/api/v1/forecast', forecastRoutes);
+app.use('/api/v1/advisor', advisorRoutes);
+app.use('/api/v1/data-quality', dataQualityRoutes);
+app.use('/api/v1/households', householdRoutes);
+app.use('/api/v1/credit-score', creditScoreRoutes);
+app.use('/api/v1/scheduled-reports', scheduledReportRoutes);
 
 app.get('/api/v1/audit-logs', async (req, res) => {
   const { entity, limit: l } = req.query;

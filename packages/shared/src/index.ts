@@ -21,6 +21,7 @@ export interface Transaction {
   receiptUrl?: string;
   status: TransactionStatus;
   isRecurring: boolean;
+  deletedAt?: string | null;
   createdAt: string;
   updatedAt: string;
 }

@@ -5,7 +5,7 @@ import { Select } from '@/components/ui/select';
 import api from '@/lib/api';
 import type { CategorizationRule, Category } from '@finbrain/shared';
 
-export default function RulesPage() {
+export function RulesSection() {
   const [rules, setRules] = useState<CategorizationRule[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
   const [loading, setLoading] = useState(true);
@@ -62,30 +62,29 @@ export default function RulesPage() {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center min-h-[60vh]">
-        <Loader2 className="h-8 w-8 text-muted-foreground animate-spin" />
+      <div className="flex items-center justify-center py-16">
+        <Loader2 className="h-6 w-6 text-muted-foreground animate-spin" />
       </div>
     );
   }
 
   return (
-    <div className="space-y-6 animate-fade-in">
+    <div className="space-y-4">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-semibold tracking-tight">Categorization Rules</h1>
-          <p className="text-sm text-muted-foreground mt-1">
+          <p className="text-sm text-muted-foreground">
             {rules.filter((r) => r.isActive).length} active rules
           </p>
         </div>
-        <Button onClick={() => setShowForm(true)} className="gap-2">
+        <Button onClick={() => setShowForm(true)} size="sm" className="gap-2">
           <Plus className="h-4 w-4" />
           Add Rule
         </Button>
       </div>
 
       {rules.length === 0 ? (
-        <div className="text-center py-16">
-          <p className="text-muted-foreground">No rules yet. Create one to override auto-categorization.</p>
+        <div className="text-center py-12 rounded-xl bg-white/[0.02] border border-white/[0.06]">
+          <p className="text-muted-foreground text-sm">No rules yet. Create one to auto-categorize transactions.</p>
         </div>
       ) : (
         <div className="space-y-2">
@@ -100,7 +99,7 @@ export default function RulesPage() {
             >
               <GripVertical className="h-4 w-4 text-muted-foreground flex-shrink-0" />
               <div className="flex-1 min-w-0">
-                <div className="flex items-center gap-2 text-sm">
+                <div className="flex items-center gap-2 text-sm flex-wrap">
                   {rule.merchantPattern && (
                     <span className="px-2 py-0.5 rounded-md bg-emerald-500/10 text-emerald-400 text-xs font-mono">
                       merchant: {rule.merchantPattern}

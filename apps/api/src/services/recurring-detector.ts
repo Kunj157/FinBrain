@@ -1,5 +1,4 @@
 import { prisma } from '../prisma';
-import { type Prisma } from '@prisma/client';
 
 export interface RecurringPattern {
   id: string;

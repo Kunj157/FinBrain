@@ -30,20 +30,31 @@ export function Select({
   onValueChange,
   options,
   placeholder,
+  ariaLabel,
+  name,
 }: {
   value: string;
   onValueChange: (value: string) => void;
   options: { value: string; label: string }[];
   placeholder?: string;
+  ariaLabel?: string;
+  name?: string;
 }) {
+  // Radix treats an empty-string value as "nothing selected" and renders the
+  // placeholder instead. Several call sites use '' as a real option (e.g.
+  // "All types"), so resolve the label ourselves and hand it to the
+  // placeholder slot — otherwise the trigger renders blank.
+  const selectedLabel = options.find((opt) => opt.value === value)?.label;
+
   return (
-    <SelectPrimitive.Root value={value || undefined} onValueChange={onValueChange}>
+    <SelectPrimitive.Root value={value || undefined} onValueChange={onValueChange} name={name}>
       <SelectPrimitive.Trigger
+        aria-label={ariaLabel ?? placeholder ?? selectedLabel}
         className={cn(
           'flex h-10 w-full items-center justify-between rounded-lg border border-white/[0.08] bg-white/[0.02] px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:ring-offset-1 disabled:cursor-not-allowed disabled:opacity-50 cursor-pointer hover:bg-white/[0.04] hover:border-white/[0.12] transition-colors [&>span]:line-clamp-1',
         )}
       >
-        <SelectPrimitive.Value placeholder={placeholder} />
+        <SelectPrimitive.Value placeholder={selectedLabel ?? placeholder} />
         <SelectPrimitive.Icon asChild>
           <ChevronDown className="h-4 w-4 opacity-50" />
         </SelectPrimitive.Icon>

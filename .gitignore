@@ -10,6 +10,10 @@ coverage/
 *.tsbuildinfo
 .turbo/
 
+# Agent context (local only, never push)
+AGENTS.md
+memory/
+
 # Python
 __pycache__/
 *.pyc
@@ -22,7 +26,9 @@ ml-venv/
 apps/ml-service/data/xlmr_model/model.safetensors
 
 # Prisma
-apps/api/prisma/migrations/
+# Migrations are intentionally tracked: deploys run `prisma migrate deploy`,
+# which needs the history in the repository. Ignoring it forces `db push`,
+# which mutates databases with no record of what changed.
 
 # Docker
 docker-data/
@@ -37,3 +43,9 @@ docker-data/
 *.swo
 apps/web/.vite/
 apps/api/uploads/
+
+# Playwright
+playwright-report/
+test-results/
+blob-report/
+.playwright/

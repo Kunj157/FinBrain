@@ -1,11 +1,12 @@
 import { useState, useEffect } from 'react';
-import { Plus, Building2, Wallet, CreditCard, PiggyBank, TrendingUp, Home, Loader2, ArrowRightLeft, X, Check } from 'lucide-react';
+import { Plus, Building2, Wallet, CreditCard, PiggyBank, TrendingUp, Home, Loader2, X, Check } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Select } from '@/components/ui/select';
 import { NetWorthTrend } from '@/components/finance/net-worth-trend';
 import { useAuth } from '@/hooks/use-auth';
 import api from '@/lib/api';
+import { formatCurrency } from '@/lib/utils';
 import type { Account, NetWorthData, Currency as SharedCurrency } from '@finbrain/shared';
 
 const ACCOUNT_TYPE_ICONS: Record<string, React.ComponentType<{ className?: string }>> = {
@@ -87,7 +88,9 @@ export default function AccountsPage() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-semibold tracking-tight">Accounts</h1>
-          <p className="text-sm text-muted-foreground mt-1">{accounts.length} accounts</p>
+          <p className="text-sm text-muted-foreground mt-1">
+            {accounts.length} {accounts.length === 1 ? 'account' : 'accounts'}
+          </p>
         </div>
         <Button onClick={() => setShowForm(true)} className="gap-2">
           <Plus className="h-4 w-4" />
@@ -103,7 +106,7 @@ export default function AccountsPage() {
             </CardHeader>
             <CardContent>
               <p className={`text-2xl font-semibold ${netWorth.netWorth >= 0 ? 'text-emerald-400' : 'text-rose-400'}`}>
-                {netWorth.netWorth >= 0 ? '+' : ''}${Math.abs(netWorth.netWorth).toLocaleString()}
+                {formatCurrency(netWorth.netWorth, currency)}
               </p>
             </CardContent>
           </Card>
@@ -112,7 +115,7 @@ export default function AccountsPage() {
               <CardTitle className="text-xs text-muted-foreground font-normal">Total Assets</CardTitle>
             </CardHeader>
             <CardContent>
-              <p className="text-2xl font-semibold text-emerald-400">+${netWorth.totalAssets.toLocaleString()}</p>
+              <p className="text-2xl font-semibold text-emerald-400">{formatCurrency(netWorth.totalAssets, currency)}</p>
             </CardContent>
           </Card>
           <Card>
@@ -120,17 +123,39 @@ export default function AccountsPage() {
               <CardTitle className="text-xs text-muted-foreground font-normal">Total Liabilities</CardTitle>
             </CardHeader>
             <CardContent>
-              <p className="text-2xl font-semibold text-rose-400">-${netWorth.totalLiabilities.toLocaleString()}</p>
+              <p className="text-2xl font-semibold text-rose-400">{formatCurrency(netWorth.totalLiabilities, currency)}</p>
             </CardContent>
           </Card>
         </div>
       )}
 
-      <Card>
-        <CardContent className="p-5">
-          <NetWorthTrend currency={currency} />
-        </CardContent>
-      </Card>
+      {accounts.length > 0 && (
+        <Card>
+          <CardContent className="p-5">
+            <NetWorthTrend currency={currency} />
+          </CardContent>
+        </Card>
+      )}
+
+      {accounts.length === 0 && (
+        <Card>
+          <CardContent className="flex flex-col items-center gap-4 py-16 text-center">
+            <div className="flex h-12 w-12 items-center justify-center rounded-full bg-emerald-500/10">
+              <Building2 className="h-6 w-6 text-emerald-400" aria-hidden="true" />
+            </div>
+            <div className="space-y-1">
+              <p className="font-medium">No accounts yet</p>
+              <p className="text-sm text-muted-foreground">
+                Add a checking, savings, credit or loan account to start tracking your net worth.
+              </p>
+            </div>
+            <Button onClick={() => setShowForm(true)} className="gap-2">
+              <Plus className="h-4 w-4" aria-hidden="true" />
+              Add Account
+            </Button>
+          </CardContent>
+        </Card>
+      )}
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
         {accounts.map((acct) => {
@@ -152,7 +177,7 @@ export default function AccountsPage() {
               </CardHeader>
               <CardContent>
                 <p className={`text-lg font-semibold ${acct.balance >= 0 ? 'text-emerald-400' : 'text-rose-400'}`}>
-                  {acct.balance >= 0 ? '+' : ''}${acct.balance.toLocaleString()}
+                  {formatCurrency(acct.balance, acct.currency || currency)}
                 </p>
                 {acct.institution && (
                   <p className="text-xs text-muted-foreground mt-1">{acct.institution}</p>

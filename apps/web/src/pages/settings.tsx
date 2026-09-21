@@ -4,10 +4,11 @@ import { Select } from '@/components/ui/select';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Dialog, DialogHeader, DialogTitle, DialogDescription, DialogContent, DialogFooter, DialogClose } from '@/components/ui/dialog';
 import { useNavigate } from 'react-router-dom';
-import { ArrowLeft, User, Mail, Calendar, Shield, Trash2, Loader2, Download, AlertTriangle, FileText, PiggyBank, Target, Building2, Receipt } from 'lucide-react';
+import { ArrowLeft, User, Mail, Calendar, Shield, Trash2, Loader2, Download, AlertTriangle, FileText, PiggyBank, Target, Building2, Receipt, ScrollText, Code, Bell } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import api from '@/lib/api';
 import type { Currency } from '@finbrain/shared';
+import { RulesSection } from '@/components/settings/rules-section';
 
 const CURRENCY_OPTIONS = [
   { value: 'USD', label: 'USD - US Dollar' },
@@ -19,21 +20,74 @@ const CURRENCY_OPTIONS = [
   { value: 'AUD', label: 'AUD - Australian Dollar' },
 ];
 
-const DATA_ITEMS = [
-  { icon: FileText, label: 'Transactions', description: 'All transaction history and notes' },
-  { icon: PiggyBank, label: 'Budgets', description: 'All budget categories and limits' },
-  { icon: Target, label: 'Goals', description: 'Savings goals and progress' },
-  { icon: Building2, label: 'Accounts', description: 'Connected accounts and balances' },
-  { icon: Receipt, label: 'Receipts', description: 'Uploaded receipt images' },
+const DATA_TYPES = [
+  { key: 'transactions', icon: FileText, label: 'Transactions', endpoint: '/transactions?limit=10000', filename: 'transactions', fields: ['date', 'description', 'amount', 'type', 'categoryName', 'accountName', 'merchant'] },
+  { key: 'budgets', icon: PiggyBank, label: 'Budgets', endpoint: '/budgets', filename: 'budgets', fields: ['categoryName', 'amount', 'spent', 'period', 'startDate'] },
+  { key: 'goals', icon: Target, label: 'Goals', endpoint: '/goals', filename: 'goals', fields: ['name', 'targetAmount', 'currentAmount', 'deadline', 'categoryName'] },
+  { key: 'accounts', icon: Building2, label: 'Accounts', endpoint: '/accounts', filename: 'accounts', fields: ['name', 'type', 'balance', 'currency', 'institution'] },
+  { key: 'receipts', icon: Receipt, label: 'Receipts', endpoint: '/transactions?limit=10000&hasReceipts=true', filename: 'receipts', fields: ['date', 'description', 'amount', 'receiptUrl'] },
 ];
+
+function downloadCSV(data: Record<string, unknown>[], fields: string[], filename: string) {
+  const header = fields.join(',');
+  const rows = data.map((row) =>
+    fields.map((f) => `"${String(row[f] ?? '').replace(/"/g, '""')}"`).join(',')
+  );
+  const csv = [header, ...rows].join('\n');
+  const blob = new Blob([csv], { type: 'text/csv' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `${filename}-${new Date().toISOString().slice(0, 10)}.csv`;
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+function downloadJSON(data: unknown, filename: string) {
+  const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `${filename}-${new Date().toISOString().slice(0, 10)}.json`;
+  a.click();
+  URL.revokeObjectURL(url);
+}
 
 export default function SettingsPage() {
   const { user, updateCurrency, signOut } = useAuth();
   const navigate = useNavigate();
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [deleting, setDeleting] = useState(false);
+  const [deleteError, setDeleteError] = useState('');
   const [confirmEmail, setConfirmEmail] = useState('');
-  const [exporting, setExporting] = useState(false);
+  const [exportingKey, setExportingKey] = useState<string | null>(null);
+
+  const [notifPrefs, setNotifPrefs] = useState<Record<string, boolean>>(() => {
+    try {
+      const saved = localStorage.getItem('finbrain-notif-prefs');
+      return saved ? JSON.parse(saved) : {
+        budget_alerts: true,
+        goal_milestones: true,
+        weekly_summary: false,
+        unusual_activity: true,
+        tips: false,
+      };
+    } catch { return {}; }
+  });
+
+  const updateNotifPref = (key: string, value: boolean) => {
+    const next = { ...notifPrefs, [key]: value };
+    setNotifPrefs(next);
+    try { localStorage.setItem('finbrain-notif-prefs', JSON.stringify(next)); } catch { /* ignore */ }
+  };
+
+  const NOTIF_TYPES = [
+    { key: 'budget_alerts', label: 'Budget Alerts', desc: 'When budgets reach 75%, 90%, or 100% utilization' },
+    { key: 'goal_milestones', label: 'Goal Milestones', desc: 'When goals reach key progress points' },
+    { key: 'unusual_activity', label: 'Unusual Activity', desc: 'Unusual spending patterns or large transactions' },
+    { key: 'weekly_summary', label: 'Weekly Summary', desc: 'Weekly financial summary and insights' },
+    { key: 'tips', label: 'Financial Tips', desc: 'Personalized tips to improve your finances' },
+  ];
 
   const memberSince = user?.createdAt
     ? new Date(user.createdAt).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })
@@ -43,48 +97,45 @@ export default function SettingsPage() {
     ? new Date(user.birthDate).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })
     : null;
 
-  const handleExportData = async () => {
-    setExporting(true);
+  const handleExport = async (key: string, format: 'csv' | 'json') => {
+    setExportingKey(key);
     try {
-      const [txnsRes] = await Promise.all([
-        api.get('/transactions'),
-        api.get('/accounts'),
-      ]);
-
-      const txns = txnsRes.data.data || [];
-
-      const csvHeader = 'Date,Description,Amount,Category,Account';
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const csvRows = txns.map((t: any) =>
-        [t.date, `"${(t.description || '').replace(/"/g, '""')}"`, t.amount, t.categoryName || '', t.accountName || ''].join(',')
-      );
-      const csv = [csvHeader, ...csvRows].join('\n');
-
-      const blob = new Blob([csv], { type: 'text/csv' });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `finbrain-export-${new Date().toISOString().slice(0, 10)}.csv`;
-      a.click();
-      URL.revokeObjectURL(url);
+      const dt = DATA_TYPES.find((d) => d.key === key);
+      if (!dt) return;
+      const res = await api.get(dt.endpoint);
+      let items: Record<string, unknown>[] = [];
+      const d = res.data.data;
+      if (Array.isArray(d)) {
+        items = d;
+      } else if (d?.data && Array.isArray(d.data)) {
+        items = d.data;
+      }
+      if (format === 'csv') {
+        downloadCSV(items, dt.fields, dt.filename);
+      } else {
+        downloadJSON(items, dt.filename);
+      }
     } catch {
       // silent
     } finally {
-      setExporting(false);
+      setExportingKey(null);
     }
   };
 
   const handleDelete = async () => {
     if (confirmEmail !== user?.email) return;
     setDeleting(true);
+    setDeleteError('');
     try {
       await api.delete('/auth/profile');
       signOut();
       navigate('/');
-    } catch {
+    } catch (e: unknown) {
+      const msg = (e instanceof Error && 'response' in e)
+        ? (e as { response?: { data?: { error?: string } } }).response?.data?.error
+        : undefined;
+      setDeleteError(msg || 'Failed to delete account. Please try again.');
       setDeleting(false);
-      setConfirmEmail('');
-      setShowDeleteModal(false);
     }
   };
 
@@ -173,32 +224,125 @@ export default function SettingsPage() {
         </CardContent>
       </Card>
 
-      {/* Security */}
+      {/* Notifications */}
       <Card>
         <CardHeader>
           <CardTitle className="text-base flex items-center gap-2">
-            <Shield className="h-4 w-4" />
-            Security
+            <Bell className="h-4 w-4" />
+            Notifications
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-3">
+          {NOTIF_TYPES.map((nt) => (
+            <div key={nt.key} className="flex items-center justify-between p-3 rounded-lg bg-white/[0.02] border border-white/[0.06]">
+              <div>
+                <p className="text-sm font-medium">{nt.label}</p>
+                <p className="text-xs text-muted-foreground">{nt.desc}</p>
+              </div>
+              <button
+                onClick={() => updateNotifPref(nt.key, !notifPrefs[nt.key])}
+                className={`relative w-10 h-5 rounded-full transition-colors ${notifPrefs[nt.key] ? 'bg-emerald-500' : 'bg-gray-600'}`}
+              >
+                <span
+                  className={`absolute top-0.5 left-0.5 w-4 h-4 rounded-full bg-white transition-transform ${notifPrefs[nt.key] ? 'translate-x-5' : ''}`}
+                />
+              </button>
+            </div>
+          ))}
+        </CardContent>
+      </Card>
+
+      {/* Rules */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-base flex items-center gap-2">
+            <ScrollText className="h-4 w-4" />
+            Rules
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <RulesSection />
+        </CardContent>
+      </Card>
+
+      {/* Export Data */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-base flex items-center gap-2">
+            <Download className="h-4 w-4" />
+            Export Data
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-3">
+          {DATA_TYPES.map((dt) => {
+            const Icon = dt.icon;
+            const isExporting = exportingKey === dt.key;
+            return (
+              <div key={dt.key} className="flex items-center justify-between p-3 rounded-lg bg-white/[0.02] border border-white/[0.06]">
+                <div className="flex items-center gap-3">
+                  <Icon className="h-4 w-4 text-muted-foreground" />
+                  <span className="text-sm">{dt.label}</span>
+                </div>
+                <div className="flex gap-2">
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => handleExport(dt.key, 'csv')}
+                    disabled={isExporting}
+                    className="gap-1.5 h-8 text-xs"
+                  >
+                    {isExporting ? <Loader2 className="h-3 w-3 animate-spin" /> : <FileText className="h-3 w-3" />}
+                    CSV
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => handleExport(dt.key, 'json')}
+                    disabled={isExporting}
+                    className="gap-1.5 h-8 text-xs"
+                  >
+                    {isExporting ? <Loader2 className="h-3 w-3 animate-spin" /> : <Code className="h-3 w-3" />}
+                    JSON
+                  </Button>
+                </div>
+              </div>
+            );
+          })}
+        </CardContent>
+      </Card>
+
+      {/* Scheduled Reports */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-base flex items-center gap-2">
+            <FileText className="h-4 w-4" />
+            Scheduled Reports
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
-          <div className="flex items-center justify-between p-4 rounded-lg bg-white/[0.02] border border-white/[0.04]">
-            <div className="flex items-center gap-3">
-              <Download className="h-4 w-4 text-muted-foreground" />
-              <div>
-                <p className="text-sm font-medium">Export Your Data</p>
-                <p className="text-xs text-muted-foreground">Download all transactions as a CSV file before making changes</p>
-              </div>
-            </div>
-            <Button variant="outline" size="sm" onClick={handleExportData} disabled={exporting} className="gap-2">
-              {exporting ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Download className="h-3.5 w-3.5" />}
-              {exporting ? 'Exporting...' : 'Export'}
+          <p className="text-sm text-muted-foreground">
+            Set up automatic report delivery to your email.
+          </p>
+          <div className="flex items-center gap-3">
+            <input
+              type="email"
+              placeholder="your@email.com"
+              defaultValue={user?.email || ''}
+              className="flex-1 h-10 px-3 rounded-lg bg-white/[0.03] border border-white/[0.06] text-sm text-foreground placeholder:text-muted-foreground/50 focus:outline-none focus:ring-2 focus:ring-emerald-500/20"
+            />
+            <select className="h-10 px-3 rounded-lg bg-white/[0.03] border border-white/[0.06] text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-emerald-500/20">
+              <option value="monthly">Monthly</option>
+              <option value="quarterly">Quarterly</option>
+              <option value="annual">Annual</option>
+            </select>
+            <Button size="sm" onClick={() => { api.post('/scheduled-reports', { reportType: 'monthly', email: user?.email || '' }).then(() => alert('Report scheduled!')).catch(() => {}); }}>
+              Schedule
             </Button>
           </div>
         </CardContent>
       </Card>
 
-      {/* Danger Zone */}
+      {/* Security */}
       <Card className="border-red-500/20">
         <CardHeader>
           <CardTitle className="text-base flex items-center gap-2 text-red-400">
@@ -222,8 +366,8 @@ export default function SettingsPage() {
       </Card>
 
       {/* Delete Confirmation Modal */}
-      <Dialog open={showDeleteModal} onClose={() => { setShowDeleteModal(false); setConfirmEmail(''); }}>
-        <DialogClose onClose={() => { setShowDeleteModal(false); setConfirmEmail(''); }} />
+      <Dialog open={showDeleteModal} onClose={() => { setShowDeleteModal(false); setConfirmEmail(''); setDeleteError(''); }}>
+        <DialogClose onClose={() => { setShowDeleteModal(false); setConfirmEmail(''); setDeleteError(''); }} />
         <DialogHeader>
           <DialogTitle className="text-red-400">Delete Account</DialogTitle>
           <DialogDescription>
@@ -238,10 +382,10 @@ export default function SettingsPage() {
               <div>
                 <p className="text-sm font-medium text-red-400">You will lose access to:</p>
                 <ul className="mt-2 space-y-1.5">
-                  {DATA_ITEMS.map((item) => (
-                    <li key={item.label} className="flex items-center gap-2 text-sm text-muted-foreground">
+                  {DATA_TYPES.map((item) => (
+                    <li key={item.key} className="flex items-center gap-2 text-sm text-muted-foreground">
                       <item.icon className="h-3.5 w-3.5 text-red-400/60" />
-                      <span><span className="font-medium text-foreground">{item.label}</span> — {item.description}</span>
+                      <span>{item.label}</span>
                     </li>
                   ))}
                 </ul>
@@ -261,12 +405,17 @@ export default function SettingsPage() {
               className="w-full h-10 px-3 rounded-lg bg-white/[0.03] border border-white/[0.06] text-sm text-foreground placeholder:text-muted-foreground/50 focus:outline-none focus:ring-2 focus:ring-red-500/20 focus:border-red-500/30 transition-all"
             />
           </div>
+          {deleteError && (
+            <div className="rounded-lg bg-red-500/10 border border-red-500/20 p-3">
+              <p className="text-sm text-red-400">{deleteError}</p>
+            </div>
+          )}
         </DialogContent>
 
         <DialogFooter>
           <Button
             variant="outline"
-            onClick={() => { setShowDeleteModal(false); setConfirmEmail(''); }}
+            onClick={() => { setShowDeleteModal(false); setConfirmEmail(''); setDeleteError(''); }}
           >
             Cancel
           </Button>

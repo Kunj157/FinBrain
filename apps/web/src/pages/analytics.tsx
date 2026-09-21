@@ -2,10 +2,13 @@ import { useState, useMemo, useCallback, useEffect } from 'react';
 import {
   TrendingUp, TrendingDown, Calendar, Loader2, ArrowUpRight, ArrowDownRight,
 } from 'lucide-react';
+import { ExplainViewButton } from '@/components/finance/explain-view-button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
+import { LoadError } from '@/components/ui/load-error';
 import { useAuth } from '@/hooks/use-auth';
 import api from '@/lib/api';
+import { fetchAllTransactions } from '@/lib/transactions';
 import { formatCurrency } from '@/lib/utils';
 import {
   Chart as ChartJS,
@@ -71,12 +74,12 @@ const DAY_NAMES = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 export default function Analytics() {
   const { user } = useAuth();
   const currency = (user?.currency || 'USD') as SharedCurrency;
-  const now = useMemo(() => new Date(), []); // ponytail: stable reference for forecast calc
 
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
   const [recurringPatterns, setRecurringPatterns] = useState<Array<{ amount: number; frequency: string; monthlyCost: number; merchant: string }>>([]);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState<string | null>(null);
   const [period, setPeriod] = useState<TimePeriod>('6m');
   const [txnType, setTxnType] = useState<TxnType>('all');
   const [categoryFilter, setCategoryFilter] = useState<string>('all');
@@ -84,16 +87,18 @@ export default function Analytics() {
   const fetchData = useCallback(async () => {
     setLoading(true);
     try {
-      const [txnRes, catRes, recurRes] = await Promise.all([
-        api.get('/transactions?limit=5000'),
+      const [txns, catRes, recurRes] = await Promise.all([
+        fetchAllTransactions(),
         api.get('/categories'),
         api.get('/recurring').catch(() => ({ data: { data: { patterns: [] } } })),
       ]);
-      setTransactions(txnRes.data.data.data);
+      setTransactions(txns);
       setCategories(catRes.data.data);
       setRecurringPatterns(recurRes.data.data?.patterns || []);
-    } catch {
-      // silent
+      setLoadError(null);
+    } catch (error) {
+      console.error('Analytics load failed:', error);
+      setLoadError('We could not load your analytics. Please try again.');
     } finally {
       setLoading(false);
     }
@@ -385,12 +390,19 @@ export default function Analytics() {
     );
   }
 
+  if (loadError) {
+    return <LoadError message={loadError} onRetry={fetchData} />;
+  }
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between flex-wrap gap-3">
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight">Analytics</h1>
-          <p className="text-sm text-muted-foreground">Deep dive into your financial patterns</p>
+        <div className="flex items-center gap-3">
+          <div>
+            <h1 className="text-2xl font-bold tracking-tight">Analytics</h1>
+            <p className="text-sm text-muted-foreground">Deep dive into your financial patterns</p>
+          </div>
+          <ExplainViewButton viewName="Analytics" />
         </div>
         <div className="flex items-center gap-2 flex-wrap">
           <select
@@ -433,7 +445,7 @@ export default function Analytics() {
       </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <Card className="stat-card">
+        <Card>
           <CardContent className="p-4">
             <div className="flex items-center gap-3">
               <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-emerald-500/10">
@@ -446,7 +458,7 @@ export default function Analytics() {
             </div>
           </CardContent>
         </Card>
-        <Card className="stat-card">
+        <Card>
           <CardContent className="p-4">
             <div className="flex items-center gap-3">
               <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-rose-500/10">
@@ -459,7 +471,7 @@ export default function Analytics() {
             </div>
           </CardContent>
         </Card>
-        <Card className="stat-card">
+        <Card>
           <CardContent className="p-4">
             <div className="flex items-center gap-3">
               <div className={`flex h-10 w-10 items-center justify-center rounded-lg ${stats.net >= 0 ? 'bg-emerald-500/10' : 'bg-rose-500/10'}`}>
@@ -472,7 +484,7 @@ export default function Analytics() {
             </div>
           </CardContent>
         </Card>
-        <Card className="stat-card">
+        <Card>
           <CardContent className="p-4">
             <div className="flex items-center gap-3">
               <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-blue-500/10">
@@ -488,7 +500,7 @@ export default function Analytics() {
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-        <Card className="stat-card">
+        <Card>
           <CardHeader className="pb-2">
             <CardTitle className="text-sm font-medium">Monthly Income vs Expenses</CardTitle>
           </CardHeader>
@@ -504,7 +516,7 @@ export default function Analytics() {
             </div>
           </CardContent>
         </Card>
-        <Card className="stat-card">
+        <Card>
           <CardHeader className="pb-2">
             <CardTitle className="text-sm font-medium">Cumulative Trend</CardTitle>
           </CardHeader>
@@ -528,7 +540,7 @@ export default function Analytics() {
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-        <Card className="stat-card">
+        <Card>
           <CardHeader className="pb-2">
             <CardTitle className="text-sm font-medium">Spending by Day of Week</CardTitle>
           </CardHeader>
@@ -544,7 +556,7 @@ export default function Analytics() {
             </div>
           </CardContent>
         </Card>
-        <Card className="stat-card">
+        <Card>
           <CardHeader className="pb-2">
             <CardTitle className="text-sm font-medium">Category Breakdown</CardTitle>
           </CardHeader>
@@ -568,7 +580,7 @@ export default function Analytics() {
         </Card>
       </div>
 
-      <Card className="stat-card">
+      <Card>
         <CardHeader className="pb-2">
           <CardTitle className="text-sm font-medium">Top Merchants</CardTitle>
         </CardHeader>
@@ -592,7 +604,7 @@ export default function Analytics() {
       </Card>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-        <Card className="stat-card">
+        <Card>
           <CardHeader className="pb-2">
             <CardTitle className="text-sm font-medium">Year-over-Year Spending</CardTitle>
           </CardHeader>
@@ -612,7 +624,7 @@ export default function Analytics() {
             </div>
           </CardContent>
         </Card>
-        <Card className="stat-card">
+        <Card>
           <CardHeader className="pb-2">
             <CardTitle className="text-sm font-medium">Cash Flow Projection</CardTitle>
           </CardHeader>

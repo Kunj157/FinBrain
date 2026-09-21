@@ -1,8 +1,9 @@
 import { useState, useEffect, useCallback } from 'react';
 import {
   TrendingUp, TrendingDown, PieChart, Plus, Loader2, Wallet,
-  ArrowUpRight, ArrowDownRight, Briefcase, X,
+  ArrowUpRight, ArrowDownRight, Briefcase, X, RefreshCw,
 } from 'lucide-react';
+import { ExplainViewButton } from '@/components/finance/explain-view-button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/hooks/use-auth';
@@ -81,6 +82,7 @@ export default function Investments() {
     currentPrice: '',
     assetType: 'stock',
   });
+  const [topMovers, setTopMovers] = useState<{ gainers: Array<{ symbol: string; name: string; gainLossPercent: number; dailyChangePercent: number }>; losers: Array<{ symbol: string; name: string; gainLossPercent: number; dailyChangePercent: number }> }>({ gainers: [], losers: [] });
 
   const fetchData = useCallback(async () => {
     setLoading(true);
@@ -91,6 +93,7 @@ export default function Investments() {
       ]);
       setSummary(summaryRes.data.data);
       setPortfolios(portfoliosRes.data.data);
+      api.get('/investments/top-movers').then((r) => setTopMovers(r.data.data)).catch(() => {});
     } catch {
       // silent
     } finally {
@@ -148,20 +151,41 @@ export default function Investments() {
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight">Investments</h1>
-          <p className="text-sm text-muted-foreground">Track your portfolio performance</p>
+        <div className="flex items-center gap-3">
+          <div>
+            <h1 className="text-2xl font-bold tracking-tight">Investments</h1>
+            <p className="text-sm text-muted-foreground">Track your portfolio performance</p>
+          </div>
+          <ExplainViewButton viewName="Investments" />
         </div>
-        <Button size="sm" className="gap-2" onClick={() => setShowNewPortfolio(true)}>
-          <Plus className="h-4 w-4" />
-          New Portfolio
-        </Button>
+        <div className="flex items-center gap-2">
+          <Button
+            size="sm"
+            variant="outline"
+            className="gap-2"
+            onClick={async () => {
+              try {
+                await api.post('/investments/holdings/refresh-prices');
+                fetchData();
+              } catch {
+                // silent
+              }
+            }}
+          >
+            <RefreshCw className="h-4 w-4" />
+            Refresh Prices
+          </Button>
+          <Button size="sm" className="gap-2" onClick={() => setShowNewPortfolio(true)}>
+            <Plus className="h-4 w-4" />
+            New Portfolio
+          </Button>
+        </div>
       </div>
 
       {summary && (
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-          <Card className="stat-card">
-            <CardContent className="p-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
+          <Card>
+            <CardContent>
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-xs text-muted-foreground">Total Value</p>
@@ -171,8 +195,8 @@ export default function Investments() {
               </div>
             </CardContent>
           </Card>
-          <Card className="stat-card">
-            <CardContent className="p-4">
+          <Card>
+            <CardContent>
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-xs text-muted-foreground">Total Cost</p>
@@ -182,8 +206,8 @@ export default function Investments() {
               </div>
             </CardContent>
           </Card>
-          <Card className="stat-card">
-            <CardContent className="p-4">
+          <Card>
+            <CardContent>
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-xs text-muted-foreground">Gain/Loss</p>
@@ -203,8 +227,8 @@ export default function Investments() {
               </p>
             </CardContent>
           </Card>
-          <Card className="stat-card">
-            <CardContent className="p-4">
+          <Card>
+            <CardContent>
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-xs text-muted-foreground">Asset Allocation</p>
@@ -302,7 +326,7 @@ export default function Investments() {
           {portfolios.map((p) => (
             <Card
               key={p.id}
-              className="stat-card cursor-pointer hover:border-emerald-500/20 transition-colors"
+              className="cursor-pointer hover:border-emerald-500/20 transition-colors"
               onClick={() => fetchPortfolioDetail(p.id)}
             >
               <CardContent className="p-5">
@@ -342,6 +366,45 @@ export default function Investments() {
               </CardContent>
             </Card>
           )}
+        </div>
+      )}
+
+      {(topMovers.gainers.length > 0 || topMovers.losers.length > 0) && !selectedPortfolio && (
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <Card>
+            <CardHeader className="pb-2"><CardTitle className="text-sm font-medium flex items-center gap-2"><TrendingUp className="h-4 w-4 text-emerald-400" /> Top Gainers</CardTitle></CardHeader>
+            <CardContent>
+              {topMovers.gainers.map((g) => (
+                <div key={g.symbol} className="flex items-center justify-between py-2 border-b border-white/[0.02] last:border-0">
+                  <div>
+                    <p className="text-sm font-medium">{g.symbol}</p>
+                    <p className="text-xs text-muted-foreground">{g.name}</p>
+                  </div>
+                  <div className="text-right">
+                    <p className="text-sm font-medium text-emerald-400">+{g.gainLossPercent}%</p>
+                    <p className="text-xs text-muted-foreground">Today: {g.dailyChangePercent >= 0 ? '+' : ''}{g.dailyChangePercent}%</p>
+                  </div>
+                </div>
+              ))}
+            </CardContent>
+          </Card>
+          <Card>
+            <CardHeader className="pb-2"><CardTitle className="text-sm font-medium flex items-center gap-2"><TrendingDown className="h-4 w-4 text-rose-400" /> Top Losers</CardTitle></CardHeader>
+            <CardContent>
+              {topMovers.losers.map((l) => (
+                <div key={l.symbol} className="flex items-center justify-between py-2 border-b border-white/[0.02] last:border-0">
+                  <div>
+                    <p className="text-sm font-medium">{l.symbol}</p>
+                    <p className="text-xs text-muted-foreground">{l.name}</p>
+                  </div>
+                  <div className="text-right">
+                    <p className="text-sm font-medium text-rose-400">{l.gainLossPercent}%</p>
+                    <p className="text-xs text-muted-foreground">Today: {l.dailyChangePercent >= 0 ? '+' : ''}{l.dailyChangePercent}%</p>
+                  </div>
+                </div>
+              ))}
+            </CardContent>
+          </Card>
         </div>
       )}
 

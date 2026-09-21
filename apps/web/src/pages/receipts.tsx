@@ -1,5 +1,5 @@
 import { useState, useCallback, useRef } from 'react';
-import { Upload, Receipt as ReceiptIcon, Store, CalendarDays, DollarSign, Loader2, FileText, X, Check, AlertCircle, ArrowLeft } from 'lucide-react';
+import { Receipt as ReceiptIcon, Store, CalendarDays, DollarSign, Loader2, FileText, X, Check, AlertCircle, ArrowLeft } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { useNavigate } from 'react-router-dom';
@@ -20,7 +20,7 @@ export default function ReceiptsPage() {
   const { user } = useAuth();
   const currency = user?.currency || 'USD';
   const [dragOver, setDragOver] = useState(false);
-  const [file, setFile] = useState<File | null>(null);
+  const [, setFile] = useState<File | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [result, setResult] = useState<OcrResult | null>(null);

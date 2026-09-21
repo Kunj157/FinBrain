@@ -445,3 +445,36 @@ When merging `dev` → `main` for a release:
 - [ ] Tagged with version number
 - [ ] Deployed to staging and verified
 - [ ] Deployed to production
+
+---
+
+## Current State Addendum (July 2026)
+
+The original sprint plan above is partially superseded by completed Waves 1-4.
+
+### What's Done
+
+- Sprint 1 (Foundation): ✅ Complete
+- Sprint 2 (Data Ingestion): ✅ Complete
+- Sprint 3 (Finance Core): ✅ Complete
+- Wave 1 (LLM AI Assistant, Investment Holdings, Budget Alerts): ✅ Complete
+- Wave 2 (ML Forecasting, Sankey Diagrams, PDF Export, Cash Flow Projection): ✅ Complete
+- Wave 3 (Advisor Foundation: Profile, Patterns, Memory, Affordability, Scenarios): ✅ Complete
+- Wave 4 (Advisor Intelligence: Insights, Weekly Recap, Anomalies, Data Quality): ✅ Complete
+- Household/Couples: ✅ Complete
+- Credit Score: ✅ Complete
+- Flex Budgeting: ✅ Complete
+- Recurring Calendar: ✅ Complete
+- Tax Summary Report: ✅ Complete
+
+### What's Remaining
+
+- Customizable Dashboard (drag-and-drop widgets)
+- Scheduled Reports (email delivery)
+- Mobile Apps (React Native / Capacitor)
+- Real-time market data for investments (Yahoo Finance API)
+- Household shared transaction views (yours/mine/ours labels)
+- Scheduled report delivery
+- PWA service worker + offline mode
+- E2E tests
+- Production deployment config
