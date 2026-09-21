@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useRef } from 'react';
 import {
   Plus, X, Check, Tags, Pencil, Trash2, Loader2, ChevronDown, ChevronRight,
   ShoppingCart, Car, Home, Utensils, Heart, Gamepad2,
@@ -171,10 +171,15 @@ export default function CategoriesPage() {
     });
   };
 
+  // Expand every group the first time they load, and only then. Keying this
+  // off expandedGroups.size instead would re-expand everything as soon as the
+  // user collapsed the last group.
+  const hasAutoExpanded = useRef(false);
+
   useEffect(() => {
-    if (groups.length > 0 && expandedGroups.size === 0) {
-      setExpandedGroups(new Set(groups.map((g) => g.id)));
-    }
+    if (hasAutoExpanded.current || groups.length === 0) return;
+    hasAutoExpanded.current = true;
+    setExpandedGroups(new Set(groups.map((g) => g.id)));
   }, [groups]);
 
   const groupOptions = groups.map((g) => ({ value: g.id, label: g.name }));
