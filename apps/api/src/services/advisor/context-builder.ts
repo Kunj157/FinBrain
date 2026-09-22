@@ -2,6 +2,11 @@ import { prisma } from '../../prisma';
 import { getAdvisorProfile, type AdvisorProfileData } from './profile-engine';
 import { roundMoney } from '../finance-math';
 
+// Ceilings on what the context can contain. contextToString trims further
+// before the prompt is sent; these bound the database work behind it.
+const RECENT_TRANSACTION_LIMIT = 20;
+const UPCOMING_BILL_LIMIT = 10;
+
 export interface AdvisorContext {
   profile: AdvisorProfileData;
   recentTransactions: Array<{
@@ -52,11 +57,27 @@ export async function buildAdvisorContext(userId: string): Promise<AdvisorContex
   const sixMonthsAgo = new Date(now);
   sixMonthsAgo.setMonth(sixMonthsAgo.getMonth() - 6);
 
-  const [transactions, accounts, budgets, goals, holdings] = await Promise.all([
+  // Only the newest handful of transactions and the newest recurring expenses
+  // reach the prompt, so both are fetched already bounded. Reading every
+  // transaction of the last six months and slicing in memory paid the full
+  // query cost on every chat turn for rows that were then discarded.
+  const [transactions, recurringExpenses, accounts, budgets, goals, holdings] = await Promise.all([
     prisma.transaction.findMany({
       where: { userId, deletedAt: null, date: { gte: sixMonthsAgo } },
       include: { category: { select: { name: true } } },
       orderBy: { date: 'desc' },
+      take: RECENT_TRANSACTION_LIMIT,
+    }),
+    prisma.transaction.findMany({
+      where: {
+        userId,
+        deletedAt: null,
+        date: { gte: sixMonthsAgo },
+        type: 'expense',
+        isRecurring: true,
+      },
+      orderBy: { date: 'desc' },
+      take: UPCOMING_BILL_LIMIT,
     }),
     prisma.account.findMany({ where: { userId } }),
     prisma.budget.findMany({
@@ -67,7 +88,7 @@ export async function buildAdvisorContext(userId: string): Promise<AdvisorContex
     prisma.holding.findMany({ where: { portfolio: { userId } } }),
   ]);
 
-  const recentTransactions = transactions.slice(0, 20).map((t) => ({
+  const recentTransactions = transactions.map((t) => ({
     date: new Date(t.date).toISOString().split('T')[0],
     description: t.merchant || t.description,
     amount: roundMoney(Math.abs(t.amount)),
@@ -91,9 +112,8 @@ export async function buildAdvisorContext(userId: string): Promise<AdvisorContex
     projected90Day: roundMoney(currentBalance + 3 * (avgMonthlyIncome - avgMonthlyExpenses)),
   };
 
-  const recurringExpenses = transactions.filter((t) => t.type === 'expense' && t.isRecurring);
   const upcomingBills: Array<{ merchant: string; amount: number; expectedDate: string }> = [];
-  for (const t of recurringExpenses.slice(0, 10)) {
+  for (const t of recurringExpenses) {
     const nextDate = new Date(now);
     nextDate.setDate(nextDate.getDate() + 30);
     upcomingBills.push({

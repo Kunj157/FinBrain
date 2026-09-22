@@ -10,6 +10,15 @@ export function setTokenGetter(getter: () => Promise<string | null>) {
   _getToken = getter;
 }
 
+/**
+ * Current auth token, for callers that cannot go through the axios instance.
+ * Streaming responses need `fetch`, so the SSE client resolves the token here
+ * rather than duplicating the retrieval logic.
+ */
+export async function getAuthToken(): Promise<string | null> {
+  return _getToken ? _getToken() : null;
+}
+
 api.interceptors.request.use(async (config) => {
   if (_getToken) {
     const token = await _getToken();

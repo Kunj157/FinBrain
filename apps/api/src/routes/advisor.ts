@@ -12,7 +12,13 @@ import { createScenario, getUserScenarios, getScenario, deleteScenario } from '.
 import { generateInsights, storeInsights, getStoredInsights, dismissInsight } from '../services/advisor/insight-engine';
 import { generateWeeklyRecap } from '../services/advisor/weekly-recap-engine';
 import { detectAnomalies } from '../services/advisor/anomaly-engine';
-import { chatCompletion, isLlmConfigured, type ChatMessage } from '../services/llm';
+import {
+  chatCompletion,
+  streamChatCompletion,
+  isLlmConfigured,
+  LlmError,
+  type ChatMessage,
+} from '../services/llm';
 
 const router = Router();
 
@@ -350,16 +356,91 @@ router.get('/conversations/:id', async (req: Request, res: Response) => {
   }
 });
 
-router.post('/chat', async (req: Request, res: Response) => {
-  const schema = z.object({
-    message: z.string().min(1).max(2000),
-    // The client sends null for the first message of a new conversation.
-    // `.optional()` alone accepts undefined but rejects null, which made
-    // every new conversation fail with a 400 before it ever reached the model.
-    conversationId: z.string().nullish(),
+const chatSchema = z.object({
+  message: z.string().min(1).max(2000),
+  // The client sends null for the first message of a new conversation.
+  // `.optional()` alone accepts undefined but rejects null, which made
+  // every new conversation fail with a 400 before it ever reached the model.
+  conversationId: z.string().nullish(),
+});
+
+interface PreparedTurn {
+  convId: string;
+  prompt: ChatMessage[];
+  structuredData: Record<string, unknown> | null;
+}
+
+/**
+ * Opens (or continues) a conversation, records the user's turn, and assembles
+ * the prompt. Shared by the buffered and streaming chat endpoints so the two
+ * cannot drift apart in what the model actually sees.
+ */
+async function prepareChatTurn(
+  userId: string,
+  message: string,
+  conversationId?: string | null,
+): Promise<PreparedTurn> {
+  let convId = conversationId ?? null;
+
+  if (!convId) {
+    const conv = await prisma.advisorConversation.create({
+      data: { userId, title: message.slice(0, 100), mode: 'advisor' },
+    });
+    convId = conv.id;
+  }
+
+  await prisma.advisorMessage.create({
+    data: { conversationId: convId, role: 'user', content: message },
   });
 
-  const parsed = schema.safeParse(req.body);
+  let toolResponse: string | null = null;
+  let structuredData: Record<string, unknown> | null = null;
+
+  if (isAffordabilityQuestion(message)) {
+    const { decision, parsed: purchase } = await handleAffordabilityFromChat(userId, message);
+    structuredData = { type: 'affordability', decision, purchase };
+    toolResponse = JSON.stringify(decision, null, 2);
+  }
+
+  const context = await buildAdvisorContext(userId);
+  const contextStr = contextToString(context);
+
+  const prompt: ChatMessage[] = [
+    { role: 'system', content: ADVISOR_SYSTEM_PROMPT },
+    { role: 'user', content: `Here is the user's financial context:\n\n${contextStr}` },
+  ];
+
+  if (toolResponse) {
+    prompt.push({
+      role: 'system',
+      content: `The affordability engine returned this structured result:\n\n${toolResponse}\n\nUse this data to provide a personalized, human-readable answer. Reference the specific numbers.`,
+    });
+  }
+
+  // Take the NEWEST turns, then restore chronological order. Ordering
+  // ascending with a take of 20 kept the *oldest* twenty messages, so once a
+  // conversation passed twenty turns it froze on its opening exchange and
+  // every later question was answered without its own context.
+  //
+  // The current message is already persisted above, so this includes it — it
+  // must not be appended again or the model sees the question twice.
+  const recentMessages = await prisma.advisorMessage.findMany({
+    where: { conversationId: convId },
+    orderBy: { createdAt: 'desc' },
+    take: HISTORY_TURNS,
+  });
+
+  for (const m of recentMessages.reverse()) {
+    if (m.role === 'user' || m.role === 'assistant') {
+      prompt.push({ role: m.role, content: m.content });
+    }
+  }
+
+  return { convId, prompt, structuredData };
+}
+
+router.post('/chat', async (req: Request, res: Response) => {
+  const parsed = chatSchema.safeParse(req.body);
   if (!parsed.success) {
     return res.status(400).json({ success: false, error: 'Invalid input', details: parsed.error.format() });
   }
@@ -374,74 +455,16 @@ router.post('/chat', async (req: Request, res: Response) => {
   }
 
   try {
-    let convId = conversationId;
+    const { convId, prompt, structuredData } = await prepareChatTurn(
+      req.userId,
+      message,
+      conversationId,
+    );
 
-    if (!convId) {
-      const conv = await prisma.advisorConversation.create({
-        data: {
-          userId: req.userId,
-          title: message.slice(0, 100),
-          mode: 'advisor',
-        },
-      });
-      convId = conv.id;
-    }
-
-    await prisma.advisorMessage.create({
-      data: {
-        conversationId: convId,
-        role: 'user',
-        content: message,
-      },
-    });
-
-    let toolResponse: string | null = null;
-    let structuredData: Record<string, unknown> | null = null;
-
-    if (isAffordabilityQuestion(message)) {
-      const { decision, parsed: purchase } = await handleAffordabilityFromChat(req.userId, message);
-      structuredData = { type: 'affordability', decision, purchase };
-      toolResponse = JSON.stringify(decision, null, 2);
-    }
-
-    const context = await buildAdvisorContext(req.userId);
-    const contextStr = contextToString(context);
-
-    const messages: Array<{ role: string; content: string }> = [
-      { role: 'system', content: ADVISOR_SYSTEM_PROMPT },
-      { role: 'user', content: `Here is the user's financial context:\n\n${contextStr}` },
-    ];
-
-    if (toolResponse) {
-      messages.push({
-        role: 'system',
-        content: `The affordability engine returned this structured result:\n\n${toolResponse}\n\nUse this data to provide a personalized, human-readable answer. Reference the specific numbers.`,
-      });
-    }
-
-    // Take the NEWEST turns, then restore chronological order. Ordering
-    // ascending with a take of 20 kept the *oldest* twenty messages, so once
-    // a conversation passed twenty turns it froze on its opening exchange and
-    // every later question was answered without its own context.
-    //
-    // The current message is already persisted above, so this includes it —
-    // it must not be appended again or the model sees the question twice.
-    const recentMessages = await prisma.advisorMessage.findMany({
-      where: { conversationId: convId },
-      orderBy: { createdAt: 'desc' },
-      take: HISTORY_TURNS,
-    });
-
-    for (const m of recentMessages.reverse()) {
-      if (m.role === 'user' || m.role === 'assistant') {
-        messages.push({ role: m.role, content: m.content });
-      }
-    }
-
-    const completion = await chatCompletion(messages as ChatMessage[]);
+    const completion = await chatCompletion(prompt);
     const reply = completion.content;
 
-    await prisma.advisorMessage.create({
+    const assistantMessage = await prisma.advisorMessage.create({
       data: {
         conversationId: convId,
         role: 'assistant',
@@ -548,12 +571,115 @@ router.post('/chat', async (req: Request, res: Response) => {
       data: {
         reply,
         conversationId: convId,
+        // The client needs the real id to attach feedback. It previously
+        // posted the message's index in a local array, which matched nothing.
+        messageId: assistantMessage.id,
         structuredData,
       },
     });
   } catch (err) {
     console.error('Advisor chat error:', err);
     res.status(500).json({ success: false, error: 'Failed to generate response' });
+  }
+});
+
+/**
+ * Server-sent events variant of /chat.
+ *
+ * Answers run to several hundred tokens and the model reasons before emitting
+ * anything, so a buffered response left the user watching a spinner for the
+ * whole generation with no sign of progress.
+ *
+ * Frames: `delta` per content chunk, then exactly one terminal `done` or
+ * `error`. The assistant turn is persisted only once the stream completes, so
+ * a half-generated answer never enters the conversation history.
+ */
+router.post('/chat/stream', async (req: Request, res: Response) => {
+  const parsed = chatSchema.safeParse(req.body);
+  if (!parsed.success) {
+    return res.status(400).json({ success: false, error: 'Invalid input', details: parsed.error.format() });
+  }
+
+  const { message, conversationId } = parsed.data;
+
+  if (!isLlmConfigured()) {
+    return res.status(503).json({
+      success: false,
+      error: 'AI service not configured. Set GROQ_API_KEY in apps/api/.env',
+    });
+  }
+
+  // Headers must go out before the first token or the client cannot begin
+  // reading. X-Accel-Buffering stops nginx holding the stream in a buffer.
+  res.writeHead(200, {
+    'Content-Type': 'text/event-stream; charset=utf-8',
+    'Cache-Control': 'no-cache, no-transform',
+    Connection: 'keep-alive',
+    'X-Accel-Buffering': 'no',
+  });
+
+  const send = (event: string, data: unknown) => {
+    res.write(`event: ${event}\ndata: ${JSON.stringify(data)}\n\n`);
+  };
+
+  // Stop the upstream call as soon as the reader goes away, so an abandoned
+  // tab does not keep burning tokens we will never deliver.
+  const abort = new AbortController();
+  res.on('close', () => abort.abort());
+
+  try {
+    const { convId, prompt, structuredData } = await prepareChatTurn(
+      req.userId,
+      message,
+      conversationId,
+    );
+
+    // The client needs this immediately: without it a brand-new conversation
+    // would send its second message with a null id and start another thread.
+    send('start', { conversationId: convId, structuredData });
+
+    let reply = '';
+    for await (const delta of streamChatCompletion(prompt, { signal: abort.signal })) {
+      reply += delta;
+      send('delta', { content: delta });
+    }
+
+    if (abort.signal.aborted) return;
+
+    if (!reply.trim()) {
+      throw new LlmError('Provider returned an empty completion', undefined, true);
+    }
+
+    const assistantMessage = await prisma.advisorMessage.create({
+      data: {
+        conversationId: convId,
+        role: 'assistant',
+        content: reply,
+        structuredData: structuredData as never,
+      },
+    });
+
+    await prisma.advisorConversation.update({
+      where: { id: convId },
+      data: { updatedAt: new Date() },
+    });
+
+    send('done', { messageId: assistantMessage.id, conversationId: convId, structuredData });
+    res.end();
+  } catch (err) {
+    console.error('Advisor chat stream error:', err);
+
+    if (abort.signal.aborted) return;
+
+    // The status line is already committed, so the failure has to travel as a
+    // stream event rather than an HTTP status.
+    send('error', {
+      error:
+        err instanceof LlmError && err.retryable
+          ? 'The advisor is temporarily unavailable. Please try again.'
+          : 'Failed to generate a response.',
+    });
+    res.end();
   }
 });
 
