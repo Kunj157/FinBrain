@@ -192,3 +192,46 @@ test.describe('budgets', () => {
     await expect(page.getByText('Total Budgeted')).toBeVisible();
   });
 });
+
+test.describe('advisor chat', () => {
+  // Bug: a failed request was pushed into the transcript as an assistant
+  // message, complete with the Brain icon and "Advisor" label, so an outage
+  // read as financial advice ("Invalid input", "Failed to generate response").
+  //
+  // Over-length input is rejected by schema validation before the provider is
+  // consulted, which makes this deterministic and free of any LLM call.
+  test('a failed turn renders as an error, not as advice', async ({ page }) => {
+    await gotoAndSettle(page, '/advisor');
+
+    const input = page.getByPlaceholder('Ask about your finances...');
+    await input.fill('X'.repeat(2500));
+    await input.press('Enter');
+
+    const alert = page.getByRole('alert');
+    await expect(alert).toBeVisible();
+    await expect(alert).toContainText("Couldn't get a response");
+    await expect(alert.getByRole('button', { name: 'Try again' })).toBeVisible();
+
+    // The failure must not be dressed up as an advisor reply.
+    await expect(alert).not.toContainText('Advisor');
+  });
+
+  test('a long unbroken message does not stretch the chat pane', async ({ page }) => {
+    await gotoAndSettle(page, '/advisor');
+
+    // Over-length so the turn resolves without calling the provider; the
+    // assertion is about how the user's own bubble wraps, which is unaffected.
+    const input = page.getByPlaceholder('Ask about your finances...');
+    await input.fill('X'.repeat(2500));
+    await input.press('Enter');
+    await expect(page.getByRole('alert')).toBeVisible();
+
+    // Bug: an unbroken token widened the transcript by tens of thousands of
+    // pixels because the bubble had no break-words.
+    const overflow = await page.evaluate(() => {
+      const de = document.documentElement;
+      return de.scrollWidth - de.clientWidth;
+    });
+    expect(overflow).toBeLessThanOrEqual(0);
+  });
+});

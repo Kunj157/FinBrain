@@ -4,6 +4,8 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import api from '@/lib/api';
+import { streamAdvisorChat } from '@/lib/advisor-stream';
+import { MarkdownMessage } from '@/components/advisor/markdown-message';
 import { formatCurrency } from '@/lib/utils';
 
 interface AdvisorProfile {
@@ -29,6 +31,12 @@ interface ChatMessage {
   role: 'user' | 'assistant';
   content: string;
   structuredData?: Record<string, unknown>;
+  /** Server id of the persisted message; required to attach feedback. */
+  id?: string;
+  /** Marks a failed turn so it is never presented as advice. */
+  isError?: boolean;
+  /** True while tokens are still arriving for this message. */
+  isStreaming?: boolean;
 }
 
 interface AffordabilityDecision {
@@ -83,6 +91,8 @@ export default function AdvisorPage() {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [chatInput, setChatInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  /** Retained so a failed turn can be retried without retyping it. */
+  const [lastQuestion, setLastQuestion] = useState<string | null>(null);
   const [, setIsProfileLoading] = useState(true);
   const [showHistory, setShowHistory] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -118,6 +128,7 @@ export default function AdvisorPage() {
       const loadedMessages: ChatMessage[] = [];
       for (const m of conv.messages) {
         loadedMessages.push({
+          id: m.id,
           role: m.role as 'user' | 'assistant',
           content: m.content,
           structuredData: m.structuredData || undefined,
@@ -135,39 +146,70 @@ export default function AdvisorPage() {
     if (!msg || isLoading) return;
 
     setChatInput('');
-    setMessages((prev) => [...prev, { role: 'user', content: msg }]);
+    setMessages((prev) => [
+      ...prev,
+      { role: 'user', content: msg },
+      // Placeholder the deltas append into, so tokens appear as they arrive
+      // rather than after the whole answer is generated.
+      { role: 'assistant', content: '', isStreaming: true },
+    ]);
     setIsLoading(true);
+    setLastQuestion(msg);
 
-    try {
-      const res = await api.post('/advisor/chat', {
-        message: msg,
-        conversationId: activeConvId,
-      });
+    const assistantIndex = messages.length + 1;
+    let startedConvId: string | null = activeConvId;
 
-      const { reply, conversationId, structuredData } = res.data.data;
+    const updateAssistant = (patch: Partial<ChatMessage>) => {
+      setMessages((prev) =>
+        prev.map((m, i) => (i === assistantIndex ? { ...m, ...patch } : m)),
+      );
+    };
 
-      setMessages((prev) => [...prev, {
-        role: 'assistant',
-        content: reply,
-        structuredData,
-      }]);
+    await streamAdvisorChat(
+      { message: msg, conversationId: activeConvId },
+      {
+        onStart: ({ conversationId, structuredData }) => {
+          startedConvId = conversationId;
+          // Adopt the id immediately: without it the next message would be
+          // sent with a null id and silently open a second conversation.
+          if (!activeConvId) setActiveConvId(conversationId);
+          if (structuredData) updateAssistant({ structuredData });
+        },
+        onDelta: (text) => {
+          setMessages((prev) =>
+            prev.map((m, i) =>
+              i === assistantIndex ? { ...m, content: m.content + text } : m,
+            ),
+          );
+        },
+        onDone: ({ messageId, structuredData }) => {
+          updateAssistant({ id: messageId, structuredData, isStreaming: false });
+        },
+        onError: (error) => {
+          // Rendered as an error, never as an assistant reply: an outage must
+          // not look like the advisor answering "Failed to generate response".
+          updateAssistant({ content: error, isError: true, isStreaming: false });
+        },
+      },
+    );
 
-      if (!activeConvId && conversationId) {
-        setActiveConvId(conversationId);
+    setIsLoading(false);
+
+    if (!activeConvId && startedConvId) {
+      try {
         const convsRes = await api.get('/advisor/conversations');
         setConversations(convsRes.data.data);
+      } catch {
+        // The thread is usable without a refreshed sidebar.
       }
-    } catch (err: unknown) {
-      const msg = (err as { response?: { data?: { error?: string } } })?.response?.data?.error
-        || (err as Error)?.message
-        || 'An error occurred. Make sure the backend is running.';
-      setMessages((prev) => [...prev, {
-        role: 'assistant',
-        content: msg,
-      }]);
-    } finally {
-      setIsLoading(false);
     }
+  };
+
+  const handleRetry = () => {
+    if (!lastQuestion) return;
+    // Drop the failed exchange so the retry does not stack on a dead turn.
+    setMessages((prev) => prev.slice(0, -2));
+    handleSend(lastQuestion);
   };
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
@@ -177,11 +219,19 @@ export default function AdvisorPage() {
     }
   };
 
-  const handleFeedback = async (messageIdx: number, feedback: 'thumbs_up' | 'thumbs_down') => {
+  // Keyed by message id so the buttons can reflect what was actually recorded.
+  const [feedbackState, setFeedbackState] = useState<Record<string, 'thumbs_up' | 'thumbs_down' | 'failed'>>({});
+
+  const handleFeedback = async (messageId: string | undefined, feedback: 'thumbs_up' | 'thumbs_down') => {
+    // This used to post the message's index in the local array, which matched
+    // no row on the server, so every rating was silently discarded.
+    if (!messageId) return;
+
+    setFeedbackState((prev) => ({ ...prev, [messageId]: feedback }));
     try {
-      await api.post(`/advisor/messages/${messageIdx}/feedback`, { feedback });
+      await api.post(`/advisor/messages/${messageId}/feedback`, { feedback });
     } catch {
-      // silent
+      setFeedbackState((prev) => ({ ...prev, [messageId]: 'failed' }));
     }
   };
 
@@ -340,48 +390,85 @@ export default function AdvisorPage() {
 
               {messages.map((msg, idx) => (
                 <div key={idx} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
-                  <div className={`max-w-[80%] rounded-2xl px-4 py-3 ${
+                  <div className={`max-w-[80%] min-w-0 rounded-2xl px-4 py-3 ${
                     msg.role === 'user'
                       ? 'bg-emerald-500/10 border border-emerald-500/20'
-                      : 'glass'
+                      : msg.isError
+                        ? 'bg-rose-500/5 border border-rose-500/20'
+                        : 'glass'
                   }`}>
-                    {msg.role === 'assistant' && (
+                    {msg.role === 'assistant' && !msg.isError && (
                       <div className="flex items-center gap-2 mb-2">
                         <Brain className="h-4 w-4 text-emerald-400" />
                         <span className="text-xs font-medium text-emerald-400">Advisor</span>
                       </div>
                     )}
-                    <div className="text-sm whitespace-pre-wrap">{msg.content}</div>
+
+                    {/* A failure is labelled as one. Branding it as the advisor
+                        made an outage read as financial advice. */}
+                    {msg.isError ? (
+                      <div role="alert" className="space-y-2">
+                        <div className="flex items-center gap-2">
+                          <AlertTriangle className="h-4 w-4 text-rose-400" aria-hidden="true" />
+                          <span className="text-xs font-medium text-rose-400">Couldn't get a response</span>
+                        </div>
+                        <p className="text-sm text-muted-foreground">{msg.content}</p>
+                        <Button variant="outline" size="sm" className="h-7" onClick={handleRetry}>
+                          Try again
+                        </Button>
+                      </div>
+                    ) : msg.role === 'assistant' ? (
+                      <>
+                        <MarkdownMessage content={msg.content} />
+                        {msg.isStreaming && (
+                          <span className="ml-0.5 inline-block h-4 w-1.5 translate-y-0.5 animate-pulse rounded-sm bg-emerald-400/70 align-middle" />
+                        )}
+                      </>
+                    ) : (
+                      // break-words so an unbroken token — a pasted URL or
+                      // account number — wraps instead of stretching the chat
+                      // pane sideways.
+                      <div className="text-sm whitespace-pre-wrap break-words">{msg.content}</div>
+                    )}
 
                     {msg.structuredData?.type === 'affordability' && typeof msg.structuredData.decision === 'object' && msg.structuredData.decision !== null && (
                       <AffordabilityCard decision={msg.structuredData.decision as unknown as AffordabilityDecision} />
                     )}
 
-                    {msg.role === 'assistant' && (
-                      <div className="flex gap-1 mt-2">
+                    {msg.role === 'assistant' && !msg.isError && !msg.isStreaming && msg.id && (
+                      <div className="flex items-center gap-1 mt-2">
                         <Button
                           variant="ghost"
                           size="sm"
-                          className="h-6 px-2"
-                          onClick={() => handleFeedback(idx, 'thumbs_up')}
+                          className={`h-6 px-2 ${feedbackState[msg.id] === 'thumbs_up' ? 'text-emerald-400' : ''}`}
+                          aria-label="This answer was helpful"
+                          aria-pressed={feedbackState[msg.id] === 'thumbs_up'}
+                          onClick={() => handleFeedback(msg.id, 'thumbs_up')}
                         >
                           <CheckCircle2 className="h-3 w-3" />
                         </Button>
                         <Button
                           variant="ghost"
                           size="sm"
-                          className="h-6 px-2"
-                          onClick={() => handleFeedback(idx, 'thumbs_down')}
+                          className={`h-6 px-2 ${feedbackState[msg.id] === 'thumbs_down' ? 'text-rose-400' : ''}`}
+                          aria-label="This answer was not helpful"
+                          aria-pressed={feedbackState[msg.id] === 'thumbs_down'}
+                          onClick={() => handleFeedback(msg.id, 'thumbs_down')}
                         >
                           <XCircle className="h-3 w-3" />
                         </Button>
+                        {feedbackState[msg.id] === 'failed' && (
+                          <span className="text-xs text-muted-foreground">Couldn't save that</span>
+                        )}
                       </div>
                     )}
                   </div>
                 </div>
               ))}
 
-              {isLoading && (
+              {/* Only shown until the first token lands — after that the
+                  streaming bubble itself is the progress indicator. */}
+              {isLoading && messages[messages.length - 1]?.content === '' && (
                 <div className="flex justify-start">
                   <div className="glass rounded-2xl px-4 py-3">
                     <div className="flex items-center gap-2">
