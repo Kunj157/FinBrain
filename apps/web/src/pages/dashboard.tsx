@@ -19,7 +19,8 @@ import {
 } from '@/components/finance/dashboard-widgets';
 import { useAuth } from '@/hooks/use-auth';
 import api from '@/lib/api';
-import { sendChatMessage } from '@/lib/ai-chat';
+import { useAdvisorChat } from '@/hooks/use-advisor-chat';
+import { ChatBubble } from '@/components/advisor/chat-bubble';
 import { formatCurrency, formatDate } from '@/lib/utils';
 import { IncomeExpenseChart, CategoryChart, SpendingTrend } from '@/components/finance/charts';
 import type { Transaction, Category } from '@finbrain/shared';
@@ -32,9 +33,11 @@ export default function Dashboard() {
   const [loading, setLoading] = useState(true);
   const [netWorth, setNetWorth] = useState<{ netWorth: number } | null>(null);
   const [chatInput, setChatInput] = useState('');
-  const [chatMessages, setChatMessages] = useState<Array<{ role: 'user' | 'assistant'; content: string }>>([]);
-  const [isChatLoading, setIsChatLoading] = useState(false);
   const chatEndRef = useRef<HTMLDivElement>(null);
+  // Shared with the advisor page: streaming, markdown, conversation memory and
+  // the affordability tool, instead of the older buffered endpoint this panel
+  // used to call.
+  const { messages: chatMessages, isLoading: isChatLoading, send: sendChat, retry: retryChat } = useAdvisorChat();
   const [onboardingAction, setOnboardingAction] = useState<string | null>(null);
   const [advisorInsights, setAdvisorInsights] = useState<Array<{ id: string; type: string; title: string; summary: string; severity: string; actions: string[] }>>([]);
   const [insightsLoading, setInsightsLoading] = useState(false);
@@ -80,23 +83,11 @@ export default function Dashboard() {
     return () => document.removeEventListener('visibilitychange', onVisible);
   }, [fetchData]);
 
-  const handleChatSend = async () => {
+  const handleChatSend = () => {
     if (!chatInput.trim() || isChatLoading) return;
     const question = chatInput.trim();
     setChatInput('');
-    setChatMessages((prev) => [...prev, { role: 'user', content: question }]);
-    setIsChatLoading(true);
-    try {
-      const answer = await sendChatMessage(question, chatMessages);
-      setChatMessages((prev) => [...prev, { role: 'assistant', content: answer }]);
-    } catch (err: unknown) {
-      const msg = (err as { response?: { data?: { error?: string } } })?.response?.data?.error
-        || (err as Error)?.message
-        || 'An error occurred.';
-      setChatMessages((prev) => [...prev, { role: 'assistant', content: msg }]);
-    } finally {
-      setIsChatLoading(false);
-    }
+    void sendChat(question);
   };
 
   const handleChatKeyDown = (e: React.KeyboardEvent) => {
@@ -285,12 +276,9 @@ export default function Dashboard() {
             </CardTitle></CardHeader>
             <CardContent>
               {chatMessages.length > 0 && (
-                <div className="max-h-[200px] overflow-y-auto space-y-2 mb-3 scrollbar-thin">
+                <div className="max-h-[280px] overflow-y-auto space-y-3 mb-3 scrollbar-thin">
                   {chatMessages.map((msg, i) => (
-                    <div key={i} className={`text-xs ${msg.role === 'user' ? 'text-right' : ''}`}>
-                      {msg.role === 'assistant' && <div className="flex items-center gap-1 mb-0.5"><Brain className="h-2.5 w-2.5 text-emerald-400" /><span className="text-[9px] text-emerald-400">FinBrain</span></div>}
-                      <p className={`rounded-lg px-2.5 py-1.5 ${msg.role === 'user' ? 'bg-emerald-500/10 text-emerald-50 inline-block' : 'text-muted-foreground'}`}>{msg.content}</p>
-                    </div>
+                    <ChatBubble key={i} message={msg} onRetry={retryChat} />
                   ))}
                   <div ref={chatEndRef} />
                 </div>

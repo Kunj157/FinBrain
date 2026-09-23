@@ -10,7 +10,8 @@ import { useAuth } from '@/hooks/use-auth';
 import api from '@/lib/api';
 import { fetchAllTransactions } from '@/lib/transactions';
 import { LoadError } from '@/components/ui/load-error';
-import { sendChatMessage } from '@/lib/ai-chat';
+import { useAdvisorChat } from '@/hooks/use-advisor-chat';
+import { ChatBubble } from '@/components/advisor/chat-bubble';
 import { formatCurrency } from '@/lib/utils';
 import type { Transaction, Category, Budget, Goal, Currency as SharedCurrency } from '@finbrain/shared';
 
@@ -22,11 +23,6 @@ type Insight = {
   description: string;
   icon: typeof TrendingUp;
   color: string;
-};
-
-type ChatMessage = {
-  role: 'user' | 'assistant';
-  content: string;
 };
 
 const HEALTH_LABELS: Record<number, { label: string; color: string; icon: typeof ShieldCheck }> = {
@@ -296,9 +292,11 @@ export default function Insights() {
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [chatInput, setChatInput] = useState('');
-  const [messages, setMessages] = useState<ChatMessage[]>([]);
-  const [isThinking, setIsThinking] = useState(false);
   const chatEndRef = useRef<HTMLDivElement>(null);
+  // Shared with the advisor page: streaming, markdown, conversation memory and
+  // the affordability tool, instead of the older buffered endpoint this panel
+  // used to call.
+  const { messages, isLoading: isThinking, send: sendChat, retry: retryChat } = useAdvisorChat();
 
   const fetchData = useCallback(async () => {
     setLoading(true);
@@ -338,23 +336,11 @@ export default function Insights() {
     [transactions, categories, budgets, goals, currency],
   );
 
-  const handleSend = async () => {
+  const handleSend = () => {
     if (!chatInput.trim() || isThinking) return;
     const question = chatInput.trim();
     setChatInput('');
-    setMessages((prev) => [...prev, { role: 'user', content: question }]);
-    setIsThinking(true);
-    try {
-      const answer = await sendChatMessage(question, messages);
-      setMessages((prev) => [...prev, { role: 'assistant', content: answer }]);
-    } catch (err: unknown) {
-      const msg = (err as { response?: { data?: { error?: string } } })?.response?.data?.error
-        || (err as Error)?.message
-        || 'An error occurred. Make sure the backend is running.';
-      setMessages((prev) => [...prev, { role: 'assistant', content: msg }]);
-    } finally {
-      setIsThinking(false);
-    }
+    void sendChat(question);
   };
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
@@ -520,21 +506,7 @@ export default function Insights() {
               </div>
             )}
             {messages.map((msg, i) => (
-              <div key={i} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
-                <div className={`max-w-[80%] rounded-xl px-4 py-2.5 text-sm ${
-                  msg.role === 'user'
-                    ? 'bg-emerald-500/15 text-emerald-50'
-                    : 'bg-white/[0.04] text-foreground'
-                }`}>
-                  {msg.role === 'assistant' && (
-                    <div className="flex items-center gap-1.5 mb-1">
-                      <Brain className="h-3 w-3 text-emerald-400" />
-                      <span className="text-[10px] font-medium text-emerald-400">FinBrain</span>
-                    </div>
-                  )}
-                  <p className="whitespace-pre-wrap leading-relaxed">{msg.content}</p>
-                </div>
-              </div>
+              <ChatBubble key={i} message={msg} onRetry={retryChat} />
             ))}
             {isThinking && (
               <div className="flex justify-start">
