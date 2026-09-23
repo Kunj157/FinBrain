@@ -37,6 +37,8 @@ interface ChatMessage {
   isError?: boolean;
   /** True while tokens are still arriving for this message. */
   isStreaming?: boolean;
+  /** How much data this particular answer rested on. */
+  confidence?: string;
 }
 
 interface AffordabilityDecision {
@@ -168,12 +170,13 @@ export default function AdvisorPage() {
     await streamAdvisorChat(
       { message: msg, conversationId: activeConvId },
       {
-        onStart: ({ conversationId, structuredData }) => {
+        onStart: ({ conversationId, structuredData, confidence }) => {
           startedConvId = conversationId;
           // Adopt the id immediately: without it the next message would be
           // sent with a null id and silently open a second conversation.
           if (!activeConvId) setActiveConvId(conversationId);
           if (structuredData) updateAssistant({ structuredData });
+          if (confidence) updateAssistant({ confidence });
         },
         onDelta: (text) => {
           setMessages((prev) =>
@@ -182,8 +185,8 @@ export default function AdvisorPage() {
             ),
           );
         },
-        onDone: ({ messageId, structuredData }) => {
-          updateAssistant({ id: messageId, structuredData, isStreaming: false });
+        onDone: ({ messageId, structuredData, confidence }) => {
+          updateAssistant({ id: messageId, structuredData, confidence, isStreaming: false });
         },
         onError: (error) => {
           // Rendered as an error, never as an assistant reply: an outage must
@@ -401,6 +404,9 @@ export default function AdvisorPage() {
                       <div className="flex items-center gap-2 mb-2">
                         <Brain className="h-4 w-4 text-emerald-400" />
                         <span className="text-xs font-medium text-emerald-400">Advisor</span>
+                        {/* Per answer, not per profile: how much data this
+                            specific reply rested on is what the reader needs. */}
+                        {msg.confidence && confidenceBadge(msg.confidence)}
                       </div>
                     )}
 

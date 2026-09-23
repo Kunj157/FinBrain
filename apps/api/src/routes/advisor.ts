@@ -5,7 +5,13 @@ import { roundMoney } from '../services/finance-math';
 import { buildAdvisorProfile, getAdvisorProfile } from '../services/advisor/profile-engine';
 import { getSpendingPatterns } from '../services/advisor/pattern-engine';
 import { buildAdvisorContext, contextToString } from '../services/advisor/context-builder';
-import { storeMemory, getMemories, deleteMemory, clearAllMemories } from '../services/advisor/memory-service';
+import {
+  storeMemory,
+  getMemories,
+  getMemoriesForPrompt,
+  deleteMemory,
+  clearAllMemories,
+} from '../services/advisor/memory-service';
 import { isAffordabilityQuestion } from '../services/advisor/purchase-parser';
 import { runAffordabilityCheck, handleAffordabilityFromChat } from '../services/advisor/affordability-engine';
 import { createScenario, getUserScenarios, getScenario, deleteScenario } from '../services/advisor/scenario-engine';
@@ -26,6 +32,23 @@ const router = Router();
 // for the thread to stay coherent without letting an old conversation grow
 // the prompt (and its cost) without bound.
 const HISTORY_TURNS = 20;
+
+// Tells the model how much the data behind its answer is actually worth, so
+// the certainty of the wording tracks the certainty of the inputs.
+const CONFIDENCE_GUIDANCE: Record<string, string> = {
+  high:
+    'DATA CONFIDENCE: HIGH. The figures below rest on a substantial, well-categorised history. ' +
+    'You may answer directly and quantitatively.',
+  medium:
+    'DATA CONFIDENCE: MEDIUM. The figures below rest on a limited history, so averages may not ' +
+    'represent a typical month. State your answer, but note where a short history could change it, ' +
+    'and prefer ranges over single precise predictions.',
+  low:
+    'DATA CONFIDENCE: LOW. There is very little data behind the figures below and they may be badly ' +
+    'unrepresentative. Do not present conclusions as certain. Lead with what is missing, give any ' +
+    'numbers as rough indications explicitly derived from the sparse data you were given, and tell ' +
+    'the user what to import or connect to get a trustworthy answer.',
+};
 
 const ADVISOR_SYSTEM_PROMPT = `You are FinBrain Advisor, a personal financial advisor AI. You have access to the user's complete financial data and your job is to help them make informed financial decisions.
 
@@ -368,6 +391,8 @@ interface PreparedTurn {
   convId: string;
   prompt: ChatMessage[];
   structuredData: Record<string, unknown> | null;
+  /** How much data the answer rests on, surfaced alongside the reply. */
+  confidence: string;
 }
 
 /**
@@ -402,13 +427,31 @@ async function prepareChatTurn(
     toolResponse = JSON.stringify(decision, null, 2);
   }
 
-  const context = await buildAdvisorContext(userId);
+  const [context, memories] = await Promise.all([
+    buildAdvisorContext(userId),
+    getMemoriesForPrompt(userId),
+  ]);
   const contextStr = contextToString(context);
+  const confidence = context.profile?.confidence ?? 'low';
 
   const prompt: ChatMessage[] = [
     { role: 'system', content: ADVISOR_SYSTEM_PROMPT },
+    // How much an answer is worth is a property of the data behind it. The
+    // prompt used to be identical for six transactions and six thousand, so a
+    // low-confidence profile still produced categorical advice with specific
+    // figures — the most dangerous combination in a financial context.
+    { role: 'system', content: CONFIDENCE_GUIDANCE[confidence] ?? CONFIDENCE_GUIDANCE.low },
     { role: 'user', content: `Here is the user's financial context:\n\n${contextStr}` },
   ];
+
+  if (memories) {
+    prompt.push({
+      role: 'system',
+      content:
+        `Things you have previously learned about this user, carried over from earlier conversations:\n\n${memories}\n\n` +
+        'Treat these as background, not as fact about their current position — the figures in the financial context above are authoritative. Refer to them when relevant rather than asking the user to repeat themselves.',
+    });
+  }
 
   if (toolResponse) {
     prompt.push({
@@ -436,7 +479,7 @@ async function prepareChatTurn(
     }
   }
 
-  return { convId, prompt, structuredData };
+  return { convId, prompt, structuredData, confidence };
 }
 
 router.post('/chat', async (req: Request, res: Response) => {
@@ -455,7 +498,7 @@ router.post('/chat', async (req: Request, res: Response) => {
   }
 
   try {
-    const { convId, prompt, structuredData } = await prepareChatTurn(
+    const { convId, prompt, structuredData, confidence } = await prepareChatTurn(
       req.userId,
       message,
       conversationId,
@@ -574,6 +617,7 @@ router.post('/chat', async (req: Request, res: Response) => {
         // The client needs the real id to attach feedback. It previously
         // posted the message's index in a local array, which matched nothing.
         messageId: assistantMessage.id,
+        confidence,
         structuredData,
       },
     });
@@ -628,7 +672,7 @@ router.post('/chat/stream', async (req: Request, res: Response) => {
   res.on('close', () => abort.abort());
 
   try {
-    const { convId, prompt, structuredData } = await prepareChatTurn(
+    const { convId, prompt, structuredData, confidence } = await prepareChatTurn(
       req.userId,
       message,
       conversationId,
@@ -636,7 +680,7 @@ router.post('/chat/stream', async (req: Request, res: Response) => {
 
     // The client needs this immediately: without it a brand-new conversation
     // would send its second message with a null id and start another thread.
-    send('start', { conversationId: convId, structuredData });
+    send('start', { conversationId: convId, structuredData, confidence });
 
     let reply = '';
     for await (const delta of streamChatCompletion(prompt, { signal: abort.signal })) {
@@ -664,7 +708,7 @@ router.post('/chat/stream', async (req: Request, res: Response) => {
       data: { updatedAt: new Date() },
     });
 
-    send('done', { messageId: assistantMessage.id, conversationId: convId, structuredData });
+    send('done', { messageId: assistantMessage.id, conversationId: convId, structuredData, confidence });
     res.end();
   } catch (err) {
     console.error('Advisor chat stream error:', err);

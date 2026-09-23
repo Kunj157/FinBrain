@@ -9,12 +9,18 @@ import { getAuthToken } from '@/lib/api';
 
 export interface StreamHandlers {
   /** Fired once, before any content, carrying the conversation id. */
-  onStart?: (data: { conversationId: string; structuredData?: Record<string, unknown> }) => void;
+  onStart?: (data: {
+    conversationId: string;
+    structuredData?: Record<string, unknown>;
+    /** How much data the answer rests on: 'low' | 'medium' | 'high'. */
+    confidence?: string;
+  }) => void;
   onDelta?: (text: string) => void;
   onDone?: (data: {
     messageId: string;
     conversationId: string;
     structuredData?: Record<string, unknown>;
+    confidence?: string;
   }) => void;
   /** Fired instead of onDone when the turn could not be completed. */
   onError?: (message: string) => void;
