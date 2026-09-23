@@ -68,6 +68,36 @@ export async function getMemories(
   }>;
 }
 
+// What the model is shown. Memories are short, but an account that has been
+// chatting for months accumulates them, and every one costs prompt budget on
+// every turn — so only the most important reach the model.
+const PROMPT_MEMORY_LIMIT = 12;
+const PROMPT_MEMORY_CONTENT_CHARS = 240;
+
+/**
+ * Memories rendered for the chat prompt, or null when there are none.
+ *
+ * Memories were being written on every turn and read by nothing, so the
+ * advisor had a store it never consulted: it could not recall a purchase the
+ * user had discussed with it minutes earlier.
+ */
+export async function getMemoriesForPrompt(
+  userId: string,
+  limit: number = PROMPT_MEMORY_LIMIT,
+): Promise<string | null> {
+  const memories = await getMemories(userId, undefined, limit);
+  if (memories.length === 0) return null;
+
+  const lines = memories.map((m) => {
+    const content = m.content.length > PROMPT_MEMORY_CONTENT_CHARS
+      ? `${m.content.slice(0, PROMPT_MEMORY_CONTENT_CHARS)}…`
+      : m.content;
+    return `- [${m.memoryType}] ${m.title}: ${content}`;
+  });
+
+  return lines.join('\n');
+}
+
 export async function deleteMemory(userId: string, memoryId: string): Promise<boolean> {
   const result = await prisma.advisorMemory.deleteMany({
     where: { id: memoryId, userId },
