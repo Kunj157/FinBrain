@@ -15,8 +15,8 @@
     "db:migrate": "prisma migrate dev",
     "db:studio": "prisma studio",
     "seed": "tsx src/scripts/seed.ts",
-    "test": "vitest run",
-    "test:watch": "vitest",
+    "test": "dotenv -e .env -- vitest run",
+    "test:watch": "dotenv -e .env -- vitest",
     "test:coverage": "vitest run --coverage"
   },
   "dependencies": {

@@ -32,6 +32,25 @@ jobs:
     strategy:
       matrix:
         node-version: [20]
+    # The advisor memory service is exercised against a real database rather
+    # than a mock, so its deduplication and expiry behaviour is tested as
+    # Prisma actually executes it.
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: finbrain_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    env:
+      DATABASE_URL: postgresql://postgres:postgres@localhost:5432/finbrain_test
     steps:
       - uses: actions/checkout@v4
       - uses: pnpm/action-setup@v4
@@ -40,6 +59,7 @@ jobs:
           node-version: ${{ matrix.node-version }}
           cache: "pnpm"
       - run: pnpm install --frozen-lockfile
+      - run: pnpm --filter @finbrain/api exec prisma db push --skip-generate
       - run: pnpm test
 
   e2e:
