@@ -28,6 +28,46 @@ export async function storeMemory(userId: string, entry: AdvisorMemoryEntry): Pr
   });
 }
 
+/**
+ * Store a memory, replacing any active one with the same type and title.
+ *
+ * The chat extractor derives memories from keyword matches with fixed titles
+ * ("User focused on budgeting"), so without this every mention of a keyword
+ * appended another near-identical row. Once memories began reaching the model
+ * that directly cost answer quality: the prompt carries only the most
+ * important handful, and duplicates crowded out everything else.
+ */
+export async function upsertMemory(userId: string, entry: AdvisorMemoryEntry): Promise<void> {
+  const existing = await prisma.advisorMemory.findFirst({
+    where: {
+      userId,
+      memoryType: entry.memoryType,
+      title: entry.title,
+      OR: [{ validUntil: null }, { validUntil: { gt: new Date() } }],
+    },
+    orderBy: { createdAt: 'desc' },
+  });
+
+  if (!existing) {
+    await storeMemory(userId, entry);
+    return;
+  }
+
+  await prisma.advisorMemory.update({
+    where: { id: existing.id },
+    data: {
+      // Refresh the wording and how sure we are, but never lower an
+      // importance that was raised deliberately elsewhere.
+      content: entry.content,
+      source: entry.source,
+      confidence: entry.confidence,
+      importance: Math.max(existing.importance, entry.importance),
+      validUntil: entry.validUntil ?? null,
+      metadata: (entry.metadata || {}) as unknown as Prisma.InputJsonValue,
+    },
+  });
+}
+
 export async function getMemories(
   userId: string,
   memoryType?: string,
@@ -44,9 +84,17 @@ export async function getMemories(
   validUntil: Date | null;
   metadata: Record<string, unknown>;
 }>> {
-  const where = memoryType
-    ? { userId, memoryType, validUntil: null }
-    : { userId, validUntil: null };
+  // expireMemory soft-deletes by stamping validUntil with the current time,
+  // so a null expiry means "active". Matching on null alone also hid any
+  // memory stored with a *future* expiry — a legitimately time-bounded fact
+  // was invisible from the moment it was created until it expired.
+  const active: Prisma.AdvisorMemoryWhereInput = {
+    OR: [{ validUntil: null }, { validUntil: { gt: new Date() } }],
+  };
+
+  const where: Prisma.AdvisorMemoryWhereInput = memoryType
+    ? { userId, memoryType, ...active }
+    : { userId, ...active };
 
   const memories = await prisma.advisorMemory.findMany({
     where,
