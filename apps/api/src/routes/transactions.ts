@@ -44,6 +44,9 @@ const bulkTransactionSchema = z.object({
         date: z.string().refine((value) => !Number.isNaN(Date.parse(value)), {
           message: 'date must be a parseable date string',
         }),
+        // The provider's id for this row, when it came from a bank sync. It
+        // is what makes re-running a sync idempotent.
+        externalId: z.string().max(255).optional(),
       }),
     )
     .min(1)
@@ -251,17 +254,36 @@ router.post('/bulk', async (req: Request, res: Response) => {
         notes: item.notes || null,
         status: item.status,
         isRecurring: item.isRecurring,
+        externalId: item.externalId || null,
       };
     }));
 
-    const result = await prisma.transaction.createMany({ data });
-    const created = await prisma.transaction.findMany({
-      where: { userId: req.userId },
-      orderBy: { createdAt: 'desc' },
-      take: result.count,
-    });
+    // skipDuplicates works against the (userId, externalId) unique constraint,
+    // so re-running a bank sync adds only what is genuinely new. Rows without
+    // an externalId — anything entered by hand — are unaffected, since
+    // Postgres treats nulls as distinct.
+    const result = await prisma.transaction.createMany({ data, skipDuplicates: true });
 
-    res.status(201).json({ success: true, data: created });
+    // Read back by the ids just written rather than "the N most recent for
+    // this user", which returned the wrong rows whenever another write
+    // interleaved.
+    const externalIds = data.map((d) => d.externalId).filter((id): id is string => Boolean(id));
+    const created = externalIds.length
+      ? await prisma.transaction.findMany({
+          where: { userId: req.userId, externalId: { in: externalIds } },
+          orderBy: { date: 'desc' },
+        })
+      : await prisma.transaction.findMany({
+          where: { userId: req.userId },
+          orderBy: { createdAt: 'desc' },
+          take: result.count,
+        });
+
+    res.status(201).json({
+      success: true,
+      data: created,
+      meta: { requested: data.length, created: result.count, skipped: data.length - result.count },
+    });
   } catch (error) {
     console.error('Bulk create error:', error);
     res.status(500).json({ success: false, error: 'Failed to create transactions' });

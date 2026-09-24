@@ -236,6 +236,9 @@ model Transaction {
   needsReview Boolean         @default(false)
   originalName String?
   pending     Boolean         @default(false)
+  // The provider's own id for this transaction (Plaid's transaction_id).
+  // Unique per user, so re-running a sync cannot write a second copy. Null for
+  // manually entered rows, and Postgres treats nulls as distinct.
   externalId  String?
 
   householdId String?
@@ -254,6 +257,7 @@ model Transaction {
   @@index([userId, categoryId])
   @@index([userId, deletedAt])
   @@index([externalId])
+  @@unique([userId, externalId])
   @@index([userId, needsReview])
   @@map("transactions")
 }
