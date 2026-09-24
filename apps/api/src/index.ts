@@ -13,6 +13,7 @@ import rateLimit, { ipKeyGenerator } from 'express-rate-limit';
 import { ensureDevUser, prisma } from './prisma';
 import { seedDefaultCategories } from './seed-defaults';
 import { requireAuth } from './middleware/auth';
+import { MAX_UPLOAD_MB } from './middleware/upload';
 import './types';
 
 import plaidRoutes from './routes/plaid';
@@ -137,6 +138,25 @@ app.use((_req, res) => {
 
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 app.use((err: Error, _req: express.Request, res: express.Response, _next: express.NextFunction) => {
+  // Rejected uploads are the caller's problem, not ours: answer with a status
+  // that says so rather than a blanket 500 the user cannot act on.
+  const code = (err as NodeJS.ErrnoException).code;
+  if (code === 'LIMIT_FILE_SIZE') {
+    return res.status(413).json({
+      success: false,
+      error: `That file is too large. The limit is ${MAX_UPLOAD_MB} MB.`,
+    });
+  }
+  if (code === 'LIMIT_FILE_COUNT') {
+    return res.status(400).json({ success: false, error: 'Upload one file at a time.' });
+  }
+  if (err.message === 'UNSUPPORTED_FILE_TYPE') {
+    return res.status(415).json({
+      success: false,
+      error: 'That file type is not supported. Upload a CSV or PDF statement, or a receipt image.',
+    });
+  }
+
   console.error('Unhandled route error:', err);
   res.status(500).json({ success: false, error: 'Internal server error' });
 });
