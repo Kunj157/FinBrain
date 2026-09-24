@@ -47,6 +47,9 @@ router.post('/sync-transactions', async (req: Request, res: Response) => {
         added: added.map((t) => ({
           transactionId: t.transaction_id,
           amount: t.amount,
+          // Without this the client had nothing to work from and assumed USD,
+          // so a euro account's transactions were stored as dollars.
+          isoCurrencyCode: t.iso_currency_code,
           date: t.date,
           name: t.name,
           merchantName: t.merchant_name,
