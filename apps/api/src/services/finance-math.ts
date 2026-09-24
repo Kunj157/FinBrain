@@ -105,17 +105,36 @@ export function filterTransactionsByDateRange(
   });
 }
 
-export function getCurrentMonthTransactions(transactions: Transaction[]): Transaction[] {
+/**
+ * Month boundaries in UTC.
+ *
+ * Imported transactions carry a date with no time — `2026-03-01` is stored as
+ * `2026-03-01T00:00:00Z`. Building the boundaries with the local-time
+ * `new Date(y, m, d)` meant that on any server west of UTC that transaction
+ * sat before the start of its own month and was counted against the previous
+ * one, corrupting the budget period and monthly report it belonged to.
+ *
+ * @param monthOffset 0 for the current month, -1 for the previous one.
+ */
+function utcMonthRange(monthOffset: number): { start: Date; end: Date } {
   const now = new Date();
-  const start = new Date(now.getFullYear(), now.getMonth(), 1);
-  const end = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59, 999);
+  const year = now.getUTCFullYear();
+  const month = now.getUTCMonth() + monthOffset;
+
+  return {
+    start: new Date(Date.UTC(year, month, 1, 0, 0, 0, 0)),
+    // Day 0 of the following month is the last day of this one.
+    end: new Date(Date.UTC(year, month + 1, 0, 23, 59, 59, 999)),
+  };
+}
+
+export function getCurrentMonthTransactions(transactions: Transaction[]): Transaction[] {
+  const { start, end } = utcMonthRange(0);
   return filterTransactionsByDateRange(transactions, start, end);
 }
 
 export function getLastMonthTransactions(transactions: Transaction[]): Transaction[] {
-  const now = new Date();
-  const start = new Date(now.getFullYear(), now.getMonth() - 1, 1);
-  const end = new Date(now.getFullYear(), now.getMonth(), 0, 23, 59, 59, 999);
+  const { start, end } = utcMonthRange(-1);
   return filterTransactionsByDateRange(transactions, start, end);
 }
 
