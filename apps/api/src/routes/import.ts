@@ -10,6 +10,54 @@ import { parsePdfText } from '../services/pdf-parser';
 const upload = multer({ dest: 'uploads/' });
 const router = Router();
 
+/**
+ * Read an amount out of a CSV cell.
+ *
+ * `parseFloat` alone returned NaN for anything a real bank exports — a
+ * currency symbol, thousands separators, or accounting parentheses — and the
+ * `|| 0` fallback turned each of those into a silent zero-value transaction.
+ *
+ * Both decimal conventions appear in exports, so the separators are
+ * disambiguated by position rather than assumed: whichever of `.` or `,`
+ * appears last is the decimal point.
+ */
+export function parseAmount(raw: string | undefined | null): number {
+  if (raw == null) return 0;
+
+  let text = String(raw).trim();
+  if (!text) return 0;
+
+  // Accounting notation: (45.00) means -45.00.
+  const parenthesised = /^\((.*)\)$/.exec(text);
+  if (parenthesised) text = `-${parenthesised[1]}`;
+
+  const negative = text.startsWith('-') || text.endsWith('-');
+  text = text.replace(/[^0-9.,]/g, '');
+  if (!text) return 0;
+
+  const lastDot = text.lastIndexOf('.');
+  const lastComma = text.lastIndexOf(',');
+
+  if (lastDot >= 0 && lastComma >= 0) {
+    // Whichever separator comes last is the decimal point; the other groups
+    // thousands. Handles both 1,234.56 and 1.234,56.
+    const decimalSep = lastDot > lastComma ? '.' : ',';
+    const groupSep = decimalSep === '.' ? ',' : '.';
+    text = text.split(groupSep).join('');
+    if (decimalSep === ',') text = text.replace(',', '.');
+  } else if (lastComma >= 0) {
+    // A lone comma is a decimal point only when it is not grouping digits:
+    // "1,50" is one and a half, "1,500" is fifteen hundred.
+    const decimals = text.length - lastComma - 1;
+    text = decimals === 3 ? text.split(',').join('') : text.replace(',', '.');
+  }
+
+  const value = Number.parseFloat(text);
+  if (!Number.isFinite(value)) return 0;
+
+  return negative ? -Math.abs(value) : value;
+}
+
 function isPdf(file: Express.Multer.File): boolean {
   return file.mimetype === 'application/pdf' || file.originalname.toLowerCase().endsWith('.pdf');
 }
@@ -55,16 +103,20 @@ async function enrichTransaction(userId: string, record: Record<string, string>)
   const merchant = mapped.merchant || mapped.vendor || mapped.payee || '';
   const description = mapped.description || mapped.name || mapped.memo || '';
   const detectedCategory = await suggestCategoryWithML(userId, merchant, description);
-  const amount = parseFloat(mapped.amount) || 0;
+  const signedAmount = parseAmount(mapped.amount);
 
   return {
     date: mapped.date || '',
-    amount,
+    // Direction travels in `type`, and the magnitude is always positive —
+    // the same contract POST /transactions and /transactions/bulk enforce.
+    // Emitting a signed amount here meant every statement containing an
+    // expense was rejected wholesale, writing nothing.
+    amount: Math.abs(signedAmount),
     description,
     merchant,
     category: mapped.category || detectedCategory?.categoryName || 'Uncategorized',
     categoryId: detectedCategory?.categoryId || null,
-    type: amount >= 0 ? 'income' : 'expense',
+    type: signedAmount >= 0 ? 'income' : 'expense',
   };
 }
 

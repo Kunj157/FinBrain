@@ -82,7 +82,7 @@ export default function SettingsPage() {
   };
 
   const NOTIF_TYPES = [
-    { key: 'budget_alerts', label: 'Budget Alerts', desc: 'When budgets reach 75%, 90%, or 100% utilization' },
+    { key: 'budget_alerts', label: 'Budget Alerts', desc: 'When budgets reach 50%, 75%, 90%, or 100% utilization' },
     { key: 'goal_milestones', label: 'Goal Milestones', desc: 'When goals reach key progress points' },
     { key: 'unusual_activity', label: 'Unusual Activity', desc: 'Unusual spending patterns or large transactions' },
     { key: 'weekly_summary', label: 'Weekly Summary', desc: 'Weekly financial summary and insights' },

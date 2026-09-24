@@ -28,6 +28,7 @@ export function CsvImport({ onComplete }: StatementImportProps) {
   const [openingBalance, setOpeningBalance] = useState<number | null>(null);
   const [loading, setLoading] = useState(false);
   const [importing, setImporting] = useState(false);
+  const [importError, setImportError] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [skipDuplicates, setSkipDuplicates] = useState(true);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -244,15 +245,27 @@ export function CsvImport({ onComplete }: StatementImportProps) {
                   });
                 }
                 await api.post('/transactions/bulk', { items });
-              } catch {
-                // silent
+                setImportError(null);
+                setImporting(false);
+                onComplete?.();
+              } catch (error) {
+                // A swallowed failure here told users their statement had
+                // imported when the server had written nothing at all.
+                console.error('Transaction import failed:', error);
+                setImportError(
+                  'We could not import those transactions. Nothing was saved — please try again.',
+                );
+                setImporting(false);
               }
-              setImporting(false);
-              onComplete?.();
             }}>
               {importing ? <Loader2 className="h-4 w-4 animate-spin" /> : <Check className="h-4 w-4" />}
               {importing ? 'Importing...' : `Import ${filteredPreview?.length || 0} transaction${filteredPreview?.length !== 1 ? 's' : ''}`}
             </Button>
+            {importError && (
+              <p role="alert" className="mt-2 text-xs text-rose-400">
+                {importError}
+              </p>
+            )}
           </div>
         </div>
       )}

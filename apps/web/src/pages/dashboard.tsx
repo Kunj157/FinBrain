@@ -19,6 +19,7 @@ import {
 } from '@/components/finance/dashboard-widgets';
 import { useAuth } from '@/hooks/use-auth';
 import api from '@/lib/api';
+import { fetchAllTransactions } from '@/lib/transactions';
 import { useAdvisorChat } from '@/hooks/use-advisor-chat';
 import { ChatBubble } from '@/components/advisor/chat-bubble';
 import { formatCurrency, formatDate } from '@/lib/utils';
@@ -49,12 +50,16 @@ export default function Dashboard() {
 
   const fetchData = useCallback(async () => {
     try {
-      const [txnRes, catRes, nwRes] = await Promise.all([
-        api.get('/transactions?limit=100'),
+      // Every headline figure below — net cash flow, monthly income and
+      // expenses, total savings — is derived from this list. Fetching only the
+      // most recent hundred silently understated all of them for anyone with a
+      // longer history, with nothing in the UI to say the view was truncated.
+      const [txns, catRes, nwRes] = await Promise.all([
+        fetchAllTransactions(),
         api.get('/categories'),
         api.get('/accounts/net-worth').catch(() => null),
       ]);
-      setAllTransactions(txnRes.data.data.data);
+      setAllTransactions(txns);
       setCategories(catRes.data.data);
       setLoadError(null);
 
