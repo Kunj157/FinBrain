@@ -9,6 +9,8 @@ import {
   computeTotalLiabilities,
   roundMoney,
   getTransactionAmountAbs,
+  getCurrentMonthTransactions,
+  getLastMonthTransactions,
 } from '../services/finance-math';
 
 // Minimal mock Transaction type for tests
@@ -164,6 +166,42 @@ describe('finance-math', () => {
         makeAccount('loan', -10000),
       ];
       expect(computeTotalLiabilities(accounts)).toBe(12000);
+    });
+  });
+
+  describe('month bucketing', () => {
+    // Imported dates have no time component, so `2026-03-01` is stored as
+    // `2026-03-01T00:00:00Z`. Boundaries built with the local-time
+    // `new Date(y, m, d)` put that transaction before the start of its own
+    // month on any server west of UTC, so it was counted against the previous
+    // month's budget and report.
+    function txnOn(isoDate: string) {
+      return { ...makeTxn('expense', 10), date: new Date(isoDate) };
+    }
+
+    function utcFirstOfThisMonth(): string {
+      const now = new Date();
+      const month = String(now.getUTCMonth() + 1).padStart(2, '0');
+      return `${now.getUTCFullYear()}-${month}-01T00:00:00.000Z`;
+    }
+
+    function utcFirstOfLastMonth(): string {
+      const now = new Date();
+      const d = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() - 1, 1));
+      const month = String(d.getUTCMonth() + 1).padStart(2, '0');
+      return `${d.getUTCFullYear()}-${month}-01T00:00:00.000Z`;
+    }
+
+    it('counts midnight-UTC on the first of the month as this month', () => {
+      const txn = txnOn(utcFirstOfThisMonth());
+      expect(getCurrentMonthTransactions([txn])).toHaveLength(1);
+      expect(getLastMonthTransactions([txn])).toHaveLength(0);
+    });
+
+    it('counts midnight-UTC on the first of last month as last month', () => {
+      const txn = txnOn(utcFirstOfLastMonth());
+      expect(getLastMonthTransactions([txn])).toHaveLength(1);
+      expect(getCurrentMonthTransactions([txn])).toHaveLength(0);
     });
   });
 });

@@ -1,7 +1,7 @@
 import { Router, type Request, type Response } from 'express';
 import { z } from 'zod';
-import { type Budget } from '@prisma/client';
-import { prisma } from '../prisma';
+import type { Budget } from '../prisma';
+import { prisma, aggregateToNumber } from '../prisma';
 import { suggestBudgets, autoSuggestBudgets, detectFlexCategories } from '../services/budget-suggest';
 
 const router = Router();
@@ -41,7 +41,7 @@ async function computeSpent(userId: string, categoryId: string, period: 'weekly'
     },
   });
 
-  return result._sum.amount || 0;
+  return aggregateToNumber(result._sum.amount);
 }
 
 router.get('/', async (req: Request, res: Response) => {

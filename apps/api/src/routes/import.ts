@@ -1,13 +1,12 @@
 import { Router, type Request, type Response } from 'express';
-import multer from 'multer';
 import { parse } from 'csv-parse/sync';
 import fs from 'fs';
 import pdfParse from 'pdf-parse';
 import { prisma } from '../prisma';
 import { suggestCategoryWithML } from '../services/auto-categorize';
 import { parsePdfText } from '../services/pdf-parser';
+import { uploadStatement, discardUpload } from '../middleware/upload';
 
-const upload = multer({ dest: 'uploads/' });
 const router = Router();
 
 /**
@@ -125,7 +124,7 @@ async function resolveCategoryId(categoryName: string | null, catByName: Map<str
   return catByName.get(categoryName) || catByName.get('Other') || null;
 }
 
-router.post('/parse', upload.single('file'), async (req: Request, res: Response) => {
+router.post('/parse', uploadStatement.single('file'), async (req: Request, res: Response) => {
   try {
     const file = req.file as Express.Multer.File | undefined;
     if (!file) {
@@ -149,8 +148,6 @@ router.post('/parse', upload.single('file'), async (req: Request, res: Response)
       format = 'csv';
     }
 
-    fs.unlinkSync(file.path);
-
     const resolved = await Promise.all(transactions.map(async (tx) => ({
       ...tx,
       categoryId: await resolveCategoryId(tx.category, catByName),
@@ -170,11 +167,15 @@ router.post('/parse', upload.single('file'), async (req: Request, res: Response)
   } catch (error) {
     console.error('Import error:', error);
     res.status(500).json({ success: false, error: 'Failed to parse file' });
+  } finally {
+    // Cleanup used to sit on the success path only, so every parse failure
+    // stranded the upload in uploads/ permanently.
+    discardUpload(req.file as Express.Multer.File | undefined);
   }
 });
 
 // keep backward compat
-router.post('/csv', upload.single('file'), async (req: Request, res: Response) => {
+router.post('/csv', uploadStatement.single('file'), async (req: Request, res: Response) => {
   try {
     const file = req.file as Express.Multer.File | undefined;
     if (!file) {
@@ -186,8 +187,6 @@ router.post('/csv', upload.single('file'), async (req: Request, res: Response) =
 
     const records = await parseCsv(file.path);
     const transactions = await Promise.all(records.map((r) => enrichTransaction(req.userId, r)));
-
-    fs.unlinkSync(file.path);
 
     const resolved = await Promise.all(transactions.map(async (tx) => ({
       ...tx,
@@ -205,6 +204,8 @@ router.post('/csv', upload.single('file'), async (req: Request, res: Response) =
   } catch (error) {
     console.error('CSV import error:', error);
     res.status(500).json({ success: false, error: 'Failed to parse CSV' });
+  } finally {
+    discardUpload(req.file as Express.Multer.File | undefined);
   }
 });
 

@@ -1,14 +1,13 @@
 import { Router, type Request, type Response } from 'express';
-import multer from 'multer';
 import fs from 'fs';
 import { suggestCategoryWithML } from '../services/auto-categorize';
+import { uploadReceipt, discardUpload } from '../middleware/upload';
 
-const upload = multer({ dest: 'uploads/' });
 const router = Router();
 
 const ML_SERVICE_URL = process.env.ML_SERVICE_URL || 'http://localhost:8000';
 
-router.post('/ocr', upload.single('file'), async (req: Request, res: Response) => {
+router.post('/ocr', uploadReceipt.single('file'), async (req: Request, res: Response) => {
   try {
     const file = req.file as Express.Multer.File | undefined;
     if (!file) {
@@ -23,8 +22,6 @@ router.post('/ocr', upload.single('file'), async (req: Request, res: Response) =
       method: 'POST',
       body: formData,
     });
-
-    fs.unlinkSync(file.path);
 
     if (!response.ok) {
       const errorBody = await response.json() as { detail?: string };
@@ -46,6 +43,10 @@ router.post('/ocr', upload.single('file'), async (req: Request, res: Response) =
   } catch (error) {
     console.error('Receipt OCR error:', error);
     res.status(500).json({ success: false, error: 'OCR service unavailable. Make sure the ML service is running.' });
+  } finally {
+    // Previously only removed on success, so every failed OCR left the
+    // receipt image on disk indefinitely.
+    discardUpload(req.file as Express.Multer.File | undefined);
   }
 });
 

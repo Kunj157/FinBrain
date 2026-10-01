@@ -1,7 +1,7 @@
 import { Router, type Request, type Response } from 'express';
 import { z } from 'zod';
-import { type Goal, type GoalContribution } from '@prisma/client';
-import { prisma } from '../prisma';
+import type { Goal, GoalContribution } from '../prisma';
+import { prisma, aggregateToNumber } from '../prisma';
 
 const router = Router();
 
@@ -173,7 +173,7 @@ router.post('/:id/auto-contribute', async (req: Request, res: Response) => {
     where: { userId: req.userId, type: 'income', date: { gte: startOfMonth } },
     _sum: { amount: true },
   });
-  const monthlyIncome = income._sum.amount || 0;
+  const monthlyIncome = aggregateToNumber(income._sum.amount);
   if (monthlyIncome <= 0) {
     return res.status(400).json({ success: false, error: 'No income found this month' });
   }

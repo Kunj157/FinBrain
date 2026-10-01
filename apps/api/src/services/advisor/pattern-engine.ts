@@ -1,4 +1,5 @@
-import { type Prisma, type Transaction } from '@prisma/client';
+import { type Prisma } from '@prisma/client';
+import type { Transaction } from '../../prisma';
 import { prisma } from '../../prisma';
 import { roundMoney } from '../finance-math';
 
