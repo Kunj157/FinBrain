@@ -61,7 +61,7 @@ model User {
   avatarUrl String?
 
   currency       Currency @default(USD)
-  monthlyIncome  Float?
+  monthlyIncome  Decimal? @db.Decimal(19, 4)
   onboardingCompleted Boolean @default(false)
   username   String?
   birthDate  DateTime?
@@ -197,7 +197,7 @@ model Account {
   id        String      @id @default(cuid())
   name      String
   type      AccountType
-  balance   Float       @default(0)
+  balance   Decimal       @default(0) @db.Decimal(19, 4)
   currency  Currency    @default(USD)
   institution String?
   isActive  Boolean     @default(true)
@@ -219,7 +219,7 @@ model Account {
 model Transaction {
   id          String          @id @default(cuid())
   type        TransactionType
-  amount      Float
+  amount      Decimal         @db.Decimal(19, 4)
   currency    Currency        @default(USD)
   description String
   merchant    String?
@@ -264,18 +264,18 @@ model Transaction {
 
 model Budget {
   id        String       @id @default(cuid())
-  amount    Float
+  amount    Decimal @db.Decimal(19, 4)
   currency  Currency     @default(USD)
   period    BudgetPeriod @default(monthly)
   startDate DateTime
   endDate   DateTime?
-  spent     Float        @default(0)
-  remaining Float?
+  spent     Decimal        @default(0) @db.Decimal(19, 4)
+  remaining Decimal? @db.Decimal(19, 4)
 
   budgetMode        String   @default("category")
   bucketType        String?
   rolloverEnabled   Boolean  @default(false)
-  rolloverAmount    Float    @default(0)
+  rolloverAmount    Decimal    @default(0) @db.Decimal(19, 4)
   autoSuggested     Boolean  @default(false)
 
   householdId String?
@@ -296,9 +296,9 @@ model Budget {
 
 model BudgetHistory {
   id        String   @id @default(cuid())
-  amount    Float
-  spent     Float
-  remaining Float
+  amount    Decimal @db.Decimal(19, 4)
+  spent     Decimal @db.Decimal(19, 4)
+  remaining Decimal @db.Decimal(19, 4)
   recordedAt DateTime @default(now())
 
   budgetId String
@@ -310,9 +310,9 @@ model BudgetHistory {
 model Goal {
   id            String  @id @default(cuid())
   name          String
-  targetAmount  Float
+  targetAmount  Decimal @db.Decimal(19, 4)
   currency      Currency @default(USD)
-  currentAmount Float    @default(0)
+  currentAmount Decimal    @default(0) @db.Decimal(19, 4)
   deadline      DateTime?
   goalType      String   @default("custom")
   icon          String   @default("target")
@@ -335,7 +335,7 @@ model Goal {
 
 model GoalContribution {
   id       String   @id @default(cuid())
-  amount   Float
+  amount   Decimal @db.Decimal(19, 4)
   date     DateTime @default(now())
   notes    String?
 
@@ -368,7 +368,7 @@ model Recommendation {
   description String
   severity    String   @default("medium")
   category    String?
-  amount      Float?
+  amount      Decimal? @db.Decimal(19, 4)
   read        Boolean  @default(false)
 
   userId String
@@ -402,7 +402,7 @@ model Receipt {
   id           String   @id @default(cuid())
   imageUrl     String
   merchant     String?
-  amount       Float?
+  amount       Decimal? @db.Decimal(19, 4)
   date         DateTime?
   categoryId   String?
   status       String   @default("pending")
@@ -489,8 +489,8 @@ model Holding {
   symbol          String
   name            String
   quantity        Float
-  avgCostBasis    Float
-  currentPrice    Float?
+  avgCostBasis    Decimal @db.Decimal(19, 4)
+  currentPrice    Decimal? @db.Decimal(19, 4)
   currency        Currency @default(USD)
   assetType       String   @default("stock")
   lastPriceUpdate DateTime?
@@ -516,8 +516,8 @@ model AdvisorProfile {
   dataQualityScore      Int      @default(0)
   confidence            String   @default("low")
 
-  monthlyIncomeAvg      Float    @default(0)
-  monthlyExpenseAvg     Float    @default(0)
+  monthlyIncomeAvg      Decimal    @default(0) @db.Decimal(19, 4)
+  monthlyExpenseAvg     Decimal    @default(0) @db.Decimal(19, 4)
   savingsRateAvg        Float    @default(0)
   emergencyFundMonths   Float    @default(0)
   debtToIncomeRatio     Float    @default(0)
@@ -544,10 +544,10 @@ model SpendingPattern {
   merchant        String?
   patternType     String
   cadence         String?
-  avgAmount       Float
-  minAmount       Float?
-  maxAmount       Float?
-  monthAvg        Float?
+  avgAmount       Decimal @db.Decimal(19, 4)
+  minAmount       Decimal? @db.Decimal(19, 4)
+  maxAmount       Decimal? @db.Decimal(19, 4)
+  monthAvg        Decimal? @db.Decimal(19, 4)
   volatility      Float?
   confidence      Float    @default(0)
   sampleSize      Int      @default(0)
@@ -661,7 +661,7 @@ model BudgetPlan {
   user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   mode        String   @default("category")
   month       DateTime
-  incomePlan  Float?
+  incomePlan  Decimal? @db.Decimal(19, 4)
   notes       String?
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
@@ -675,8 +675,8 @@ model RecurringPattern {
   user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   merchant        String
   categoryId      String?
-  amountAvg       Float
-  amountLast      Float?
+  amountAvg       Decimal @db.Decimal(19, 4)
+  amountLast      Decimal? @db.Decimal(19, 4)
   cadence         String
   nextExpectedAt  DateTime?
   lastSeenAt      DateTime?

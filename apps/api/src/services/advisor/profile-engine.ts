@@ -1,4 +1,5 @@
-import { type Prisma, type Transaction, type Budget } from '@prisma/client';
+import { type Prisma } from '@prisma/client';
+import type { Transaction, Budget } from '../../prisma';
 import { prisma } from '../../prisma';
 import {
   sumIncome,

@@ -1,4 +1,4 @@
-import { type Budget } from '@prisma/client';
+import type { Budget } from '../prisma';
 import { prisma } from '../prisma';
 import { roundMoney } from './finance-math';
 

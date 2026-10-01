@@ -1,4 +1,4 @@
-import { type Transaction, type Account, type Budget, type Goal, type Holding } from '@prisma/client';
+import type { Transaction, Account, Budget, Goal, Holding } from '../prisma';
 
 type TxnWithCategory = Transaction & { category?: { name: string } | null };
 
