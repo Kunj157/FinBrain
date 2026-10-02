@@ -1,4 +1,5 @@
 import api from '@/lib/api';
+import { convertAmount, getUsdRates } from '@/lib/currency';
 import type { Transaction } from '@finbrain/shared';
 
 // The transactions endpoint caps `limit` at 1000. Analytics, insights and
@@ -28,7 +29,10 @@ interface TransactionPage {
  * @param query Extra query string to merge in, without a leading `?`
  *              (e.g. `'startDate=2026-01-01'`).
  */
-export async function fetchAllTransactions(query = ''): Promise<Transaction[]> {
+export async function fetchAllTransactions(
+  query = '',
+  displayCurrency?: string,
+): Promise<Transaction[]> {
   const suffix = query ? `&${query}` : '';
   const all: Transaction[] = [];
 
@@ -48,5 +52,23 @@ export async function fetchAllTransactions(query = ''): Promise<Transaction[]> {
     if (body.data.length < PAGE_SIZE) break;
   } while (page <= totalPages && page <= MAX_PAGES);
 
-  return all;
+  if (!displayCurrency) return all;
+
+  // Every caller of this function adds these amounts together. Rows are
+  // stored in the currency each transaction happened in, so summing them
+  // untouched treats ₹1 as $1 — which overstated net cash flow by more than
+  // half on a mixed-currency account. `originalAmount` and `currency` are
+  // preserved so a ledger view can still show what was actually spent.
+  const rates = await getUsdRates();
+
+  return all.map((t) =>
+    t.currency === displayCurrency
+      ? t
+      : {
+          ...t,
+          amount: convertAmount(t.amount, t.currency, displayCurrency, rates),
+          originalAmount: t.amount,
+          originalCurrency: t.currency,
+        },
+  );
 }

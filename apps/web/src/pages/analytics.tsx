@@ -88,7 +88,7 @@ export default function Analytics() {
     setLoading(true);
     try {
       const [txns, catRes, recurRes] = await Promise.all([
-        fetchAllTransactions(),
+        fetchAllTransactions('', user?.currency || 'USD'),
         api.get('/categories'),
         api.get('/recurring').catch(() => ({ data: { data: { patterns: [] } } })),
       ]);
@@ -102,7 +102,7 @@ export default function Analytics() {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [user?.currency]);
 
   useEffect(() => { fetchData(); }, [fetchData]);
 

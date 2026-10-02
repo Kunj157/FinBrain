@@ -55,7 +55,7 @@ export default function Dashboard() {
       // most recent hundred silently understated all of them for anyone with a
       // longer history, with nothing in the UI to say the view was truncated.
       const [txns, catRes, nwRes] = await Promise.all([
-        fetchAllTransactions(),
+        fetchAllTransactions('', user?.currency || 'USD'),
         api.get('/categories'),
         api.get('/accounts/net-worth').catch(() => null),
       ]);
@@ -79,7 +79,7 @@ export default function Dashboard() {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [user?.currency]);
 
   useEffect(() => {
     fetchData();

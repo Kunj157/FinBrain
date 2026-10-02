@@ -294,7 +294,7 @@ export default function TransactionsPage() {
                         </span>
                       </td>
                       <td className={`px-3 py-3 text-right font-medium tabular-nums ${txn.type === 'income' ? 'text-emerald-400' : ''}`}>
-                        {txn.type === 'income' ? '+' : '-'}{formatCurrency(txn.amount, currency)}
+                        {txn.type === 'income' ? '+' : '-'}{formatCurrency(txn.amount, txn.currency || currency)}
                       </td>
                       <td className="px-3 py-3 text-center">
                         <Badge variant={txn.status === 'cleared' ? 'default' : txn.status === 'pending' ? 'outline' : 'destructive'} className="text-[10px] px-1.5 py-0">
