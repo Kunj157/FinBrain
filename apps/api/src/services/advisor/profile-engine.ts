@@ -13,6 +13,7 @@ import {
   roundMoney,
 } from '../finance-math';
 import { computeConfidence, type ConfidenceFactors } from './confidence';
+import { normalizeAmounts, normalizeBalances, userConverter } from '../money';
 
 export interface AdvisorProfileData {
   dataStartDate: Date | null;
@@ -82,15 +83,18 @@ function buildSummary(profile: {
   savingsRateAvg: number;
   emergencyFundMonths: number;
   confidence: string;
-}, txnCount: number, dateRangeDays: number | null): string {
+}, txnCount: number, dateRangeDays: number | null, currency: string): string {
   const parts: string[] = [];
 
   if (profile.confidence === 'low') {
     return `Insufficient data (${txnCount} transactions${dateRangeDays ? `, ${dateRangeDays} days` : ''}). Import more transactions or connect bank accounts for personalized advice.`;
   }
 
-  parts.push(`Average monthly income: $${roundMoney(profile.monthlyIncomeAvg).toLocaleString()}`);
-  parts.push(`Average monthly expenses: $${roundMoney(profile.monthlyExpenseAvg).toLocaleString()}`);
+  // The currency is named rather than assumed to be dollars: these figures are
+  // now converted into the user's own currency, and the advisor quotes this
+  // line back verbatim.
+  parts.push(`Average monthly income: ${currency} ${roundMoney(profile.monthlyIncomeAvg).toLocaleString()}`);
+  parts.push(`Average monthly expenses: ${currency} ${roundMoney(profile.monthlyExpenseAvg).toLocaleString()}`);
   parts.push(`Savings rate: ${roundMoney(profile.savingsRateAvg)}%`);
   parts.push(`Emergency fund coverage: ${profile.emergencyFundMonths} months`);
 
@@ -105,7 +109,7 @@ export async function buildAdvisorProfile(userId: string): Promise<AdvisorProfil
   const sixMonthsAgo = new Date();
   sixMonthsAgo.setMonth(sixMonthsAgo.getMonth() - 6);
 
-  const [transactions, accounts, budgets, goals, holdings] = await Promise.all([
+  const [rawTransactions, rawAccounts, budgets, goals, holdings, money] = await Promise.all([
     prisma.transaction.findMany({
       where: { userId, deletedAt: null, date: { gte: sixMonthsAgo } },
       include: { category: { select: { name: true } } },
@@ -117,7 +121,15 @@ export async function buildAdvisorProfile(userId: string): Promise<AdvisorProfil
     prisma.holding.findMany({
       where: { portfolio: { userId } },
     }),
+    userConverter(userId),
   ]);
+
+  // Restated into one currency here, at the query boundary, rather than inside
+  // each calculation below. Every figure in this profile feeds the advisor
+  // prompt, the affordability checks and the confidence score, so a total that
+  // added INR to USD at face value was quoted back to the user as advice.
+  const transactions = normalizeAmounts(rawTransactions, money.currency, money.convert);
+  const accounts = normalizeBalances(rawAccounts, money.currency, money.convert);
 
   const txnCount = transactions.length;
   let dataStartDate: Date | null = null;
@@ -181,19 +193,25 @@ export async function buildAdvisorProfile(userId: string): Promise<AdvisorProfil
     { monthlyIncomeAvg, monthlyExpenseAvg, savingsRateAvg, emergencyFundMonths, confidence },
     txnCount,
     dateRangeDays,
+    money.currency,
   );
 
   const profileJson: Record<string, unknown> = {
+    // Named so nothing downstream has to assume dollars: every amount in this
+    // object is stated in this currency.
+    currency: money.currency,
     accounts: accounts.map((a) => ({ name: a.name, type: a.type, balance: a.balance, currency: a.currency })),
+    // Budgets and goals carry their own currency and go straight into the
+    // advisor prompt, so they are converted here too.
     budgets: budgets.map((b) => ({
       category: (b as Budget & { category?: { name: string } }).category?.name || 'Unknown',
-      amount: b.amount,
-      spent: b.spent,
+      amount: money.convert(b.amount, b.currency),
+      spent: money.convert(b.spent, b.currency),
     })),
     goals: goals.map((g) => ({
       name: g.name,
-      target: g.targetAmount,
-      current: g.currentAmount,
+      target: money.convert(g.targetAmount, g.currency),
+      current: money.convert(g.currentAmount, g.currency),
       deadline: g.deadline?.toISOString(),
     })),
     holdings: holdings.length,

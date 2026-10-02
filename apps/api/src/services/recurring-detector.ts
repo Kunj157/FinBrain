@@ -1,4 +1,5 @@
 import { prisma } from '../prisma';
+import { normalizeAmounts, userConverter } from './money';
 
 export interface RecurringPattern {
   id: string;
@@ -12,6 +13,8 @@ export interface RecurringPattern {
   transactionCount: number;
   totalSpent: number;
   monthlyCost: number;
+  /** The currency every amount on this pattern is stated in. */
+  currency: string;
   categoryId: string;
   categoryName: string;
   categoryColor: string;
@@ -130,16 +133,25 @@ export async function detectRecurring(userId: string): Promise<RecurringPattern[
   const threeMonthsAgo = new Date();
   threeMonthsAgo.setMonth(threeMonthsAgo.getMonth() - 6);
 
-  const transactions = await prisma.transaction.findMany({
-    where: {
-      userId,
-      type: 'expense',
-      deletedAt: null,
-      date: { gte: threeMonthsAgo },
-    },
-    orderBy: { date: 'asc' },
-    include: { category: { select: { id: true, name: true, color: true } } },
-  });
+  const [rawTransactions, money] = await Promise.all([
+    prisma.transaction.findMany({
+      where: {
+        userId,
+        type: 'expense',
+        deletedAt: null,
+        date: { gte: threeMonthsAgo },
+      },
+      orderBy: { date: 'asc' },
+      include: { category: { select: { id: true, name: true, color: true } } },
+    }),
+    userConverter(userId),
+  ]);
+
+  // Converted before anything looks at the numbers. Beyond monthlyCost being
+  // a sum across currencies, the grouping itself compares amounts to decide
+  // whether two charges are the same subscription -- on raw values a 10 EUR
+  // charge and a 10 INR one matched.
+  const transactions = normalizeAmounts(rawTransactions, money.currency, money.convert);
 
   const groups = groupTransactions(transactions);
   const patterns: RecurringPattern[] = [];
@@ -164,6 +176,7 @@ export async function detectRecurring(userId: string): Promise<RecurringPattern[
       transactionCount: txns.length,
       totalSpent: Math.round(txns.reduce((s, t) => s + t.amount, 0) * 100) / 100,
       monthlyCost: Math.round(mCost * 100) / 100,
+      currency: money.currency,
       categoryId: lastTxn.categoryId,
       categoryName: lastTxn.category?.name || 'Other',
       categoryColor: lastTxn.category?.color || '#6b7280',
