@@ -66,6 +66,40 @@ services:
     networks:
       - finbrain
 
+  # Scheduled dumps with retention. A maintained image rather than a cron
+  # container of our own: it already handles the schedule, the daily/weekly/
+  # monthly rotation and pruning, and pins the pg_dump client to the server
+  # major version -- all of which is where a hand-rolled backup script goes
+  # quietly wrong.
+  #
+  # Restores go through scripts/restore-db.sh; scripts/verify-backup.sh proves
+  # the round trip still works. See docs/OPERATIONS.md.
+  db-backup:
+    image: prodrigestivill/postgres-backup-local:16
+    restart: unless-stopped
+    environment:
+      POSTGRES_HOST: db
+      POSTGRES_DB: ${POSTGRES_DB:-finbrain}
+      POSTGRES_USER: ${POSTGRES_USER:-finbrain}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env}
+      # Custom format, so a single table can be restored without replaying the
+      # whole dump.
+      POSTGRES_EXTRA_OPTS: "--format=custom --no-owner --no-privileges"
+      SCHEDULE: ${BACKUP_SCHEDULE:-@daily}
+      BACKUP_KEEP_DAYS: ${BACKUP_KEEP_DAYS:-7}
+      BACKUP_KEEP_WEEKS: ${BACKUP_KEEP_WEEKS:-4}
+      BACKUP_KEEP_MONTHS: ${BACKUP_KEEP_MONTHS:-6}
+    volumes:
+      # Bound to the host, not a named volume: a backup that lives only inside
+      # Docker dies with the Docker host, which is one of the failures it is
+      # supposed to protect against. Copy this directory off the machine.
+      - ${BACKUP_DIR:-./backups}:/backups
+    depends_on:
+      db:
+        condition: service_healthy
+    networks:
+      - finbrain
+
   ml-service:
     build:
       context: .
