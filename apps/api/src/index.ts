@@ -14,6 +14,7 @@ import rateLimit, { ipKeyGenerator } from 'express-rate-limit';
 import { ensureDevUser, prisma } from './prisma';
 import { seedDefaultCategories } from './seed-defaults';
 import { requireAuth } from './middleware/auth';
+import { assertProductionConfig, devAuthBypassEnabled, isProduction } from './config';
 import { MAX_UPLOAD_MB } from './middleware/upload';
 import './types';
 
@@ -85,12 +86,17 @@ const aiLimiter = rateLimit({
 });
 
 app.use('/api/v1', (req, res, next) => {
-  if (req.path === '/health' || !process.env.CLERK_SECRET_KEY || process.env.DEV_MODE === 'true') {
-    if (!process.env.CLERK_SECRET_KEY || process.env.DEV_MODE === 'true') {
-      req.userId = 'dev-user-001';
-    }
+  if (req.path === '/health' || req.path === '/ready') return next();
+
+  // devAuthBypassEnabled can never be true under NODE_ENV=production. The
+  // previous form switched itself on whenever CLERK_SECRET_KEY was absent, so
+  // a deploy that forgot the variable authenticated every request as the dev
+  // user and served that account's data to anyone.
+  if (devAuthBypassEnabled) {
+    req.userId = 'dev-user-001';
     return next();
   }
+
   return requireAuth(req, res, next);
 });
 
@@ -189,9 +195,21 @@ app.use((err: Error, _req: express.Request, res: express.Response, _next: expres
 });
 
 async function start() {
-  await ensureDevUser();
-  await seedDefaultCategories();
-  console.log('Database initialized with dev user and default categories');
+  // Before anything else: a misconfigured production deploy must not boot.
+  assertProductionConfig();
+
+  if (devAuthBypassEnabled) {
+    console.warn(
+      '[auth] Development bypass is ACTIVE — every request is treated as dev-user-001. ' +
+        'This cannot be enabled when NODE_ENV=production.',
+    );
+  }
+
+  // The seeded dev user and default categories exist for local work only.
+  if (!isProduction) {
+    await ensureDevUser();
+    await seedDefaultCategories();
+  }
 
   app.listen(PORT, () => {
     console.log(`FinBrain API running on port ${PORT}`);
