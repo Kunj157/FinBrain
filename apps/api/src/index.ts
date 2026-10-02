@@ -15,6 +15,7 @@ import { ensureDevUser, prisma } from './prisma';
 import { seedDefaultCategories } from './seed-defaults';
 import { requireAuth } from './middleware/auth';
 import { assertProductionConfig, devAuthBypassEnabled, isProduction } from './config';
+import { requestContext, log, reportError } from './middleware/observability';
 import { MAX_UPLOAD_MB } from './middleware/upload';
 import './types';
 
@@ -48,10 +49,28 @@ const PORT = process.env.PORT || 4000;
 app.use(helmet());
 app.use(cors({ origin: process.env.FRONTEND_URL || 'http://localhost:5173', credentials: true }));
 app.use(express.json());
-app.use(morgan('dev'));
+// Human-readable locally; structured JSON with a request id in production,
+// which is what an aggregator can actually search.
+if (!isProduction) app.use(morgan('dev'));
+app.use(requestContext);
 
+// Liveness: is the process up? Deliberately cheap and dependency-free, so a
+// slow database cannot cause an orchestrator to kill a healthy process.
 app.get('/api/v1/health', (_req, res) => {
   res.json({ status: 'ok', service: 'finbrain-api', timestamp: new Date().toISOString() });
+});
+
+// Readiness: should this instance receive traffic? This endpoint used to be
+// the same static object, so an instance whose database was unreachable still
+// reported healthy and the load balancer kept sending it requests.
+app.get('/api/v1/ready', async (_req, res) => {
+  try {
+    await prisma.$queryRaw`SELECT 1`;
+    res.json({ status: 'ready', service: 'finbrain-api', database: 'up' });
+  } catch (error) {
+    reportError(error as Error, { probe: 'ready' });
+    res.status(503).json({ status: 'not-ready', service: 'finbrain-api', database: 'down' });
+  }
 });
 
 // Rate limits are keyed by authenticated user where possible; falling back to
@@ -190,8 +209,13 @@ app.use((err: Error, _req: express.Request, res: express.Response, _next: expres
     }
   }
 
-  console.error('Unhandled route error:', err);
-  res.status(500).json({ success: false, error: 'Internal server error' });
+  reportError(err, { requestId: _req.requestId, path: _req.originalUrl.split('?')[0], method: _req.method });
+  res.status(500).json({
+    success: false,
+    error: 'Internal server error',
+    // Returned so a user can quote it and the exact request can be found.
+    requestId: _req.requestId,
+  });
 });
 
 async function start() {
@@ -212,17 +236,17 @@ async function start() {
   }
 
   app.listen(PORT, () => {
-    console.log(`FinBrain API running on port ${PORT}`);
+    log('info', 'API listening', { port: PORT, environment: process.env.NODE_ENV || 'development' });
   });
 }
 
 start().catch((err) => {
-  console.error('Failed to start server:', err);
+  reportError(err as Error, { phase: 'startup' });
   process.exit(1);
 });
 
 process.on('unhandledRejection', (err) => {
-  console.error('Unhandled rejection:', err);
+  reportError(err instanceof Error ? err : new Error(String(err)), { kind: 'unhandledRejection' });
 });
 
 export default app;
