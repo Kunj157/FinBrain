@@ -250,8 +250,21 @@ test.describe('multi-currency totals', () => {
     const currencies = new Set(rows.map((r) => r.currency));
     test.skip(currencies.size < 2, 'needs a mixed-currency dataset to be meaningful');
 
-    const naive = rows.reduce(
-      (sum, r) => sum + (r.type === 'income' ? r.amount : -r.amount),
+    // Units per 1 USD, from the API's own table, so the expectation tracks
+    // whatever rates the app is actually using rather than pinning a number
+    // that goes stale the next time they move.
+    const ratesRes = await request.get('http://localhost:4000/api/v1/currency/rates');
+    const rates = (await ratesRes.json()).data.rates as Record<string, number>;
+
+    const signed = (r: { amount: number; type: string }) =>
+      r.type === 'income' ? r.amount : -r.amount;
+
+    const naive = rows.reduce((sum, r) => sum + signed(r), 0);
+
+    // The dashboard presents totals in the user's own currency, which the
+    // seeded account keeps at USD.
+    const expected = rows.reduce(
+      (sum, r) => sum + (rates[r.currency] ? signed(r) / rates[r.currency] : signed(r)),
       0,
     );
 
@@ -259,12 +272,22 @@ test.describe('multi-currency totals', () => {
     const card = page.getByText('NET CASH FLOW').locator('..');
     await expect(card).toBeVisible();
 
-    const shown = parseMoney((await card.textContent()) ?? '0');
+    const cardText = (await card.textContent()) ?? '';
+    // Guard the assumption above rather than letting a different display
+    // currency quietly turn this into a meaningless comparison.
+    expect(cardText, 'expected the dashboard to be presenting USD').toContain('$');
 
-    // The figure must differ from the unconverted sum, and by a wide margin —
-    // an exact match would mean no conversion happened at all.
+    const shown = parseMoney(cardText);
+
+    // Conversion happened at all: an exact match with the raw sum would mean
+    // currencies were still being added at face value.
     expect(Math.abs(shown - naive)).toBeGreaterThan(1);
-    expect(shown).toBeLessThan(naive);
+
+    // And it produced the right figure. This replaces an assertion that the
+    // converted total is merely *lower* than the raw sum, which only held by
+    // accident of the seed: against USD an INR row scales down by ~96 but a
+    // GBP row scales up by ~1.3, so the direction depends on the mix.
+    expect(Math.abs(shown - expected)).toBeLessThan(Math.max(1, Math.abs(expected) * 0.01));
   });
 
   test('the ledger shows each row in the currency it was recorded in', async ({ page, request }) => {
