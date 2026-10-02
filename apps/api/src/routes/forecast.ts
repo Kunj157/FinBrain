@@ -1,6 +1,7 @@
 import { Router, type Request, type Response } from 'express';
 import { z } from 'zod';
 import { prisma } from '../prisma';
+import { normalizeAmounts, userConverter } from '../services/money';
 
 const router = Router();
 
@@ -21,10 +22,18 @@ router.post('/', async (req: Request, res: Response) => {
   const sixMonthsAgo = new Date();
   sixMonthsAgo.setMonth(sixMonthsAgo.getMonth() - 12);
 
-  const transactions = await prisma.transaction.findMany({
-    where: { userId: req.userId, deletedAt: null, date: { gte: sixMonthsAgo } },
-    orderBy: { date: 'asc' },
-  });
+  // Converted before the series is built: the projection is only as sound as
+  // the history it extrapolates, and that history used to add currencies at
+  // face value. The ML service receives the normalised amounts too, so it is
+  // not fitting a trend to an arithmetic error.
+  const [rawTransactions, money] = await Promise.all([
+    prisma.transaction.findMany({
+      where: { userId: req.userId, deletedAt: null, date: { gte: sixMonthsAgo } },
+      orderBy: { date: 'asc' },
+    }),
+    userConverter(req.userId),
+  ]);
+  const transactions = normalizeAmounts(rawTransactions, money.currency, money.convert);
 
   if (transactions.length < 3) {
     return res.status(400).json({
@@ -69,13 +78,17 @@ router.get('/monthly-series', async (req: Request, res: Response) => {
   const twelveMonthsAgo = new Date();
   twelveMonthsAgo.setMonth(twelveMonthsAgo.getMonth() - 12);
 
-  const transactions = await prisma.transaction.findMany({
-    where: { userId: req.userId, deletedAt: null, date: { gte: twelveMonthsAgo } },
-    orderBy: { date: 'asc' },
-  });
+  const [rawTransactions, money] = await Promise.all([
+    prisma.transaction.findMany({
+      where: { userId: req.userId, deletedAt: null, date: { gte: twelveMonthsAgo } },
+      orderBy: { date: 'asc' },
+    }),
+    userConverter(req.userId),
+  ]);
+  const transactions = normalizeAmounts(rawTransactions, money.currency, money.convert);
 
   const series = aggregateMonthly(transactions);
-  res.json({ success: true, data: series });
+  res.json({ success: true, data: { ...series, currency: money.currency } });
 });
 
 function aggregateMonthly(transactions: Array<{ date: Date; amount: number; type: string }>) {

@@ -59,10 +59,11 @@ export function PlaidLinkButton({ userId, onSuccess }: PlaidLinkProps) {
       setLoading(true);
       setStatus('syncing');
       try {
+        // The access token stays on the server; only the item id comes back.
         const { data: exchange } = await api.post('/plaid/exchange-token', { publicToken });
-        const accessToken = exchange.data.accessToken;
+        const itemId = exchange.data.itemId;
 
-        const { data: sync } = await api.post('/plaid/sync-transactions', { accessToken });
+        const { data: sync } = await api.post('/plaid/sync-transactions', { itemId });
         const added = sync.data.added;
 
         if (added.length > 0) {
@@ -91,7 +92,7 @@ export function PlaidLinkButton({ userId, onSuccess }: PlaidLinkProps) {
           await api.post('/transactions/bulk', { items });
         }
 
-        await api.post('/plaid/sync-accounts', { accessToken }).catch(() => {});
+        await api.post('/plaid/sync-accounts', { itemId }).catch(() => {});
 
         setStatus('done');
         setSyncError(null);

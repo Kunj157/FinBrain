@@ -3,6 +3,7 @@ import { z } from 'zod';
 import type { Budget } from '../prisma';
 import { prisma, aggregateToNumber } from '../prisma';
 import { suggestBudgets, autoSuggestBudgets, detectFlexCategories } from '../services/budget-suggest';
+import { converterTo } from '../services/money';
 
 const router = Router();
 
@@ -27,21 +28,44 @@ function computeEndDate(startDate: string, period: 'weekly' | 'monthly' | 'yearl
   return new Date(start.getFullYear() + 1, start.getMonth(), start.getDate());
 }
 
-async function computeSpent(userId: string, categoryId: string, period: 'weekly' | 'monthly' | 'yearly', startDate: string): Promise<number> {
+/**
+ * Spend against a budget, expressed in the budget's own currency.
+ *
+ * This was a single SUM(amount) with no currency term, so a user with
+ * mixed-currency spending had every utilisation figure wrong — an INR
+ * purchase counted against a dollar budget at face value. Grouping by
+ * currency first and converting each group keeps it to one query.
+ */
+async function computeSpent(
+  userId: string,
+  categoryId: string,
+  period: 'weekly' | 'monthly' | 'yearly',
+  startDate: string,
+  budgetCurrency: string,
+): Promise<number> {
   const start = new Date(startDate);
   const end = computeEndDate(startDate, period);
 
-  const result = await prisma.transaction.aggregate({
+  const groups = await prisma.transaction.groupBy({
+    by: ['currency'],
     _sum: { amount: true },
     where: {
       userId,
       type: 'expense',
       categoryId,
+      // Deletions are soft, and this was the one aggregate that forgot: a
+      // deleted transaction kept counting against the budget forever.
+      deletedAt: null,
       date: { gte: start, lt: end },
     },
   });
 
-  return aggregateToNumber(result._sum.amount);
+  const convert = await converterTo(budgetCurrency);
+
+  return groups.reduce(
+    (total, group) => total + convert(aggregateToNumber(group._sum.amount), group.currency),
+    0,
+  );
 }
 
 router.get('/', async (req: Request, res: Response) => {
@@ -63,7 +87,7 @@ router.get('/', async (req: Request, res: Response) => {
 
   const enriched = await Promise.all(
     budgets.map(async (b: Budget) => {
-      const spent = await computeSpent(req.userId, b.categoryId, b.period, b.startDate.toISOString());
+      const spent = await computeSpent(req.userId, b.categoryId, b.period, b.startDate.toISOString(), b.currency);
       return { ...b, spent, remaining: Math.max(b.amount - spent, 0) };
     }),
   );
@@ -77,7 +101,7 @@ router.get('/:id', async (req: Request, res: Response) => {
   });
   if (!budget) return res.status(404).json({ success: false, error: 'Budget not found' });
 
-  const spent = await computeSpent(req.userId, budget.categoryId, budget.period, budget.startDate.toISOString());
+  const spent = await computeSpent(req.userId, budget.categoryId, budget.period, budget.startDate.toISOString(), budget.currency);
   res.json({ success: true, data: { ...budget, spent, remaining: Math.max(budget.amount - spent, 0) } });
 });
 
@@ -145,7 +169,7 @@ router.put('/:id', async (req: Request, res: Response) => {
     data: updateData,
   });
 
-  const spent = await computeSpent(req.userId, budget.categoryId, budget.period, budget.startDate.toISOString());
+  const spent = await computeSpent(req.userId, budget.categoryId, budget.period, budget.startDate.toISOString(), budget.currency);
   res.json({ success: true, data: { ...budget, spent, remaining: Math.max(budget.amount - spent, 0) } });
 });
 

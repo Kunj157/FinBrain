@@ -199,6 +199,14 @@ Required services:
 
 ---
 
+## Running in Production
+
+See [OPERATIONS.md](./docs/OPERATIONS.md) for health and readiness probes,
+structured logging, required configuration, and the backup and restore
+procedure (including how to verify a restore actually works).
+
+---
+
 ## Branch Strategy
 
 | Branch | Purpose |

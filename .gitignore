@@ -52,3 +52,6 @@ blob-report/
 
 # Playwright MCP session artifacts
 .playwright-mcp/
+
+# Database dumps (never commit user financial data)
+backups/

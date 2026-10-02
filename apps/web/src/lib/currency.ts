@@ -24,11 +24,17 @@ export type UsdRateTable = Record<string, number>;
  */
 let ratesPromise: Promise<UsdRateTable> | null = null;
 
-// Used only if the rates endpoint cannot be reached. Converting with stale
-// rates is still far closer to the truth than adding currencies together, but
-// callers that care can detect the failure through `ratesAreLive`.
+// Used only if the rates endpoint cannot be reached. Converting with rates of
+// a known age is still far closer to the truth than adding currencies
+// together, but callers that care can detect the failure through
+// `ratesAreLive`.
+//
+// Kept in step with the server's pinned table in
+// apps/api/src/services/exchange-rates.ts; captured 2026-10-01. The previous
+// values here were years out of date — 83.5 INR to the dollar against an
+// actual rate near 96.
 const FALLBACK_USD_RATES: UsdRateTable = {
-  USD: 1, EUR: 0.92, GBP: 0.79, INR: 83.5, JPY: 157.3, CAD: 1.37, AUD: 1.52,
+  USD: 1, EUR: 0.88511, GBP: 0.75565, INR: 96.33, JPY: 157.98, CAD: 1.4246, AUD: 1.4388,
 };
 
 let live = false;
