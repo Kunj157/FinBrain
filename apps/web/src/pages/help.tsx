@@ -90,7 +90,7 @@ export default function HelpPage() {
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <div className="lg:col-span-2 space-y-6">
-          <Card className="stat-card">
+          <Card>
             <CardHeader className="pb-3">
               <CardTitle className="text-sm font-medium flex items-center gap-2">
                 <Plus className="h-4 w-4 text-emerald-400" />
@@ -116,7 +116,7 @@ export default function HelpPage() {
             </CardContent>
           </Card>
 
-          <Card className="stat-card">
+          <Card>
             <CardHeader className="pb-3">
               <CardTitle className="text-sm font-medium flex items-center gap-2">
                 <HelpCircle className="h-4 w-4 text-emerald-400" />
@@ -153,7 +153,7 @@ export default function HelpPage() {
         </div>
 
         <div className="space-y-4">
-          <Card className="stat-card">
+          <Card>
             <CardHeader className="pb-3">
               <CardTitle className="text-sm font-medium">Need More Help?</CardTitle>
             </CardHeader>

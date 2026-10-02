@@ -1,30 +1,51 @@
 import type { Request, Response, NextFunction } from 'express';
+import { createClerkClient, verifyToken } from '@clerk/backend';
+import { prisma } from '../prisma';
+import { seedDefaultCategories } from '../seed-defaults';
+
+const clerkClient = process.env.CLERK_SECRET_KEY
+  ? createClerkClient({ secretKey: process.env.CLERK_SECRET_KEY })
+  : null;
 
 export async function requireAuth(req: Request, res: Response, next: NextFunction) {
   const authHeader = req.headers.authorization;
+
   if (!authHeader?.startsWith('Bearer ')) {
-    return res.status(401).json({ success: false, error: 'Unauthorized' });
+    const ip = req.ip || req.socket?.remoteAddress || 'unknown';
+    console.warn(`[auth] Missing token from ${ip}`);
+    return res.status(401).json({ success: false, error: 'Authentication required' });
+  }
+
+  if (!process.env.CLERK_SECRET_KEY || !clerkClient) {
+    return res.status(500).json({ success: false, error: 'Authentication not configured' });
   }
 
   try {
     const token = authHeader.split(' ')[1];
-    const response = await fetch(`https://api.clerk.com/v1/tokens/verify`, {
-      method: 'POST',
-      headers: {
-        Authorization: `Bearer ${process.env.CLERK_SECRET_KEY}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({ token }),
+    const session = await verifyToken(token, {
+      secretKey: process.env.CLERK_SECRET_KEY,
     });
 
-    if (!response.ok) {
-      return res.status(401).json({ success: false, error: 'Invalid token' });
+    const clerkUserId: string = session.sub;
+
+    let user = await prisma.user.findUnique({ where: { clerkId: clerkUserId } });
+
+    if (!user) {
+      const clerkUser = await clerkClient.users.getUser(clerkUserId);
+      user = await prisma.user.create({
+        data: {
+          clerkId: clerkUserId,
+          email: clerkUser.emailAddresses[0]?.emailAddress || 'unknown',
+          name: clerkUser.fullName || clerkUser.firstName || 'User',
+        },
+      });
+      await seedDefaultCategories(user.id);
     }
 
-    const session = await response.json() as { userId: string };
-    (req as any).userId = session.userId;
+    req.userId = user.id;
     next();
-  } catch {
-    return res.status(401).json({ success: false, error: 'Unauthorized' });
+  } catch (error) {
+    console.error('[auth] JWT verification failed:', error instanceof Error ? error.message : error);
+    return res.status(401).json({ success: false, error: 'Invalid or expired session' });
   }
 }

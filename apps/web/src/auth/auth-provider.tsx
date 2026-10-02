@@ -1,69 +1,47 @@
-import { type ReactNode, useState, useEffect, useCallback } from 'react';
-import { AuthContext, type AuthUser } from '@/hooks/use-auth';
-import type { Currency } from '@finbrain/shared';
-
-const DEV_USER: AuthUser = {
-  id: 'dev-user-001',
-  email: 'dev@finbrain.ai',
-  name: 'Kunj Patel',
-  avatarUrl: undefined,
-  currency: 'USD',
-};
+import { type ReactNode, useState, useEffect } from 'react';
+import { DevAuthProvider } from './auth-provider-dev';
 
 interface AuthProviderProps {
   children: ReactNode;
 }
 
 export function AuthProvider({ children }: AuthProviderProps) {
-  const [user, setUser] = useState<AuthUser | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
+  const hasClerkKey = !!import.meta.env.VITE_CLERK_PUBLISHABLE_KEY;
 
-  const isDevMode = import.meta.env.VITE_DEV_MODE === 'true';
+  if (!hasClerkKey) {
+    return <DevAuthProvider>{children}</DevAuthProvider>;
+  }
+
+  return <ClerkLazyProvider>{children}</ClerkLazyProvider>;
+}
+
+function ClerkLazyProvider({ children }: AuthProviderProps) {
+  const [state, setState] = useState<'loading' | 'error' | 'loaded'>('loading');
+  const [Provider, setProvider] = useState<typeof import('./auth-provider-clerk').ClerkAuthProvider | null>(null);
 
   useEffect(() => {
-    if (isDevMode) {
-      const storedCurrency = localStorage.getItem('finbrain-currency') as Currency | null;
-      setUser({ ...DEV_USER, currency: storedCurrency || 'USD' });
-      setIsLoading(false);
-      return;
-    }
-
-    const stored = localStorage.getItem('finbrain-user');
-    if (stored) {
-      setUser(JSON.parse(stored));
-    }
-    setIsLoading(false);
-  }, [isDevMode]);
-
-  const signIn = useCallback((email: string, name: string) => {
-    const newUser: AuthUser = { id: crypto.randomUUID(), email, name, currency: 'USD' };
-    localStorage.setItem('finbrain-user', JSON.stringify(newUser));
-    setUser(newUser);
+    import('./auth-provider-clerk')
+      .then((m) => {
+        setProvider(() => m.ClerkAuthProvider);
+        setState('loaded');
+      })
+      .catch(() => setState('error'));
   }, []);
 
-  const signOut = useCallback(() => {
-    localStorage.removeItem('finbrain-user');
-    localStorage.removeItem('finbrain-currency');
-    setUser(null);
-  }, []);
+  if (state === 'error') {
+    return <DevAuthProvider>{children}</DevAuthProvider>;
+  }
 
-  const updateCurrency = useCallback((currency: Currency) => {
-    localStorage.setItem('finbrain-currency', currency);
-    setUser((prev) => (prev ? { ...prev, currency } : null));
-  }, []);
+  if (!Provider) {
+    return (
+      <div className="flex h-screen items-center justify-center bg-background">
+        <div className="text-center space-y-4">
+          <div className="h-8 w-8 animate-spin rounded-full border-2 border-emerald-500/30 border-t-emerald-400 mx-auto" />
+          <p className="text-sm text-muted-foreground">Loading...</p>
+        </div>
+      </div>
+    );
+  }
 
-  return (
-    <AuthContext.Provider
-      value={{
-        user,
-        isLoading,
-        isSignedIn: !!user,
-        signIn,
-        signOut,
-        updateCurrency,
-      }}
-    >
-      {children}
-    </AuthContext.Provider>
-  );
+  return <Provider>{children}</Provider>;
 }

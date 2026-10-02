@@ -1,13 +1,61 @@
 import { Router, type Request, type Response } from 'express';
-import multer from 'multer';
 import { parse } from 'csv-parse/sync';
 import fs from 'fs';
 import pdfParse from 'pdf-parse';
-import { suggestCategory } from '../services/auto-categorize';
+import { prisma } from '../prisma';
+import { suggestCategoryWithML } from '../services/auto-categorize';
 import { parsePdfText } from '../services/pdf-parser';
+import { uploadStatement, discardUpload } from '../middleware/upload';
 
-const upload = multer({ dest: 'uploads/' });
 const router = Router();
+
+/**
+ * Read an amount out of a CSV cell.
+ *
+ * `parseFloat` alone returned NaN for anything a real bank exports — a
+ * currency symbol, thousands separators, or accounting parentheses — and the
+ * `|| 0` fallback turned each of those into a silent zero-value transaction.
+ *
+ * Both decimal conventions appear in exports, so the separators are
+ * disambiguated by position rather than assumed: whichever of `.` or `,`
+ * appears last is the decimal point.
+ */
+export function parseAmount(raw: string | undefined | null): number {
+  if (raw == null) return 0;
+
+  let text = String(raw).trim();
+  if (!text) return 0;
+
+  // Accounting notation: (45.00) means -45.00.
+  const parenthesised = /^\((.*)\)$/.exec(text);
+  if (parenthesised) text = `-${parenthesised[1]}`;
+
+  const negative = text.startsWith('-') || text.endsWith('-');
+  text = text.replace(/[^0-9.,]/g, '');
+  if (!text) return 0;
+
+  const lastDot = text.lastIndexOf('.');
+  const lastComma = text.lastIndexOf(',');
+
+  if (lastDot >= 0 && lastComma >= 0) {
+    // Whichever separator comes last is the decimal point; the other groups
+    // thousands. Handles both 1,234.56 and 1.234,56.
+    const decimalSep = lastDot > lastComma ? '.' : ',';
+    const groupSep = decimalSep === '.' ? ',' : '.';
+    text = text.split(groupSep).join('');
+    if (decimalSep === ',') text = text.replace(',', '.');
+  } else if (lastComma >= 0) {
+    // A lone comma is a decimal point only when it is not grouping digits:
+    // "1,50" is one and a half, "1,500" is fifteen hundred.
+    const decimals = text.length - lastComma - 1;
+    text = decimals === 3 ? text.split(',').join('') : text.replace(',', '.');
+  }
+
+  const value = Number.parseFloat(text);
+  if (!Number.isFinite(value)) return 0;
+
+  return negative ? -Math.abs(value) : value;
+}
 
 function isPdf(file: Express.Multer.File): boolean {
   return file.mimetype === 'application/pdf' || file.originalname.toLowerCase().endsWith('.pdf');
@@ -22,17 +70,18 @@ async function parseCsv(filePath: string): Promise<Record<string, string>[]> {
   }) as Record<string, string>[];
 }
 
-async function parsePdfFile(filePath: string): Promise<Record<string, string>[]> {
+async function parsePdfFile(filePath: string): Promise<{ records: Record<string, string>[]; openingBalance: number | null }> {
   const pdfBuffer = fs.readFileSync(filePath);
   const pdfData = await pdfParse(pdfBuffer);
-  const transactions = parsePdfText(pdfData.text);
-  return transactions.map((tx) => ({
+  const { transactions, openingBalance } = parsePdfText(pdfData.text);
+  const records = transactions.map((tx) => ({
     date: tx.date,
     amount: (tx.type === 'expense' ? -tx.amount : tx.amount).toString(),
     description: tx.description,
     merchant: tx.merchant,
     type: tx.type,
   }));
+  return { records, openingBalance };
 }
 
 function normalizeColumnNames(record: Record<string, string>): Record<string, string> {
@@ -48,107 +97,138 @@ function normalizeColumnNames(record: Record<string, string>): Record<string, st
   return mapped;
 }
 
-function enrichTransaction(record: Record<string, string>) {
+async function enrichTransaction(userId: string, record: Record<string, string>) {
   const mapped = normalizeColumnNames(record);
   const merchant = mapped.merchant || mapped.vendor || mapped.payee || '';
   const description = mapped.description || mapped.name || mapped.memo || '';
-  const detectedCategory = suggestCategory(merchant, description);
-  const amount = parseFloat(mapped.amount) || 0;
+  const detectedCategory = await suggestCategoryWithML(userId, merchant, description);
+  const signedAmount = parseAmount(mapped.amount);
 
   return {
     date: mapped.date || '',
-    amount,
+    // Direction travels in `type`, and the magnitude is always positive —
+    // the same contract POST /transactions and /transactions/bulk enforce.
+    // Emitting a signed amount here meant every statement containing an
+    // expense was rejected wholesale, writing nothing.
+    amount: Math.abs(signedAmount),
     description,
     merchant,
     category: mapped.category || detectedCategory?.categoryName || 'Uncategorized',
     categoryId: detectedCategory?.categoryId || null,
-    type: amount >= 0 ? 'income' : 'expense',
+    type: signedAmount >= 0 ? 'income' : 'expense',
   };
 }
 
-router.post('/parse', upload.single('file'), async (req: Request, res: Response) => {
+async function resolveCategoryId(categoryName: string | null, catByName: Map<string, string>): Promise<string | null> {
+  if (!categoryName) return null;
+  return catByName.get(categoryName) || catByName.get('Other') || null;
+}
+
+router.post('/parse', uploadStatement.single('file'), async (req: Request, res: Response) => {
   try {
     const file = req.file as Express.Multer.File | undefined;
     if (!file) {
       return res.status(400).json({ success: false, error: 'No file uploaded' });
     }
 
-    let transactions: ReturnType<typeof enrichTransaction>[];
+    const categories = await prisma.category.findMany({ where: { userId: req.userId } });
+    const catByName = new Map(categories.map((c) => [c.name, c.id]));
+
+    let transactions: Awaited<ReturnType<typeof enrichTransaction>>[];
     let format: 'csv' | 'pdf';
 
     if (isPdf(file)) {
-      const records = await parsePdfFile(file.path);
-      transactions = records.map(enrichTransaction);
+      const { records, openingBalance } = await parsePdfFile(file.path);
+      transactions = await Promise.all(records.map((r) => enrichTransaction(req.userId, r)));
       format = 'pdf';
+      (req as any)._openingBalance = openingBalance;
     } else {
       const records = await parseCsv(file.path);
-      transactions = records.map(enrichTransaction);
+      transactions = await Promise.all(records.map((r) => enrichTransaction(req.userId, r)));
       format = 'csv';
     }
 
-    fs.unlinkSync(file.path);
+    const resolved = await Promise.all(transactions.map(async (tx) => ({
+      ...tx,
+      categoryId: await resolveCategoryId(tx.category, catByName),
+    })));
+
+    const openingBalance = (req as any)._openingBalance as number | null;
 
     res.json({
       success: true,
       data: {
         format,
-        total: transactions.length,
-        preview: transactions.slice(0, 10),
+        total: resolved.length,
+        preview: resolved,
+        openingBalance,
       },
     });
   } catch (error) {
     console.error('Import error:', error);
     res.status(500).json({ success: false, error: 'Failed to parse file' });
+  } finally {
+    // Cleanup used to sit on the success path only, so every parse failure
+    // stranded the upload in uploads/ permanently.
+    discardUpload(req.file as Express.Multer.File | undefined);
   }
 });
 
 // keep backward compat
-router.post('/csv', upload.single('file'), async (req: Request, res: Response) => {
+router.post('/csv', uploadStatement.single('file'), async (req: Request, res: Response) => {
   try {
     const file = req.file as Express.Multer.File | undefined;
     if (!file) {
       return res.status(400).json({ success: false, error: 'No file uploaded' });
     }
 
-    const records = await parseCsv(file.path);
-    const transactions = records.map(enrichTransaction);
+    const categories = await prisma.category.findMany({ where: { userId: req.userId } });
+    const catByName = new Map(categories.map((c) => [c.name, c.id]));
 
-    fs.unlinkSync(file.path);
+    const records = await parseCsv(file.path);
+    const transactions = await Promise.all(records.map((r) => enrichTransaction(req.userId, r)));
+
+    const resolved = await Promise.all(transactions.map(async (tx) => ({
+      ...tx,
+      categoryId: await resolveCategoryId(tx.category, catByName),
+    })));
 
     res.json({
       success: true,
       data: {
-        total: transactions.length,
-        preview: transactions.slice(0, 10),
+        total: resolved.length,
+        preview: resolved,
         columns: records.length > 0 ? Object.keys(records[0]) : [],
       },
     });
   } catch (error) {
     console.error('CSV import error:', error);
     res.status(500).json({ success: false, error: 'Failed to parse CSV' });
+  } finally {
+    discardUpload(req.file as Express.Multer.File | undefined);
   }
 });
 
-router.post('/suggest-category', (req: Request, res: Response) => {
+router.post('/suggest-category', async (req: Request, res: Response) => {
   const { merchant, description } = req.body;
   if (!merchant && !description) {
     return res.status(400).json({ success: false, error: 'Merchant or description required' });
   }
 
-  const result = suggestCategory(merchant || '', description || '');
+  const result = await suggestCategoryWithML(req.userId, merchant || '', description || '');
   res.json({ success: true, data: result });
 });
 
-router.post('/suggest-batch', (req: Request, res: Response) => {
+router.post('/suggest-batch', async (req: Request, res: Response) => {
   const { transactions } = req.body as { transactions: { merchant: string; description: string }[] };
   if (!Array.isArray(transactions)) {
     return res.status(400).json({ success: false, error: 'Transactions array required' });
   }
 
-  const suggestions = transactions.map((tx) => ({
+  const suggestions = await Promise.all(transactions.map(async (tx) => ({
     ...tx,
-    suggestion: suggestCategory(tx.merchant || '', tx.description || ''),
-  }));
+    suggestion: await suggestCategoryWithML(req.userId, tx.merchant || '', tx.description || ''),
+  })));
 
   res.json({ success: true, data: suggestions });
 });

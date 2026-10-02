@@ -1,5 +1,5 @@
 import { useState, useMemo, useCallback, useEffect } from 'react';
-import { Plus, Search, ArrowUpDown, Pencil, Trash2, ArrowRightLeft, X, Check, Loader2, ChevronLeft, ChevronRight, Database, Trash } from 'lucide-react';
+import { Plus, Search, ArrowUpDown, Pencil, Trash2, ArrowRightLeft, X, Check, Loader2, ChevronLeft, ChevronRight, Trash } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -25,6 +25,12 @@ interface Filters {
   search: string;
   sort: string;
   order: 'asc' | 'desc';
+  householdMemberId: string;
+}
+
+interface HouseholdMember {
+  userId: string;
+  user: { id: string; name: string; email: string; avatarUrl: string | null };
 }
 
 type FormMode = 'create' | 'edit';
@@ -33,10 +39,10 @@ export default function TransactionsPage() {
   const { user } = useAuth();
   const currency = (user?.currency || 'USD') as SharedCurrency;
 
-  const [filters, setFilters] = useState<Filters>({ type: '', categoryId: '', paymentMethod: '', search: '', sort: 'date', order: 'desc' });
+  const [filters, setFilters] = useState<Filters>({ type: '', categoryId: '', paymentMethod: '', search: '', sort: 'date', order: 'desc', householdMemberId: '' });
+  const [householdMembers, setHouseholdMembers] = useState<HouseholdMember[]>([]);
   const [page, setPage] = useState(1);
   const [showForm, setShowForm] = useState(false);
-  const [seeding, setSeeding] = useState(false);
   const [clearing, setClearing] = useState(false);
   const [formMode, setFormMode] = useState<FormMode>('create');
   const [editingTxn, setEditingTxn] = useState<Transaction | null>(null);
@@ -59,6 +65,7 @@ export default function TransactionsPage() {
       if (filters.categoryId) params.set('categoryId', filters.categoryId);
       if (filters.paymentMethod) params.set('paymentMethod', filters.paymentMethod);
       if (filters.search) params.set('search', filters.search);
+    if (filters.householdMemberId) params.set('householdMemberId', filters.householdMemberId);
 
       const [txnRes, catRes] = await Promise.all([
         api.get(`/transactions?${params}`),
@@ -78,6 +85,15 @@ export default function TransactionsPage() {
   useEffect(() => {
     fetchData();
   }, [fetchData]);
+
+  // Fetch household members for filtering
+  useEffect(() => {
+    api.get('/households').then((res) => {
+      if (res.data.data?.members) {
+        setHouseholdMembers(res.data.data.members);
+      }
+    }).catch(() => {});
+  }, []);
 
   const categoryMap = useMemo(() => {
     const map: Record<string, string> = {};
@@ -124,20 +140,10 @@ export default function TransactionsPage() {
     setShowForm(true);
   };
 
-  const handleSeed = useCallback(async () => {
-    setSeeding(true);
-    try {
-      await api.post('/seed', null, { params: { count: 250 } });
-      await fetchData();
-    } finally {
-      setSeeding(false);
-    }
-  }, [fetchData]);
-
   const handleClear = useCallback(async () => {
     setClearing(true);
     try {
-      await api.delete('/seed');
+      await api.delete('/seed/transactions');
       setSelected(new Set());
       await fetchData();
     } finally {
@@ -157,10 +163,6 @@ export default function TransactionsPage() {
             {clearing ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Trash className="h-3.5 w-3.5" />}
             Clear All
           </Button>
-          <Button variant="outline" size="sm" onClick={handleSeed} disabled={seeding} className="gap-1.5">
-            {seeding ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Database className="h-3.5 w-3.5" />}
-            Generate Sample Data
-          </Button>
           <Button onClick={openCreate} className="gap-2">
             <Plus className="h-4 w-4" />
             Add Transaction
@@ -168,8 +170,8 @@ export default function TransactionsPage() {
         </div>
       </div>
 
-      <Card>
-        <CardHeader className="pb-3">
+      <Card className="p-0">
+        <CardHeader className="p-5 pb-3">
           <div className="flex flex-wrap items-center gap-3">
             <div className="relative flex-1 min-w-[200px]">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
@@ -206,6 +208,17 @@ export default function TransactionsPage() {
                 ...PAYMENT_METHODS.map((m) => ({ value: m.value, label: m.label })),
               ]}
             />
+            {householdMembers.length > 0 && (
+              <Select
+                value={filters.householdMemberId}
+                onValueChange={(value) => { setFilters((f) => ({ ...f, householdMemberId: value })); setPage(1); }}
+                options={[
+                  { value: '', label: 'My transactions' },
+                  { value: 'all', label: 'All household' },
+                  ...householdMembers.map((m) => ({ value: m.userId, label: m.user.name || m.user.email })),
+                ]}
+              />
+            )}
             {selected.size > 0 && (
               <Button variant="destructive" size="sm" onClick={handleBulkDelete} className="gap-1">
                 <Trash2 className="h-3 w-3" />
@@ -281,7 +294,7 @@ export default function TransactionsPage() {
                         </span>
                       </td>
                       <td className={`px-3 py-3 text-right font-medium tabular-nums ${txn.type === 'income' ? 'text-emerald-400' : ''}`}>
-                        {txn.type === 'income' ? '+' : '-'}{formatCurrency(txn.amount, currency)}
+                        {txn.type === 'income' ? '+' : '-'}{formatCurrency(txn.amount, txn.currency || currency)}
                       </td>
                       <td className="px-3 py-3 text-center">
                         <Badge variant={txn.status === 'cleared' ? 'default' : txn.status === 'pending' ? 'outline' : 'destructive'} className="text-[10px] px-1.5 py-0">
@@ -376,7 +389,7 @@ function TransactionForm({
     amount: transaction?.amount.toString() || '',
     description: transaction?.description || '',
     merchant: transaction?.merchant || '',
-    categoryId: transaction?.categoryId || '2',
+    categoryId: transaction?.categoryId || '',
     paymentMethod: transaction?.paymentMethod || 'credit_card',
     date: transaction?.date || new Date().toISOString().split('T')[0],
     status: transaction?.status || 'cleared',

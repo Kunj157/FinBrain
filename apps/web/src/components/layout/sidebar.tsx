@@ -13,19 +13,32 @@ import {
   Brain,
   Settings,
   HelpCircle,
-  Database,
+  Building2,
+  Repeat,
+  Briefcase,
+  TrendingUp,
+  MessageSquare,
+  Users,
+  Activity,
 } from 'lucide-react';
 
 const navItems = [
-  { icon: LayoutDashboard, label: 'Dashboard', path: '/' },
-  { icon: Database, label: 'Onboarding', path: '/onboarding' },
+  { icon: LayoutDashboard, label: 'Dashboard', path: '/dashboard' },
+
+  { icon: Building2, label: 'Accounts', path: '/accounts' },
+  { icon: Briefcase, label: 'Investments', path: '/investments' },
+  { icon: Users, label: 'Household', path: '/household' },
+  { icon: Activity, label: 'Credit Score', path: '/credit-score' },
   { icon: ArrowRightLeft, label: 'Transactions', path: '/transactions' },
   { icon: Tags, label: 'Categories', path: '/categories' },
   { icon: PiggyBank, label: 'Budgets', path: '/budgets' },
+  { icon: Repeat, label: 'Recurring', path: '/recurring' },
   { icon: Target, label: 'Goals', path: '/goals' },
   { icon: BarChart3, label: 'Analytics', path: '/analytics' },
+  { icon: TrendingUp, label: 'Forecasting', path: '/forecasting' },
   { icon: Receipt, label: 'Receipts', path: '/receipts' },
   { icon: FileText, label: 'Reports', path: '/reports' },
+  { icon: MessageSquare, label: 'Advisor', path: '/advisor' },
   { icon: Sparkles, label: 'AI Insights', path: '/insights' },
 ];
 
@@ -34,9 +47,9 @@ const bottomItems = [
   { icon: HelpCircle, label: 'Help', path: '/help' },
 ];
 
-export function Sidebar() {
+export function Sidebar({ onNavigate }: { onNavigate?: () => void }) {
   return (
-    <aside className="fixed left-0 top-0 z-40 h-screen w-[240px]">
+    <aside className="h-full w-[240px]">
       <div className="flex h-full flex-col glass-strong">
         <div className="flex h-16 items-center gap-3 px-6 border-b border-white/[0.04]">
           <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-emerald-500/10 border border-emerald-500/20">
@@ -58,6 +71,7 @@ export function Sidebar() {
             <NavLink
               key={item.path}
               to={item.path}
+              onClick={onNavigate}
               className={({ isActive }) =>
                 cn(
                   'nav-link group',
@@ -82,6 +96,7 @@ export function Sidebar() {
             <NavLink
               key={item.path}
               to={item.path}
+              onClick={onNavigate}
               className={({ isActive }) =>
                 cn(
                   'nav-link',
@@ -98,7 +113,7 @@ export function Sidebar() {
 
         <div className="mx-3 mb-4">
           <NavLink
-            to="/insights"
+            to="/advisor"
             className="rounded-xl bg-gradient-to-br from-emerald-500/5 to-teal-500/5 border border-emerald-500/10 p-4 block hover:from-emerald-500/10 hover:to-teal-500/10 transition-all duration-200 cursor-pointer"
           >
             <div className="flex items-center gap-3">

@@ -1,16 +1,28 @@
 import { useState, useMemo, useCallback, useEffect } from 'react';
 import {
-  Plus, Target, Pencil, Trash2, X, Loader2, TrendingUp, Calendar,
+  Plus, Target, Pencil, Trash2, X, Loader2, TrendingUp,
   Check, AlertTriangle, Home, Car, GraduationCap, Plane, PiggyBank,
-  Briefcase, Heart, CircleDollarSign, Coins,
+  Briefcase, Heart, CircleDollarSign, Coins, Zap,
 } from 'lucide-react';
+import { ExplainViewButton } from '@/components/finance/explain-view-button';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
 import { useAuth } from '@/hooks/use-auth';
 import api from '@/lib/api';
 import { formatCurrency } from '@/lib/utils';
 import type { Currency as SharedCurrency } from '@finbrain/shared';
+import {
+  Chart as ChartJS,
+  CategoryScale,
+  LinearScale,
+  PointElement,
+  LineElement,
+  Tooltip,
+  Filler,
+} from 'chart.js';
+import { Line } from 'react-chartjs-2';
+
+ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, Tooltip, Filler);
 
 interface GoalContribution {
   id: string;
@@ -49,6 +61,7 @@ const GOAL_TYPES = [
   { value: 'education', label: 'Education' },
   { value: 'retirement', label: 'Retirement' },
   { value: 'wedding', label: 'Wedding' },
+  { value: 'debt_payoff', label: 'Debt Payoff' },
   { value: 'other', label: 'Other' },
 ] as const;
 
@@ -104,6 +117,7 @@ export default function Goals() {
   const [saving, setSaving] = useState(false);
   const [deleting, setDeleting] = useState<string | null>(null);
   const [expandedGoal, setExpandedGoal] = useState<string | null>(null);
+  const [simAmount, setSimAmount] = useState<Record<string, string>>({});
 
   const fetchData = useCallback(async () => {
     setLoading(true);
@@ -218,12 +232,24 @@ export default function Goals() {
     }
   };
 
+  const handleAutoContribute = async (goalId: string) => {
+    try {
+      const res = await api.post(`/goals/${goalId}/auto-contribute`);
+      setGoals((prev) => prev.map((g) => (g.id === goalId ? res.data.data.goal : g)));
+    } catch {
+      // silent
+    }
+  };
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight">Goals</h1>
-          <p className="text-sm text-muted-foreground">Track your savings goals and milestones</p>
+        <div className="flex items-center gap-3">
+          <div>
+            <h1 className="text-2xl font-bold tracking-tight">Goals</h1>
+            <p className="text-sm text-muted-foreground">Track your savings goals and milestones</p>
+          </div>
+          <ExplainViewButton viewName="Goals" />
         </div>
         <Button onClick={openCreate} size="sm">
           <Plus className="h-4 w-4 mr-2" />
@@ -232,7 +258,7 @@ export default function Goals() {
       </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <Card className="stat-card">
+        <Card>
           <CardContent className="p-4">
             <div className="flex items-center gap-3">
               <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-emerald-500/10">
@@ -245,7 +271,7 @@ export default function Goals() {
             </div>
           </CardContent>
         </Card>
-        <Card className="stat-card">
+        <Card>
           <CardContent className="p-4">
             <div className="flex items-center gap-3">
               <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-blue-500/10">
@@ -258,7 +284,7 @@ export default function Goals() {
             </div>
           </CardContent>
         </Card>
-        <Card className="stat-card">
+        <Card>
           <CardContent className="p-4">
             <div className="flex items-center gap-3">
               <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-emerald-500/10">
@@ -271,7 +297,7 @@ export default function Goals() {
             </div>
           </CardContent>
         </Card>
-        <Card className="stat-card">
+        <Card>
           <CardContent className="p-4">
             <div className="flex items-center gap-3">
               <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-amber-500/10">
@@ -309,7 +335,7 @@ export default function Goals() {
             const isExpanded = expandedGoal === goal.id;
 
             return (
-              <Card key={goal.id} className="stat-card card-hover">
+              <Card key={goal.id} className="card-hover">
                 <CardContent className="p-5">
                   <div className="flex items-start justify-between mb-3">
                     <div className="flex items-center gap-3">
@@ -373,6 +399,12 @@ export default function Goals() {
                       <Plus className="h-3.5 w-3.5 mr-1" />
                       Add Funds
                     </Button>
+                    {goal.progress < 100 && (
+                      <Button variant="outline" size="sm" onClick={() => handleAutoContribute(goal.id)} className="h-8 text-xs gap-1">
+                        <Zap className="h-3.5 w-3.5" />
+                        Auto
+                      </Button>
+                    )}
                     <Button variant="ghost" size="sm" onClick={() => setExpandedGoal(isExpanded ? null : goal.id)} className="h-8 text-xs">
                       {isExpanded ? 'Hide' : 'History'}
                     </Button>
@@ -402,6 +434,77 @@ export default function Goals() {
                   {isExpanded && goal.contributions.length === 0 && (
                     <div className="mt-3 text-center py-4">
                       <p className="text-xs text-muted-foreground">No contributions yet</p>
+                    </div>
+                  )}
+
+                  {isExpanded && goal.contributions.length > 1 && (
+                    <div className="mt-3 h-[120px]">
+                      <Line
+                        data={{
+                          labels: [...goal.contributions].reverse().map((c) =>
+                            new Date(c.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
+                          ),
+                          datasets: [{
+                            data: (() => {
+                              let cumulative = 0;
+                              return [...goal.contributions].reverse().map((c) => {
+                                cumulative += c.amount;
+                                return cumulative;
+                              });
+                            })(),
+                            borderColor: '#10b981',
+                            backgroundColor: 'rgba(16,185,129,0.1)',
+                            fill: true,
+                            tension: 0.4,
+                            pointRadius: 3,
+                            pointHoverRadius: 5,
+                            borderWidth: 2,
+                          }],
+                        }}
+                        options={{
+                          responsive: true,
+                          maintainAspectRatio: false,
+                          plugins: { legend: { display: false }, tooltip: { backgroundColor: 'rgba(0,0,0,0.8)', titleColor: '#e2e8f0', bodyColor: '#e2e8f0', borderColor: 'rgba(255,255,255,0.1)', borderWidth: 1, padding: 8, cornerRadius: 6 } },
+                          scales: {
+                            x: { display: false },
+                            y: { display: false },
+                          },
+                        }}
+                      />
+                    </div>
+                  )}
+
+                  {isExpanded && goal.progress < 100 && (
+                    <div className="mt-3 p-3 rounded-lg bg-white/[0.02] border border-white/5">
+                      <p className="text-xs font-medium text-muted-foreground mb-2">What if I increase my contribution?</p>
+                      <div className="flex items-center gap-2">
+                        <span className="text-xs text-muted-foreground">$</span>
+                        <input
+                          type="number"
+                          value={simAmount[goal.id] || ''}
+                          onChange={(e) => setSimAmount({ ...simAmount, [goal.id]: e.target.value })}
+                          placeholder="Monthly amount"
+                          min="0"
+                          className="flex-1 h-7 px-2 rounded bg-white/5 border border-white/10 text-xs focus:outline-none focus:ring-1 focus:ring-emerald-500/50"
+                        />
+                      </div>
+                      {simAmount[goal.id] && parseFloat(simAmount[goal.id]) > 0 && (
+                        <div className="mt-2 space-y-1">
+                          {(() => {
+                            const remaining = goal.targetAmount - goal.currentAmount;
+                            const monthly = parseFloat(simAmount[goal.id]);
+                            const monthsToGoal = Math.ceil(remaining / monthly);
+                            const currentPace = goal.daysLeft !== null && goal.daysLeft > 0 ? goal.daysLeft / 30 : remaining / Math.max((goal.currentAmount / Math.max(((Date.now() - new Date(goal.createdAt).getTime()) / 86400000) / 30), 1), 1);
+                            const savedMonths = Math.max(0, Math.round(currentPace - monthsToGoal));
+                            return (
+                              <>
+                                <p className="text-xs text-emerald-400">At ${monthly}/month: goal reached in ~{monthsToGoal} months</p>
+                                {savedMonths > 0 && <p className="text-xs text-muted-foreground">That's {savedMonths} months faster than your current pace</p>}
+                              </>
+                            );
+                          })()}
+                        </div>
+                      )}
                     </div>
                   )}
                 </CardContent>

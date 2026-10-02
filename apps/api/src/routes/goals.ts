@@ -1,7 +1,7 @@
 import { Router, type Request, type Response } from 'express';
 import { z } from 'zod';
-import { type Goal, type GoalContribution } from '@prisma/client';
-import { prisma, DEV_USER_ID } from '../prisma';
+import type { Goal, GoalContribution } from '../prisma';
+import { prisma, aggregateToNumber } from '../prisma';
 
 const router = Router();
 
@@ -13,6 +13,7 @@ const createGoalSchema = z.object({
   goalType: z.string().default('custom'),
   icon: z.string().default('target'),
   categoryId: z.string().optional(),
+  autoContributePercent: z.number().min(0).max(100).optional(),
 });
 
 const updateGoalSchema = createGoalSchema.partial();
@@ -76,7 +77,7 @@ router.get('/', async (req: Request, res: Response) => {
 
   const goals = await prisma.goal.findMany({
     where: {
-      userId: DEV_USER_ID,
+      userId: req.userId,
       ...(goalType && { goalType }),
     },
     include: { contributions: { orderBy: { date: 'desc' } } },
@@ -90,7 +91,7 @@ router.get('/', async (req: Request, res: Response) => {
 
 router.get('/:id', async (req: Request, res: Response) => {
   const goal = await prisma.goal.findFirst({
-    where: { id: req.params.id, userId: DEV_USER_ID },
+    where: { id: req.params.id, userId: req.userId },
     include: { contributions: { orderBy: { date: 'desc' } } },
   });
   if (!goal) return res.status(404).json({ success: false, error: 'Goal not found' });
@@ -106,7 +107,7 @@ router.post('/', async (req: Request, res: Response) => {
 
   const goal = await prisma.goal.create({
     data: {
-      userId: DEV_USER_ID,
+      userId: req.userId,
       name: parsed.data.name,
       targetAmount: parsed.data.targetAmount,
       currency: parsed.data.currency,
@@ -123,7 +124,7 @@ router.post('/', async (req: Request, res: Response) => {
 
 router.put('/:id', async (req: Request, res: Response) => {
   const existing = await prisma.goal.findFirst({
-    where: { id: req.params.id, userId: DEV_USER_ID },
+    where: { id: req.params.id, userId: req.userId },
   });
   if (!existing) return res.status(404).json({ success: false, error: 'Goal not found' });
 
@@ -152,7 +153,7 @@ router.put('/:id', async (req: Request, res: Response) => {
 
 router.delete('/:id', async (req: Request, res: Response) => {
   const existing = await prisma.goal.findFirst({
-    where: { id: req.params.id, userId: DEV_USER_ID },
+    where: { id: req.params.id, userId: req.userId },
   });
   if (!existing) return res.status(404).json({ success: false, error: 'Goal not found' });
 
@@ -160,9 +161,45 @@ router.delete('/:id', async (req: Request, res: Response) => {
   res.json({ success: true, message: 'Goal deleted' });
 });
 
+router.post('/:id/auto-contribute', async (req: Request, res: Response) => {
+  const goal = await prisma.goal.findFirst({
+    where: { id: req.params.id, userId: req.userId },
+  });
+  if (!goal) return res.status(404).json({ success: false, error: 'Goal not found' });
+
+  const now = new Date();
+  const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+  const income = await prisma.transaction.aggregate({
+    where: { userId: req.userId, type: 'income', date: { gte: startOfMonth } },
+    _sum: { amount: true },
+  });
+  const monthlyIncome = aggregateToNumber(income._sum.amount);
+  if (monthlyIncome <= 0) {
+    return res.status(400).json({ success: false, error: 'No income found this month' });
+  }
+
+  const contributionAmount = Math.round(monthlyIncome * 0.1 * 100) / 100;
+
+  const contribution = await prisma.goalContribution.create({
+    data: { goalId: goal.id, amount: contributionAmount, date: now, notes: 'Auto-contribute (10% of monthly income)' },
+  });
+
+  await prisma.goal.update({
+    where: { id: goal.id },
+    data: { currentAmount: goal.currentAmount + contributionAmount },
+  });
+
+  const updatedGoal = await prisma.goal.findFirst({
+    where: { id: goal.id },
+    include: { contributions: { orderBy: { date: 'desc' } } },
+  });
+
+  res.status(201).json({ success: true, data: { contribution, goal: updatedGoal ? computeGoalProgress(updatedGoal) : null } });
+});
+
 router.post('/:id/contributions', async (req: Request, res: Response) => {
   const goal = await prisma.goal.findFirst({
-    where: { id: req.params.id, userId: DEV_USER_ID },
+    where: { id: req.params.id, userId: req.userId },
   });
   if (!goal) return res.status(404).json({ success: false, error: 'Goal not found' });
 
@@ -196,7 +233,7 @@ router.post('/:id/contributions', async (req: Request, res: Response) => {
 
 router.delete('/:id/contributions/:contributionId', async (req: Request, res: Response) => {
   const goal = await prisma.goal.findFirst({
-    where: { id: req.params.id, userId: DEV_USER_ID },
+    where: { id: req.params.id, userId: req.userId },
   });
   if (!goal) return res.status(404).json({ success: false, error: 'Goal not found' });
 

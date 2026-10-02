@@ -8,6 +8,10 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/hooks/use-auth';
 import api from '@/lib/api';
+import { fetchAllTransactions } from '@/lib/transactions';
+import { LoadError } from '@/components/ui/load-error';
+import { useAdvisorChat } from '@/hooks/use-advisor-chat';
+import { ChatBubble } from '@/components/advisor/chat-bubble';
 import { formatCurrency } from '@/lib/utils';
 import type { Transaction, Category, Budget, Goal, Currency as SharedCurrency } from '@finbrain/shared';
 
@@ -19,11 +23,6 @@ type Insight = {
   description: string;
   icon: typeof TrendingUp;
   color: string;
-};
-
-type ChatMessage = {
-  role: 'user' | 'assistant';
-  content: string;
 };
 
 const HEALTH_LABELS: Record<number, { label: string; color: string; icon: typeof ShieldCheck }> = {
@@ -49,9 +48,9 @@ function computeHealthScore(
   const threeMonthsAgo = new Date(now.getFullYear(), now.getMonth() - 3, 1);
   const recent = transactions.filter((t) => new Date(t.date) >= threeMonthsAgo);
 
-  const income = recent.filter((t) => t.type === 'income').reduce((s, t) => s + t.amount, 0);
-  const expense = recent.filter((t) => t.type === 'expense').reduce((s, t) => s + t.amount, 0);
-  const savingsRate = income > 0 ? (income - expense) / income : 0;
+  const income = recent.filter((t) => t.type === 'income').reduce((s, t) => s + Math.abs(t.amount), 0);
+  const expense = recent.filter((t) => t.type === 'expense').reduce((s, t) => s + Math.abs(t.amount), 0);
+  const savingsRate = income > 0 ? Math.max(0, (income - expense) / income) : 0;
 
   const budgetScore = budgets.length > 0
     ? budgets.reduce((acc, b) => {
@@ -64,13 +63,13 @@ function computeHealthScore(
   const uniqueDays = new Set(days).size;
   const totalDays = Math.max(1, Math.ceil((now.getTime() - threeMonthsAgo.getTime()) / 86400000));
   const spendingDays = uniqueDays / totalDays;
-  const consistencyScore = Math.min(spendingDays * 2, 1);
+  const consistencyScore = Math.min(spendingDays * 4, 1);
 
   const goalProgress = goals.length > 0
     ? goals.reduce((acc, g) => acc + Math.min(g.currentAmount / g.targetAmount, 1), 0) / goals.length
     : 0.5;
 
-  const savingsScore = Math.min(Math.max(savingsRate * 2, 0), 1);
+  const savingsScore = Math.min(savingsRate * 1.5, 1);
   const breakdown = {
     savings: Math.round(savingsScore * 100),
     budget: Math.round(budgetScore * 100),
@@ -282,120 +281,6 @@ function generateInsights(
   return insights;
 }
 
-function generateAnswer(
-  question: string,
-  transactions: Transaction[],
-  categories: Category[],
-  budgets: Budget[],
-  goals: Goal[],
-  currency: SharedCurrency,
-): string {
-  const q = question.toLowerCase();
-  const now = new Date();
-  const thisMonth = transactions.filter((t) => {
-    const d = new Date(t.date);
-    return d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear();
-  });
-
-  const income = thisMonth.filter((t) => t.type === 'income').reduce((s, t) => s + t.amount, 0);
-  const expenses = thisMonth.filter((t) => t.type === 'expense');
-  const totalExpenses = expenses.reduce((s, t) => s + t.amount, 0);
-
-  if (q.includes('spend') && (q.includes('month') || q.includes('total'))) {
-    return `This month you've spent ${formatCurrency(totalExpenses, currency)} across ${expenses.length} transactions. Your top categories are: ${
-      Object.entries(
-        expenses.reduce((acc: Record<string, number>, t) => {
-          const cat = categories.find((c) => c.id === t.categoryId);
-          acc[cat?.name || 'Unknown'] = (acc[cat?.name || 'Unknown'] || 0) + t.amount;
-          return acc;
-        }, {})
-      ).sort(([, a], [, b]) => b - a).slice(0, 3).map(([name, amt]) => `${name} (${formatCurrency(amt, currency)})`).join(', ') || 'none yet'
-    }.`;
-  }
-
-  if (q.includes('income') || q.includes('earn') || q.includes('make')) {
-    return `Your income this month is ${formatCurrency(income, currency)}. ${
-      income > totalExpenses
-        ? `That's ${formatCurrency(income - totalExpenses, currency)} more than your expenses — nice!`
-        : `Your expenses exceed your income by ${formatCurrency(totalExpenses - income, currency)}.`
-    }`;
-  }
-
-  if (q.includes('save') || q.includes('savings')) {
-    const saved = income - totalExpenses;
-    const rate = income > 0 ? ((saved / income) * 100).toFixed(1) : '0';
-    return `Your savings this month: ${formatCurrency(saved, currency)} (${rate}% savings rate). ${
-      goals.length > 0
-        ? `You have ${goals.length} active goals: ${goals.map((g) => `${g.name} (${((g.currentAmount / g.targetAmount) * 100).toFixed(0)}%)`).join(', ')}.`
-        : 'Consider setting up savings goals to track your progress.'
-    }`;
-  }
-
-  if (q.includes('budget')) {
-    if (budgets.length === 0) {
-      return 'You haven\'t set up any budgets yet. Go to the Budgets page to create spending limits for your categories.';
-    }
-    const overBudget = budgets.filter((b) => b.spent > b.amount);
-    if (overBudget.length > 0) {
-      return `You're over budget in ${overBudget.length} categories: ${overBudget.map((b) => {
-        const cat = categories.find((c) => c.id === b.categoryId);
-        return `${cat?.name || 'Unknown'} (${((b.spent / b.amount) * 100).toFixed(0)}%)`;
-      }).join(', ')}. Try to reduce spending in these areas.`;
-    }
-    return `All your budgets are on track! You have ${budgets.length} active budgets with an average utilization of ${
-      (budgets.reduce((s, b) => s + b.spent / b.amount, 0) / budgets.length * 100).toFixed(0)
-    }%.`;
-  }
-
-  if (q.includes('goal')) {
-    if (goals.length === 0) {
-      return 'No savings goals yet. Head to the Goals page to set up targets like an emergency fund or vacation savings.';
-    }
-    return `You have ${goals.length} goals: ${goals.map((g) => {
-      const pct = ((g.currentAmount / g.targetAmount) * 100).toFixed(0);
-      return `${g.icon} ${g.name}: ${pct}% complete (${formatCurrency(g.currentAmount, currency)} of ${formatCurrency(g.targetAmount, currency)})`;
-    }).join('. ')}.`;
-  }
-
-  if (q.includes('biggest') || q.includes('top') || q.includes('most')) {
-    const catTotals: Record<string, number> = {};
-    for (const t of expenses) {
-      const cat = categories.find((c) => c.id === t.categoryId);
-      catTotals[cat?.name || 'Unknown'] = (catTotals[cat?.name || 'Unknown'] || 0) + t.amount;
-    }
-    const sorted = Object.entries(catTotals).sort(([, a], [, b]) => b - a);
-    if (sorted.length === 0) return 'No expense data this month to analyze.';
-    return `Your biggest spending categories this month: ${sorted.slice(0, 5).map(([name, amt]) =>
-      `${name}: ${formatCurrency(amt, currency)}`
-    ).join('. ')}.`;
-  }
-
-  if (q.includes('subscription') || q.includes('recurring')) {
-    const recurring = transactions.filter((t) => t.isRecurring);
-    if (recurring.length === 0) return 'No recurring transactions found. Import more data to identify subscriptions.';
-    const total = recurring.reduce((s, t) => s + t.amount, 0);
-    return `You have ${recurring.length} recurring transactions totaling ${formatCurrency(total, currency)}. Consider reviewing these to ensure you're not paying for unused services.`;
-  }
-
-  if (q.includes('tip') || q.includes('advice') || q.includes('improve') || q.includes('better')) {
-    const tips: string[] = [];
-    const sr = income > 0 ? ((income - totalExpenses) / income) * 100 : 0;
-    if (sr < 20) tips.push('Aim to save at least 20% of your income. Try the 50/30/20 rule: 50% needs, 30% wants, 20% savings.');
-    if (overBudget(budgets).length > 0) tips.push(`You're over budget in ${overBudget(budgets).length} category. Review those areas for cuts.`);
-    const dailyAvg = expenses.length > 0 ? totalExpenses / [...new Set(expenses.map((t) => new Date(t.date).toDateString()))].length : 0;
-    if (dailyAvg > 100) tips.push(`Your daily average is ${formatCurrency(dailyAvg, currency)}. Small daily savings add up fast.`);
-    if (goals.length === 0) tips.push('Set specific financial goals to stay motivated and track progress.');
-    if (tips.length === 0) tips.push('Your finances look healthy! Keep maintaining your current habits.');
-    return tips.join(' ');
-  }
-
-  return `I can help you analyze your finances! Try asking about:\n• Your monthly spending or income\n• Budget status\n• Savings goals\n• Biggest expense categories\n• Recurring subscriptions\n• Financial tips`;
-}
-
-function overBudget(budgets: Budget[]) {
-  return budgets.filter((b) => b.spent > b.amount);
-}
-
 export default function Insights() {
   const { user } = useAuth();
   const currency = (user?.currency || 'USD') as SharedCurrency;
@@ -405,35 +290,40 @@ export default function Insights() {
   const [budgets, setBudgets] = useState<Budget[]>([]);
   const [goals, setGoals] = useState<Goal[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState<string | null>(null);
   const [chatInput, setChatInput] = useState('');
-  const [messages, setMessages] = useState<ChatMessage[]>([]);
-  const [isThinking, setIsThinking] = useState(false);
   const chatEndRef = useRef<HTMLDivElement>(null);
+  // Shared with the advisor page: streaming, markdown, conversation memory and
+  // the affordability tool, instead of the older buffered endpoint this panel
+  // used to call.
+  const { messages, isLoading: isThinking, send: sendChat, retry: retryChat } = useAdvisorChat();
 
   const fetchData = useCallback(async () => {
     setLoading(true);
     try {
-      const [txnRes, catRes, budgetRes, goalRes] = await Promise.all([
-        api.get('/transactions?limit=5000'),
+      const [txns, catRes, budgetRes, goalRes] = await Promise.all([
+        fetchAllTransactions('', user?.currency || 'USD'),
         api.get('/categories'),
         api.get('/budgets'),
         api.get('/goals'),
       ]);
-      setTransactions(txnRes.data.data.data);
+      setTransactions(txns);
       setCategories(catRes.data.data);
       setBudgets(budgetRes.data.data);
       setGoals(goalRes.data.data);
-    } catch {
-      // silent
+      setLoadError(null);
+    } catch (error) {
+      console.error('Insights load failed:', error);
+      setLoadError('We could not load your insights. Please try again.');
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [user?.currency]);
 
   useEffect(() => { fetchData(); }, [fetchData]);
 
   useEffect(() => {
-    chatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+    chatEndRef.current?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
   }, [messages]);
 
   const health = useMemo(
@@ -446,16 +336,11 @@ export default function Insights() {
     [transactions, categories, budgets, goals, currency],
   );
 
-  const handleSend = async () => {
+  const handleSend = () => {
     if (!chatInput.trim() || isThinking) return;
     const question = chatInput.trim();
     setChatInput('');
-    setMessages((prev) => [...prev, { role: 'user', content: question }]);
-    setIsThinking(true);
-    await new Promise((r) => setTimeout(r, 600 + Math.random() * 800));
-    const answer = generateAnswer(question, transactions, categories, budgets, goals, currency);
-    setMessages((prev) => [...prev, { role: 'assistant', content: answer }]);
-    setIsThinking(false);
+    void sendChat(question);
   };
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
@@ -476,6 +361,10 @@ export default function Insights() {
     );
   }
 
+  if (loadError) {
+    return <LoadError message={loadError} onRetry={fetchData} />;
+  }
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
@@ -490,7 +379,7 @@ export default function Insights() {
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <Card className="stat-card lg:col-span-1">
+        <Card className="lg:col-span-1">
           <CardContent className="p-6">
             <div className="flex flex-col items-center text-center">
               <div className="relative w-32 h-32 mb-4">
@@ -544,7 +433,7 @@ export default function Insights() {
             Smart Insights
           </h2>
           {insights.length === 0 ? (
-            <Card className="stat-card">
+            <Card>
               <CardContent className="p-8 text-center">
                 <Sparkles className="h-8 w-8 text-muted-foreground/30 mx-auto mb-3" />
                 <p className="text-sm text-muted-foreground">Add more transactions to unlock AI insights</p>
@@ -555,7 +444,7 @@ export default function Insights() {
               {insights.map((insight) => {
                 const Icon = insight.icon;
                 return (
-                  <Card key={insight.id} className="stat-card">
+                  <Card key={insight.id}>
                     <CardContent className="p-4">
                       <div className="flex gap-3">
                         <div className={`flex h-9 w-9 items-center justify-center rounded-lg flex-shrink-0 ${
@@ -585,7 +474,7 @@ export default function Insights() {
         </div>
       </div>
 
-      <Card className="stat-card">
+      <Card>
         <CardHeader className="pb-3">
           <CardTitle className="text-sm font-medium flex items-center gap-2">
             <Brain className="h-4 w-4 text-emerald-400" />
@@ -599,7 +488,12 @@ export default function Insights() {
                 <Brain className="h-8 w-8 text-emerald-400/20 mb-3" />
                 <p className="text-sm text-muted-foreground mb-4">Ask me anything about your finances</p>
                 <div className="flex flex-wrap gap-2 justify-center max-w-lg">
-                  {['How much did I spend this month?', 'What are my top expenses?', 'How are my budgets?', 'Any tips to save more?'].map((q) => (
+                  {[
+                    'Can I afford a €1,200 laptop?',
+                    'How can I improve my savings rate?',
+                    'What if I increase my rent by €200?',
+                    'When will I reach my goals?',
+                  ].map((q) => (
                     <button
                       key={q}
                       onClick={() => { setChatInput(q); }}
@@ -612,21 +506,7 @@ export default function Insights() {
               </div>
             )}
             {messages.map((msg, i) => (
-              <div key={i} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
-                <div className={`max-w-[80%] rounded-xl px-4 py-2.5 text-sm ${
-                  msg.role === 'user'
-                    ? 'bg-emerald-500/15 text-emerald-50'
-                    : 'bg-white/[0.04] text-foreground'
-                }`}>
-                  {msg.role === 'assistant' && (
-                    <div className="flex items-center gap-1.5 mb-1">
-                      <Brain className="h-3 w-3 text-emerald-400" />
-                      <span className="text-[10px] font-medium text-emerald-400">FinBrain</span>
-                    </div>
-                  )}
-                  <p className="whitespace-pre-wrap leading-relaxed">{msg.content}</p>
-                </div>
-              </div>
+              <ChatBubble key={i} message={msg} onRetry={retryChat} />
             ))}
             {isThinking && (
               <div className="flex justify-start">

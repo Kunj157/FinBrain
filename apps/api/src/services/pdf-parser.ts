@@ -53,7 +53,6 @@ function parseGermanAmount(text: string): number | null {
   // German format: comma is decimal separator, dot is thousands separator
   // Standard format: dot is decimal separator
   const hasComma = raw.includes(',');
-  const hasDot = raw.includes('.');
 
   if (hasComma) {
     // European/German format: 1.234,56 or 400,00
@@ -126,15 +125,25 @@ const SKIP_LINES: RegExp[] = [
   /^\s*[A-Z][a-z]+\s+\([A-Z][a-z]+\)\s*$/,
 ];
 
-// Lines that indicate a transaction type (German bank statements)
-const TXN_TYPE_RE = /^(überw\.|lastschrift|debitk\.|gutschr\.|bargeldausz\.|entgeltabrechnung)/i;
-
-export function parsePdfText(text: string): ParsedTransaction[] {
+export function parsePdfText(text: string): { transactions: ParsedTransaction[]; openingBalance: number | null } {
   // Split into lines, preserving trailing spaces for right-aligned amounts
   const rawLines = text.split('\n');
   const lines = rawLines.map(l => l.trimEnd()); // keep leading spaces for amount detection
 
   const transactions: ParsedTransaction[] = [];
+
+  // Try to extract opening balance (Anfangsbestand / Saldo / Kontostand am ...)
+  let openingBalance: number | null = null;
+  for (const line of lines) {
+    const balanceMatch = line.match(/(?:anfangsbestand|eröffnungsbalance|anfangssaldo|saldo\s+per|kontostand\s+am)[\s:]*(.+)/i);
+    if (balanceMatch) {
+      const amount = parseGermanAmount(balanceMatch[1]);
+      if (amount !== null) {
+        openingBalance = amount;
+        break;
+      }
+    }
+  }
 
   // Step 1: Group lines into transaction blocks
   // A block starts with a line containing a date (DD.MM.YYYY) followed by a transaction type
@@ -238,7 +247,7 @@ export function parsePdfText(text: string): ParsedTransaction[] {
     });
   }
 
-  return transactions;
+  return { transactions, openingBalance };
 }
 
 function extractAmountFromBlock(lines: string[]): number | null {

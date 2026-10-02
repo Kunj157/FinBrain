@@ -1,0 +1,20 @@
+FROM node:20-slim
+
+RUN apt-get update && apt-get install -y --no-install-recommends openssl && rm -rf /var/lib/apt/lists/*
+
+RUN corepack enable && corepack prepare pnpm@9 --activate
+
+WORKDIR /app
+
+COPY package.json pnpm-lock.yaml pnpm-workspace.yaml .npmrc ./
+COPY apps/api/package.json ./apps/api/package.json
+COPY packages/shared/package.json ./packages/shared/package.json
+COPY packages/config/package.json ./packages/config/package.json
+COPY apps/api/prisma ./apps/api/prisma
+
+RUN pnpm install --frozen-lockfile
+
+COPY apps/api/src ./apps/api/src
+
+WORKDIR /app/apps/api
+CMD ["npx", "tsx", "watch", "src/index.ts"]

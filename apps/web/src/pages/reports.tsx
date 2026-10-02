@@ -1,14 +1,20 @@
 import { useState, useMemo, useCallback, useEffect } from 'react';
 import {
   FileText, Download, Printer, ChevronLeft, ChevronRight, Loader2,
-  TrendingUp, TrendingDown, ArrowUpRight, ArrowDownRight,
+  TrendingUp, TrendingDown, ArrowUpRight, ArrowDownRight, Receipt,
 } from 'lucide-react';
+import { ExplainViewButton } from '@/components/finance/explain-view-button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/hooks/use-auth';
 import api from '@/lib/api';
-import { formatCurrency, formatDate } from '@/lib/utils';
+import { fetchAllTransactions } from '@/lib/transactions';
+import { LoadError } from '@/components/ui/load-error';
+import { formatCurrency } from '@/lib/utils';
+import { SankeyFlow } from '@/components/finance/sankey';
 import type { Transaction, Category, Currency as SharedCurrency } from '@finbrain/shared';
+import jsPDF from 'jspdf';
+import autoTable from 'jspdf-autotable';
 
 type ReportType = 'monthly' | 'quarterly' | 'annual';
 
@@ -58,24 +64,40 @@ export default function Reports() {
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState<string | null>(null);
   const [reportType, setReportType] = useState<ReportType>('monthly');
   const [currentDate, setCurrentDate] = useState(new Date());
+  const [taxYear, setTaxYear] = useState(new Date().getFullYear());
+  const [deductibleCats, setDeductibleCats] = useState<Record<string, boolean>>(() => {
+    try {
+      const saved = localStorage.getItem('finbrain-deductible-cats');
+      return saved ? JSON.parse(saved) : {};
+    } catch { return {}; }
+  });
+
+  const toggleDeductible = (catId: string) => {
+    const next = { ...deductibleCats, [catId]: !deductibleCats[catId] };
+    setDeductibleCats(next);
+    localStorage.setItem('finbrain-deductible-cats', JSON.stringify(next));
+  };
 
   const fetchData = useCallback(async () => {
     setLoading(true);
     try {
-      const [txnRes, catRes] = await Promise.all([
-        api.get('/transactions?limit=5000'),
+      const [txns, catRes] = await Promise.all([
+        fetchAllTransactions('', user?.currency || 'USD'),
         api.get('/categories'),
       ]);
-      setTransactions(txnRes.data.data.data);
+      setTransactions(txns);
       setCategories(catRes.data.data);
-    } catch {
-      // silent
+      setLoadError(null);
+    } catch (error) {
+      console.error('Reports load failed:', error);
+      setLoadError('We could not load your reports. Please try again.');
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [user?.currency]);
 
   useEffect(() => { fetchData(); }, [fetchData]);
 
@@ -109,19 +131,19 @@ export default function Reports() {
     const income = periodTransactions.filter((t) => t.type === 'income');
     const expense = periodTransactions.filter((t) => t.type === 'expense');
 
-    const totalIncome = income.reduce((s, t) => s + t.amount, 0);
-    const totalExpense = expense.reduce((s, t) => s + t.amount, 0);
+    const totalIncome = income.reduce((s, t) => s + Math.abs(t.amount), 0);
+    const totalExpense = expense.reduce((s, t) => s + Math.abs(t.amount), 0);
     const net = totalIncome - totalExpense;
     const savingsRate = totalIncome > 0 ? (net / totalIncome) * 100 : 0;
 
-    const prevIncome = prevPeriodTransactions.filter((t) => t.type === 'income').reduce((s, t) => s + t.amount, 0);
-    const prevExpense = prevPeriodTransactions.filter((t) => t.type === 'expense').reduce((s, t) => s + t.amount, 0);
+    const prevIncome = prevPeriodTransactions.filter((t) => t.type === 'income').reduce((s, t) => s + Math.abs(t.amount), 0);
+    const prevExpense = prevPeriodTransactions.filter((t) => t.type === 'expense').reduce((s, t) => s + Math.abs(t.amount), 0);
     const incomeChange = prevIncome > 0 ? ((totalIncome - prevIncome) / prevIncome) * 100 : 0;
     const expenseChange = prevExpense > 0 ? ((totalExpense - prevExpense) / prevExpense) * 100 : 0;
 
     const categoryBreakdown = Object.entries(
       expense.reduce((acc, t) => {
-        acc[t.categoryId] = (acc[t.categoryId] || 0) + t.amount;
+        acc[t.categoryId] = (acc[t.categoryId] || 0) + Math.abs(t.amount);
         return acc;
       }, {} as Record<string, number>)
     )
@@ -182,6 +204,114 @@ export default function Reports() {
     window.print();
   }, []);
 
+  const exportPDF = useCallback(() => {
+    const doc = new jsPDF();
+    const pageWidth = doc.internal.pageSize.getWidth();
+
+    doc.setFontSize(20);
+    doc.setFont('helvetica', 'bold');
+    doc.text('FinBrain Financial Report', pageWidth / 2, 20, { align: 'center' });
+
+    doc.setFontSize(12);
+    doc.setFont('helvetica', 'normal');
+    doc.text(`${getPeriodLabel(reportType, currentDate)}`, pageWidth / 2, 28, { align: 'center' });
+    doc.text(`Generated: ${new Date().toLocaleDateString()}`, pageWidth / 2, 34, { align: 'center' });
+
+    let y = 44;
+    doc.setFontSize(14);
+    doc.setFont('helvetica', 'bold');
+    doc.text('Summary', 14, y);
+    y += 8;
+
+    doc.setFontSize(10);
+    doc.setFont('helvetica', 'normal');
+    doc.text(`Income: ${formatCurrency(report.totalIncome, currency)}`, 14, y);
+    y += 6;
+    doc.text(`Expenses: ${formatCurrency(report.totalExpense, currency)}`, 14, y);
+    y += 6;
+    doc.text(`Net: ${formatCurrency(report.net, currency)}`, 14, y);
+    y += 6;
+    doc.text(`Savings Rate: ${report.savingsRate.toFixed(1)}%`, 14, y);
+    y += 6;
+    doc.text(`Transactions: ${periodTransactions.length}`, 14, y);
+    y += 12;
+
+    if (report.categoryBreakdown.length > 0) {
+      doc.setFontSize(14);
+      doc.setFont('helvetica', 'bold');
+      doc.text('Category Breakdown', 14, y);
+      y += 4;
+
+      autoTable(doc, {
+        startY: y,
+        head: [['Category', 'Amount', '%']],
+        body: report.categoryBreakdown.map((c) => [
+          c.name,
+          formatCurrency(c.amount, currency),
+          `${c.percentage.toFixed(1)}%`,
+        ]),
+        theme: 'grid',
+        headStyles: { fillColor: [16, 185, 129] },
+        styles: { fontSize: 9 },
+        margin: { left: 14, right: 14 },
+      });
+
+      y = (doc as unknown as { lastAutoTable: { finalY: number } }).lastAutoTable.finalY + 12;
+    }
+
+    if (report.topMerchants.length > 0) {
+      doc.setFontSize(14);
+      doc.setFont('helvetica', 'bold');
+      doc.text('Top Merchants', 14, y);
+      y += 4;
+
+      autoTable(doc, {
+        startY: y,
+        head: [['Merchant', 'Amount']],
+        body: report.topMerchants.map((m) => [
+          m.name,
+          formatCurrency(m.amount, currency),
+        ]),
+        theme: 'grid',
+        headStyles: { fillColor: [16, 185, 129] },
+        styles: { fontSize: 9 },
+        margin: { left: 14, right: 14 },
+      });
+
+      y = (doc as unknown as { lastAutoTable: { finalY: number } }).lastAutoTable.finalY + 12;
+    }
+
+    if (y > 260) {
+      doc.addPage();
+      y = 20;
+    }
+
+    doc.setFontSize(14);
+    doc.setFont('helvetica', 'bold');
+    doc.text('Transactions', 14, y);
+    y += 4;
+
+    autoTable(doc, {
+      startY: y,
+      head: [['Date', 'Type', 'Category', 'Merchant', 'Amount']],
+      body: periodTransactions
+        .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())
+        .map((t) => [
+          new Date(t.date).toLocaleDateString(),
+          t.type,
+          catMap[t.categoryId]?.name || 'Other',
+          t.merchant || t.description,
+          formatCurrency(Math.abs(t.amount), currency),
+        ]),
+      theme: 'grid',
+      headStyles: { fillColor: [16, 185, 129] },
+      styles: { fontSize: 8 },
+      margin: { left: 14, right: 14 },
+    });
+
+    doc.save(`finbrain-report-${reportType}-${getPeriodLabel(reportType, currentDate).replace(/\s+/g, '-').toLowerCase()}.pdf`);
+  }, [periodTransactions, reportType, currentDate, catMap, currency, report]);
+
   if (loading) {
     return (
       <div className="flex items-center justify-center h-full">
@@ -190,17 +320,28 @@ export default function Reports() {
     );
   }
 
+  if (loadError) {
+    return <LoadError message={loadError} onRetry={fetchData} />;
+  }
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight">Reports</h1>
-          <p className="text-sm text-muted-foreground">Generate and export financial reports</p>
+        <div className="flex items-center gap-3">
+          <div>
+            <h1 className="text-2xl font-bold tracking-tight">Reports</h1>
+            <p className="text-sm text-muted-foreground">Generate and export financial reports</p>
+          </div>
+          <ExplainViewButton viewName="Reports" />
         </div>
         <div className="flex gap-2">
           <Button variant="outline" size="sm" onClick={exportCSV}>
             <Download className="h-4 w-4 mr-2" />
             Export CSV
+          </Button>
+          <Button variant="outline" size="sm" onClick={exportPDF}>
+            <FileText className="h-4 w-4 mr-2" />
+            Export PDF
           </Button>
           <Button variant="outline" size="sm" onClick={printReport}>
             <Printer className="h-4 w-4 mr-2" />
@@ -238,7 +379,7 @@ export default function Reports() {
       </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <Card className="stat-card">
+        <Card>
           <CardContent className="p-4">
             <div className="flex items-center gap-3">
               <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-emerald-500/10">
@@ -262,7 +403,7 @@ export default function Reports() {
             </div>
           </CardContent>
         </Card>
-        <Card className="stat-card">
+        <Card>
           <CardContent className="p-4">
             <div className="flex items-center gap-3">
               <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-rose-500/10">
@@ -286,7 +427,7 @@ export default function Reports() {
             </div>
           </CardContent>
         </Card>
-        <Card className="stat-card">
+        <Card>
           <CardContent className="p-4">
             <div className="flex items-center gap-3">
               <div className={`flex h-10 w-10 items-center justify-center rounded-lg ${report.net >= 0 ? 'bg-emerald-500/10' : 'bg-rose-500/10'}`}>
@@ -301,7 +442,7 @@ export default function Reports() {
             </div>
           </CardContent>
         </Card>
-        <Card className="stat-card">
+        <Card>
           <CardContent className="p-4">
             <div className="flex items-center gap-3">
               <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-blue-500/10">
@@ -318,7 +459,7 @@ export default function Reports() {
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-        <Card className="stat-card">
+        <Card>
           <CardHeader className="pb-2">
             <CardTitle className="text-sm font-medium">Category Breakdown</CardTitle>
           </CardHeader>
@@ -346,7 +487,7 @@ export default function Reports() {
             </div>
           </CardContent>
         </Card>
-        <Card className="stat-card">
+        <Card>
           <CardHeader className="pb-2">
             <CardTitle className="text-sm font-medium">Top Merchants</CardTitle>
           </CardHeader>
@@ -368,7 +509,30 @@ export default function Reports() {
         </Card>
       </div>
 
-      <Card className="stat-card">
+      <Card>
+        <CardHeader className="pb-2">
+          <CardTitle className="text-sm font-medium">Money Flow</CardTitle>
+        </CardHeader>
+        <CardContent>
+          {report.categoryBreakdown.length > 0 ? (
+            <SankeyFlow
+              income={[
+                { name: 'Income', amount: report.totalIncome },
+              ]}
+              expenses={report.categoryBreakdown.map((c) => ({
+                name: c.name,
+                amount: c.amount,
+                color: c.color,
+              }))}
+              currency={currency}
+            />
+          ) : (
+            <p className="text-xs text-muted-foreground text-center py-12">No data to visualize</p>
+          )}
+        </CardContent>
+      </Card>
+
+      <Card>
         <CardHeader className="pb-2">
           <CardTitle className="text-sm font-medium">Transaction Summary</CardTitle>
         </CardHeader>
@@ -399,6 +563,91 @@ export default function Reports() {
               <p className="text-sm font-medium mt-0.5">{report.categoryBreakdown.length}</p>
             </div>
           </div>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader className="pb-2">
+          <CardTitle className="text-sm font-medium flex items-center gap-2">
+            <Receipt className="h-4 w-4" />
+            Tax Summary — {taxYear}
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="flex items-center gap-2 mb-4">
+            <Button variant="ghost" size="sm" onClick={() => setTaxYear((y) => y - 1)} className="h-7 w-7 p-0">
+              <ChevronLeft className="h-3.5 w-3.5" />
+            </Button>
+            <span className="text-sm font-medium">{taxYear}</span>
+            <Button variant="ghost" size="sm" onClick={() => setTaxYear((y) => y + 1)} className="h-7 w-7 p-0">
+              <ChevronRight className="h-3.5 w-3.5" />
+            </Button>
+          </div>
+          {(() => {
+            const taxTxns = transactions.filter((t) => {
+              const d = new Date(t.date);
+              return t.type === 'expense' && d.getFullYear() === taxYear;
+            });
+            const byCategory = Object.entries(
+              taxTxns.reduce((acc, t) => {
+                acc[t.categoryId] = (acc[t.categoryId] || 0) + Math.abs(t.amount);
+                return acc;
+              }, {} as Record<string, number>)
+            )
+              .map(([id, amount]) => ({
+                id, name: catMap[id]?.name || 'Other',
+                amount, color: catMap[id]?.color || '#64748b',
+                deductible: !!deductibleCats[id],
+              }))
+              .sort((a, b) => b.amount - a.amount);
+
+            const totalDeductible = byCategory.filter((c) => c.deductible).reduce((s, c) => s + c.amount, 0);
+            const totalExpenses = byCategory.reduce((s, c) => s + c.amount, 0);
+
+            return (
+              <div className="space-y-3">
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-3">
+                  <div className="p-2.5 rounded-lg bg-white/[0.02]">
+                    <p className="text-[10px] text-muted-foreground">Total Expenses</p>
+                    <p className="text-sm font-medium">{formatCurrency(totalExpenses, currency)}</p>
+                  </div>
+                  <div className="p-2.5 rounded-lg bg-emerald-500/5">
+                    <p className="text-[10px] text-muted-foreground">Deductible</p>
+                    <p className="text-sm font-medium text-emerald-400">{formatCurrency(totalDeductible, currency)}</p>
+                  </div>
+                  <div className="p-2.5 rounded-lg bg-white/[0.02]">
+                    <p className="text-[10px] text-muted-foreground">Transactions</p>
+                    <p className="text-sm font-medium">{taxTxns.length}</p>
+                  </div>
+                  <div className="p-2.5 rounded-lg bg-white/[0.02]">
+                    <p className="text-[10px] text-muted-foreground">Categories</p>
+                    <p className="text-sm font-medium">{byCategory.length}</p>
+                  </div>
+                </div>
+                <p className="text-xs text-muted-foreground mb-2">
+                  Mark categories as tax deductible by clicking the checkbox:
+                </p>
+                {byCategory.map((c) => (
+                  <div key={c.id} className="flex items-center justify-between p-2 rounded-lg bg-white/[0.02] hover:bg-white/[0.04] transition-colors">
+                    <div className="flex items-center gap-2">
+                      <button onClick={() => toggleDeductible(c.id)} className="flex-shrink-0">
+                        <div className={`w-4 h-4 rounded border ${c.deductible ? 'bg-emerald-500 border-emerald-500' : 'border-gray-600'} flex items-center justify-center`}>
+                          {c.deductible && (
+                            <svg className="w-3 h-3 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
+                            </svg>
+                          )}
+                        </div>
+                      </button>
+                      <div className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: c.color }} />
+                      <span className="text-xs">{c.name}</span>
+                    </div>
+                    <span className="text-xs font-medium">{formatCurrency(c.amount, currency)}</span>
+                  </div>
+                ))}
+              </div>
+            );
+          })()}
         </CardContent>
       </Card>
     </div>

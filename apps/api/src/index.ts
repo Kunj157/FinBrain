@@ -1,20 +1,47 @@
+// Must precede the route imports. Express 4 does not await async handlers, so
+// a rejected promise never reaches next() and the request hangs until the
+// client or proxy times out. This patches the router to forward rejections to
+// the error handler below, which covers every async handler in the app.
+import 'express-async-errors';
+
+import { Prisma } from '@prisma/client';
 import express from 'express';
 import cors from 'cors';
 import helmet from 'helmet';
 import morgan from 'morgan';
+import rateLimit, { ipKeyGenerator } from 'express-rate-limit';
 
-import { ensureDevUser } from './prisma';
+import { ensureDevUser, prisma } from './prisma';
 import { seedDefaultCategories } from './seed-defaults';
+import { requireAuth } from './middleware/auth';
+import { assertProductionConfig, devAuthBypassEnabled, isProduction } from './config';
+import { requestContext, log, reportError } from './middleware/observability';
+import { MAX_UPLOAD_MB } from './middleware/upload';
+import './types';
+
 import plaidRoutes from './routes/plaid';
 import csvImportRoutes from './routes/import';
 import currencyRoutes from './routes/currency';
 import receiptsRoutes from './routes/receipts';
-import devbankRoutes from './routes/devbank';
 import transactionsRoutes from './routes/transactions';
 import categoriesRoutes from './routes/categories';
 import seedRoutes from './routes/seed';
 import budgetsRoutes from './routes/budgets';
 import goalsRoutes from './routes/goals';
+import authRoutes from './routes/auth';
+import accountsRoutes from './routes/accounts';
+import rulesRoutes from './routes/rules';
+import recurringRoutes from './routes/recurring';
+import searchRoutes from './routes/search';
+import aiRoutes from './routes/ai';
+import investmentsRoutes from './routes/investments';
+import notificationsRoutes from './routes/notifications';
+import forecastRoutes from './routes/forecast';
+import advisorRoutes from './routes/advisor';
+import dataQualityRoutes from './routes/data-quality';
+import householdRoutes from './routes/households';
+import creditScoreRoutes from './routes/credit-score';
+import scheduledReportRoutes from './routes/scheduled-reports';
 
 const app = express();
 const PORT = process.env.PORT || 4000;
@@ -22,22 +49,114 @@ const PORT = process.env.PORT || 4000;
 app.use(helmet());
 app.use(cors({ origin: process.env.FRONTEND_URL || 'http://localhost:5173', credentials: true }));
 app.use(express.json());
-app.use(morgan('dev'));
+// Human-readable locally; structured JSON with a request id in production,
+// which is what an aggregator can actually search.
+if (!isProduction) app.use(morgan('dev'));
+app.use(requestContext);
 
+// Liveness: is the process up? Deliberately cheap and dependency-free, so a
+// slow database cannot cause an orchestrator to kill a healthy process.
 app.get('/api/v1/health', (_req, res) => {
   res.json({ status: 'ok', service: 'finbrain-api', timestamp: new Date().toISOString() });
 });
+
+// Readiness: should this instance receive traffic? This endpoint used to be
+// the same static object, so an instance whose database was unreachable still
+// reported healthy and the load balancer kept sending it requests.
+app.get('/api/v1/ready', async (_req, res) => {
+  try {
+    await prisma.$queryRaw`SELECT 1`;
+    res.json({ status: 'ready', service: 'finbrain-api', database: 'up' });
+  } catch (error) {
+    reportError(error as Error, { probe: 'ready' });
+    res.status(503).json({ status: 'not-ready', service: 'finbrain-api', database: 'down' });
+  }
+});
+
+// Rate limits are keyed by authenticated user where possible; falling back to
+// IP alone would let one NATed office exhaust a shared bucket.
+// ipKeyGenerator normalises IPv6 to its /64 prefix. Using req.ip directly
+// would let an IPv6 client rotate addresses within its own subnet to get a
+// fresh bucket per request.
+const keyByUser = (req: express.Request) =>
+  req.userId || ipKeyGenerator(req.ip ?? '') || 'unknown';
+
+const generalLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 1000,
+  standardHeaders: true,
+  legacyHeaders: false,
+  keyGenerator: keyByUser,
+  message: { success: false, error: 'Too many requests. Please slow down.' },
+});
+
+// The AI routes call a paid completions API on every request. Without a cap,
+// an authenticated user can run up an unbounded bill by holding down a key.
+const aiLimiter = rateLimit({
+  windowMs: 60 * 1000,
+  max: 20,
+  standardHeaders: true,
+  legacyHeaders: false,
+  keyGenerator: keyByUser,
+  message: {
+    success: false,
+    error: 'You are sending messages too quickly. Please wait a moment.',
+  },
+});
+
+app.use('/api/v1', (req, res, next) => {
+  if (req.path === '/health' || req.path === '/ready') return next();
+
+  // devAuthBypassEnabled can never be true under NODE_ENV=production. The
+  // previous form switched itself on whenever CLERK_SECRET_KEY was absent, so
+  // a deploy that forgot the variable authenticated every request as the dev
+  // user and served that account's data to anyone.
+  if (devAuthBypassEnabled) {
+    req.userId = 'dev-user-001';
+    return next();
+  }
+
+  return requireAuth(req, res, next);
+});
+
+// Applied after auth so the limiter can key on req.userId.
+app.use('/api/v1', generalLimiter);
+app.use('/api/v1/ai', aiLimiter);
+app.use('/api/v1/advisor/chat', aiLimiter);
 
 app.use('/api/v1/plaid', plaidRoutes);
 app.use('/api/v1/import', csvImportRoutes);
 app.use('/api/v1/currency', currencyRoutes);
 app.use('/api/v1/receipts', receiptsRoutes);
-app.use('/api/v1/devbank', devbankRoutes);
 app.use('/api/v1/transactions', transactionsRoutes);
 app.use('/api/v1/categories', categoriesRoutes);
 app.use('/api/v1/seed', seedRoutes);
 app.use('/api/v1/budgets', budgetsRoutes);
 app.use('/api/v1/goals', goalsRoutes);
+app.use('/api/v1/auth', authRoutes);
+app.use('/api/v1/accounts', accountsRoutes);
+app.use('/api/v1/rules', rulesRoutes);
+app.use('/api/v1/recurring', recurringRoutes);
+app.use('/api/v1/search', searchRoutes);
+app.use('/api/v1/ai', aiRoutes);
+app.use('/api/v1/investments', investmentsRoutes);
+app.use('/api/v1/notifications', notificationsRoutes);
+app.use('/api/v1/forecast', forecastRoutes);
+app.use('/api/v1/advisor', advisorRoutes);
+app.use('/api/v1/data-quality', dataQualityRoutes);
+app.use('/api/v1/households', householdRoutes);
+app.use('/api/v1/credit-score', creditScoreRoutes);
+app.use('/api/v1/scheduled-reports', scheduledReportRoutes);
+
+app.get('/api/v1/audit-logs', async (req, res) => {
+  const { entity, limit: l } = req.query;
+  const logs = await prisma.auditLog.findMany({
+    where: entity ? { entity: entity as string, userId: req.userId } : { userId: req.userId },
+    orderBy: { createdAt: 'desc' },
+    take: Math.min(Number(l) || 20, 100),
+  });
+  res.json({ success: true, data: logs });
+});
 
 app.use((_req, res) => {
   res.status(404).json({ success: false, error: 'Not found' });
@@ -45,27 +164,89 @@ app.use((_req, res) => {
 
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 app.use((err: Error, _req: express.Request, res: express.Response, _next: express.NextFunction) => {
-  console.error('Unhandled route error:', err);
-  res.status(500).json({ success: false, error: 'Internal server error' });
+  // Rejected uploads are the caller's problem, not ours: answer with a status
+  // that says so rather than a blanket 500 the user cannot act on.
+  const code = (err as NodeJS.ErrnoException).code;
+  if (code === 'LIMIT_FILE_SIZE') {
+    return res.status(413).json({
+      success: false,
+      error: `That file is too large. The limit is ${MAX_UPLOAD_MB} MB.`,
+    });
+  }
+  if (code === 'LIMIT_FILE_COUNT') {
+    return res.status(400).json({ success: false, error: 'Upload one file at a time.' });
+  }
+  if (err.message === 'UNSUPPORTED_FILE_TYPE') {
+    return res.status(415).json({
+      success: false,
+      error: 'That file type is not supported. Upload a CSV or PDF statement, or a receipt image.',
+    });
+  }
+
+  // Prisma's known request errors describe something the caller did, not a
+  // server fault. Creating a category whose name already exists answered
+  // "Internal server error", which tells the user nothing and looks like an
+  // outage. Map the ones that are really client errors.
+  if (err instanceof Prisma.PrismaClientKnownRequestError) {
+    if (err.code === 'P2002') {
+      // Prisma reports every column in the constraint, including the internal
+      // scoping ones. Naming those back at the user ("that userId, name is
+      // already in use") is noise, so only the meaningful fields are kept.
+      const fields = (err.meta?.target as string[] | undefined)?.filter(
+        (field) => !['userId', 'id', 'householdId'].includes(field),
+      );
+      const subject = fields?.length ? fields.join(' and ') : 'value';
+      return res.status(409).json({
+        success: false,
+        error: `That ${subject} is already in use.`,
+      });
+    }
+    if (err.code === 'P2003') {
+      return res.status(400).json({ success: false, error: 'That reference does not exist.' });
+    }
+    if (err.code === 'P2025') {
+      return res.status(404).json({ success: false, error: 'Not found' });
+    }
+  }
+
+  reportError(err, { requestId: _req.requestId, path: _req.originalUrl.split('?')[0], method: _req.method });
+  res.status(500).json({
+    success: false,
+    error: 'Internal server error',
+    // Returned so a user can quote it and the exact request can be found.
+    requestId: _req.requestId,
+  });
 });
 
 async function start() {
-  await ensureDevUser();
-  await seedDefaultCategories();
-  console.log('Database initialized with dev user and default categories');
+  // Before anything else: a misconfigured production deploy must not boot.
+  assertProductionConfig();
+
+  if (devAuthBypassEnabled) {
+    console.warn(
+      '[auth] Development bypass is ACTIVE — every request is treated as dev-user-001. ' +
+        'This cannot be enabled when NODE_ENV=production.',
+    );
+  }
+
+  // The seeded dev user and default categories exist for local work only.
+  if (!isProduction) {
+    await ensureDevUser();
+    await seedDefaultCategories();
+  }
 
   app.listen(PORT, () => {
-    console.log(`FinBrain API running on port ${PORT}`);
+    log('info', 'API listening', { port: PORT, environment: process.env.NODE_ENV || 'development' });
   });
 }
 
 start().catch((err) => {
-  console.error('Failed to start server:', err);
+  reportError(err as Error, { phase: 'startup' });
   process.exit(1);
 });
 
 process.on('unhandledRejection', (err) => {
-  console.error('Unhandled rejection:', err);
+  reportError(err instanceof Error ? err : new Error(String(err)), { kind: 'unhandledRejection' });
 });
 
 export default app;

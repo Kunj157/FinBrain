@@ -25,8 +25,10 @@ export function CsvImport({ onComplete }: StatementImportProps) {
   const [dragOver, setDragOver] = useState(false);
   const [file, setFile] = useState<File | null>(null);
   const [preview, setPreview] = useState<PreviewRow[] | null>(null);
+  const [openingBalance, setOpeningBalance] = useState<number | null>(null);
   const [loading, setLoading] = useState(false);
   const [importing, setImporting] = useState(false);
+  const [importError, setImportError] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [skipDuplicates, setSkipDuplicates] = useState(true);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -76,6 +78,7 @@ export function CsvImport({ onComplete }: StatementImportProps) {
     try {
       const { data } = await api.post('/import/parse', formData);
       setPreview(data.data.preview);
+      setOpeningBalance(data.data.openingBalance ?? null);
     } catch (err) {
       const detail = (err as any)?.response?.data?.error || (err as any)?.message || 'Unknown error';
       const status = (err as any)?.response?.status || '';
@@ -229,16 +232,40 @@ export function CsvImport({ onComplete }: StatementImportProps) {
               if (!filteredPreview) return;
               setImporting(true);
               try {
-                await api.post('/transactions/bulk', { items: filteredPreview });
-              } catch {
-                // silent
+                const items = [...filteredPreview];
+                if (openingBalance && openingBalance !== 0) {
+                  items.push({
+                    date: new Date().toISOString().split('T')[0],
+                    amount: Math.abs(openingBalance),
+                    description: 'Opening balance from bank statement',
+                    merchant: 'Bank Statement',
+                    category: 'Income',
+                    categoryId: undefined,
+                    type: openingBalance >= 0 ? 'income' : 'expense',
+                  });
+                }
+                await api.post('/transactions/bulk', { items });
+                setImportError(null);
+                setImporting(false);
+                onComplete?.();
+              } catch (error) {
+                // A swallowed failure here told users their statement had
+                // imported when the server had written nothing at all.
+                console.error('Transaction import failed:', error);
+                setImportError(
+                  'We could not import those transactions. Nothing was saved — please try again.',
+                );
+                setImporting(false);
               }
-              setImporting(false);
-              onComplete?.();
             }}>
               {importing ? <Loader2 className="h-4 w-4 animate-spin" /> : <Check className="h-4 w-4" />}
               {importing ? 'Importing...' : `Import ${filteredPreview?.length || 0} transaction${filteredPreview?.length !== 1 ? 's' : ''}`}
             </Button>
+            {importError && (
+              <p role="alert" className="mt-2 text-xs text-rose-400">
+                {importError}
+              </p>
+            )}
           </div>
         </div>
       )}

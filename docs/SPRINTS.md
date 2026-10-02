@@ -5,7 +5,9 @@
 
 ---
 
-## Phase 1 — Foundation ✅ (Complete)
+## Sprint 1 — Foundation ✅ (Complete)
+> **Auth**: Clerk JWT verification enforced on all API routes. Frontend uses Clerk components for sign-in/sign-up. 401 responses auto-redirect to login. Dev fallback only when Clerk is unconfigured.
+> **Onboarding**: No forced profile/onboarding wizard. Dashboard is the entry point with standard empty-state cards (Connect Bank, Import CSV, Sample Data, DevBank). Sidebar Onboarding → Import.
 
 **Goal**: Secure application with working infrastructure and UI shell.
 
@@ -67,7 +69,7 @@
 
 ---
 
-## Phase 2 — Data Ingestion ✅ (Complete)
+## Sprint 2 — Data Ingestion ✅ (Complete)
 
 **Goal**: Users can get their financial data into FinBrain via any method.
 
@@ -119,44 +121,46 @@
 
 ---
 
-## Phase 3 — Finance Core 📋
+## Sprint 3 — Finance Core ✅ (Complete)
 
 **Goal**: Functional expense tracker with CRUD operations.
 
 ### Transactions
-- [ ] Full CRUD for income transactions
-- [ ] Full CRUD for expense transactions
-- [ ] Transaction form with category selector, payment method, date picker
-- [ ] Recurring transaction detection
-- [ ] Transaction detail view/modal
-- [ ] Soft delete with audit log
+- [x] Full CRUD for income transactions
+- [x] Full CRUD for expense transactions
+- [x] Transaction form with category selector, payment method, date picker
+- [ ] Recurring transaction detection *(P3 — heuristic-based, no rules)*
+- [ ] Transaction detail view/modal *(P3 — nice-to-have)*
+- [x] Soft delete with audit log *(P2 — `deletedAt`, restore endpoint, audit trail)*
 
 ### Transaction List
-- [ ] Paginated transaction list with infinite scroll
-- [ ] Search by merchant, description, amount
-- [ ] Filter by type, category, date range, payment method, status
-- [ ] Sort by date, amount, merchant
-- [ ] Bulk actions (delete, categorize, flag)
-- [ ] Export selected transactions to CSV
+- [x] Paginated transaction list with infinite scroll
+- [x] Search by merchant, description, amount
+- [x] Filter by type, category, date range, payment method, status
+- [x] Sort by date, amount, merchant
+- [x] Bulk actions (delete, categorize, flag)
+- [ ] Export selected transactions to CSV *(P3 — CSV done elsewhere)*
 
 ### Categories
-- [ ] Default category set (Food, Transport, Shopping, Bills, etc.)
-- [ ] Category CRUD (custom categories)
-- [ ] Category hierarchy (parent/child)
-- [ ] Color picker per category
-- [ ] Auto-categorization rules (merchant → category)
+- [x] Default category set (Food, Transport, Shopping, Bills, etc.)
+- [x] Category CRUD (custom categories)
+- [ ] Category hierarchy (parent/child) *(P3 — schema ready, no UI)*
+- [x] Color picker per category
+- [x] DistilBERT model fine-tuned on 68k transactions
+- [x] Model integrated into ml-service classifier (sklearn → transformer fallback)
+- [x] Auto-categorization rules (merchant → category)
 
 ### Dashboard Enhancement
-- [ ] Income vs Expenses chart (monthly bar chart)
-- [ ] Category breakdown (doughnut/pie chart)
-- [ ] Spending trend (7-day, 30-day)
-- [ ] Recent transactions list (live)
-- [ ] Cash flow summary
-- [ ] Quick-add transaction button (floating action)
+- [x] Income vs Expenses chart (monthly bar chart)
+- [x] Category breakdown (doughnut/pie chart)
+- [x] Spending trend (7-day, 30-day)
+- [x] Recent transactions list (live)
+- [x] Cash flow summary
+- [x] Quick-add transaction button
 
 ---
 
-## Phase 4 — Adaptive Budgeting & Goals 📋
+## Sprint 4 — Adaptive Budgeting & Goals 📋
 
 **Goal**: Budgets that learn the user, not the other way around.
 
@@ -197,7 +201,7 @@
 
 ---
 
-## Phase 5 — Analytics & Reports 📋
+## Sprint 5 — Analytics & Reports 📋
 
 **Goal**: Rich analytics platform with exportable reports.
 
@@ -247,7 +251,7 @@
 
 ---
 
-## Phase 6 — Cloud-Native & Offline 📋
+## Sprint 6 — Cloud-Native & Offline 📋
 
 **Goal**: Production-ready cloud architecture with offline-first PWA.
 
@@ -314,7 +318,7 @@
 
 ---
 
-## Phase 7 — ML & AI Assistant 📋
+## Sprint 7 — ML & AI Assistant 📋
 
 **Goal**: AI-powered financial forecasting and natural language assistant.
 
@@ -406,7 +410,7 @@
 
 ---
 
-## Phase 8+ — Stretch Goals 🚀
+## Sprint 8+ — Stretch Goals 🚀
 
 - [ ] React Native mobile app (shares API)
 - [ ] Plaid Production for real bank connections
@@ -441,3 +445,36 @@ When merging `dev` → `main` for a release:
 - [ ] Tagged with version number
 - [ ] Deployed to staging and verified
 - [ ] Deployed to production
+
+---
+
+## Current State Addendum (July 2026)
+
+The original sprint plan above is partially superseded by completed Waves 1-4.
+
+### What's Done
+
+- Sprint 1 (Foundation): ✅ Complete
+- Sprint 2 (Data Ingestion): ✅ Complete
+- Sprint 3 (Finance Core): ✅ Complete
+- Wave 1 (LLM AI Assistant, Investment Holdings, Budget Alerts): ✅ Complete
+- Wave 2 (ML Forecasting, Sankey Diagrams, PDF Export, Cash Flow Projection): ✅ Complete
+- Wave 3 (Advisor Foundation: Profile, Patterns, Memory, Affordability, Scenarios): ✅ Complete
+- Wave 4 (Advisor Intelligence: Insights, Weekly Recap, Anomalies, Data Quality): ✅ Complete
+- Household/Couples: ✅ Complete
+- Credit Score: ✅ Complete
+- Flex Budgeting: ✅ Complete
+- Recurring Calendar: ✅ Complete
+- Tax Summary Report: ✅ Complete
+
+### What's Remaining
+
+- Customizable Dashboard (drag-and-drop widgets)
+- Scheduled Reports (email delivery)
+- Mobile Apps (React Native / Capacitor)
+- Real-time market data for investments (Yahoo Finance API)
+- Household shared transaction views (yours/mine/ours labels)
+- Scheduled report delivery
+- PWA service worker + offline mode
+- E2E tests
+- Production deployment config

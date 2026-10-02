@@ -21,6 +21,11 @@ export interface Transaction {
   receiptUrl?: string;
   status: TransactionStatus;
   isRecurring: boolean;
+  deletedAt?: string | null;
+  /** Set when an amount has been converted for display; the value as stored. */
+  originalAmount?: number;
+  /** The currency the transaction actually occurred in. */
+  originalCurrency?: string;
   createdAt: string;
   updatedAt: string;
 }
@@ -109,6 +114,68 @@ export interface UserProfile {
   monthlyIncome?: number;
   onboardingCompleted: boolean;
   createdAt: string;
+}
+
+export type AccountType = 'checking' | 'savings' | 'credit' | 'loan' | 'investment' | 'real_estate' | 'other';
+
+export interface Account {
+  id: string;
+  userId: string;
+  name: string;
+  type: AccountType;
+  balance: number;
+  currency: Currency;
+  institution?: string;
+  isActive: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface NetWorthData {
+  netWorth: number;
+  totalAssets: number;
+  totalLiabilities: number;
+  accounts: { id: string; name: string; type: AccountType; balance: number; currency: Currency }[];
+}
+
+export interface CategorizationRule {
+  id: string;
+  userId: string;
+  priority: number;
+  merchantPattern?: string;
+  descriptionPattern?: string;
+  categoryId: string;
+  isActive: boolean;
+  category?: { id: string; name: string; color: string };
+  createdAt: string;
+  updatedAt: string;
+}
+
+export type RecurringFrequency = 'weekly' | 'biweekly' | 'monthly' | 'quarterly' | 'yearly';
+
+export interface RecurringPattern {
+  id: string;
+  merchant: string;
+  description: string;
+  amount: number;
+  avgAmount: number;
+  frequency: RecurringFrequency;
+  nextExpectedDate: string;
+  lastDate: string;
+  transactionCount: number;
+  totalSpent: number;
+  monthlyCost: number;
+  categoryId: string;
+  categoryName: string;
+  categoryColor: string;
+  transactions: { id: string; date: string; amount: number }[];
+}
+
+export interface RecurringSummary {
+  totalMonthlyCost: number;
+  activeCount: number;
+  upcomingThisMonth: number;
+  totalTransactions: number;
 }
 
 export interface DashboardSummary {

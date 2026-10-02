@@ -1,4 +1,4 @@
-import { BrowserRouter, Routes, Route } from 'react-router-dom';
+import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { QueryClientProvider } from '@tanstack/react-query';
 import { queryClient } from '@/lib/query';
 import { AuthProvider } from '@/auth/auth-provider';
@@ -8,6 +8,7 @@ import { AppLayout } from '@/components/layout/app-layout';
 
 import SignIn from '@/auth/sign-in';
 import SignUp from '@/auth/sign-up';
+import HomePage from '@/pages/home';
 import Dashboard from '@/pages/dashboard';
 import Transactions from '@/pages/transactions';
 import Budgets from '@/pages/budgets';
@@ -19,8 +20,13 @@ import Reports from '@/pages/reports';
 import Insights from '@/pages/insights';
 import SettingsPage from '@/pages/settings';
 import HelpPage from '@/pages/help';
-import Onboarding from '@/pages/onboarding';
-
+import AccountsPage from '@/pages/accounts';
+import RecurringPage from '@/pages/recurring';
+import InvestmentsPage from '@/pages/investments';
+import ForecastingPage from '@/pages/forecasting';
+import AdvisorPage from '@/pages/advisor';
+import HouseholdPage from '@/pages/household';
+import CreditScorePage from '@/pages/credit-score';
 export default function App() {
   return (
     <QueryClientProvider client={queryClient}>
@@ -28,6 +34,7 @@ export default function App() {
         <ThemeProvider>
         <AuthProvider>
           <Routes>
+            <Route path="/" element={<HomePage />} />
             <Route path="/sign-in" element={<SignIn />} />
             <Route path="/sign-up" element={<SignUp />} />
 
@@ -38,8 +45,7 @@ export default function App() {
                 </ProtectedRoute>
               }
             >
-              <Route path="/onboarding" element={<Onboarding />} />
-            <Route path="/" element={<Dashboard />} />
+              <Route path="/dashboard" element={<Dashboard />} />
               <Route path="/transactions" element={<Transactions />} />
               <Route path="/categories" element={<Categories />} />
               <Route path="/budgets" element={<Budgets />} />
@@ -50,6 +56,14 @@ export default function App() {
               <Route path="/insights" element={<Insights />} />
               <Route path="/settings" element={<SettingsPage />} />
               <Route path="/help" element={<HelpPage />} />
+              <Route path="/accounts" element={<AccountsPage />} />
+              <Route path="/rules" element={<Navigate to="/settings" replace />} />
+              <Route path="/recurring" element={<RecurringPage />} />
+              <Route path="/investments" element={<InvestmentsPage />} />
+              <Route path="/forecasting" element={<ForecastingPage />} />
+              <Route path="/advisor" element={<AdvisorPage />} />
+              <Route path="/household" element={<HouseholdPage />} />
+              <Route path="/credit-score" element={<CreditScorePage />} />
             </Route>
           </Routes>
         </AuthProvider>

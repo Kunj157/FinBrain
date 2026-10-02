@@ -1,13 +1,13 @@
 import { Router, type Request, type Response } from 'express';
-import multer from 'multer';
 import fs from 'fs';
+import { suggestCategoryWithML } from '../services/auto-categorize';
+import { uploadReceipt, discardUpload } from '../middleware/upload';
 
-const upload = multer({ dest: 'uploads/' });
 const router = Router();
 
 const ML_SERVICE_URL = process.env.ML_SERVICE_URL || 'http://localhost:8000';
 
-router.post('/ocr', upload.single('file'), async (req: Request, res: Response) => {
+router.post('/ocr', uploadReceipt.single('file'), async (req: Request, res: Response) => {
   try {
     const file = req.file as Express.Multer.File | undefined;
     if (!file) {
@@ -23,18 +23,30 @@ router.post('/ocr', upload.single('file'), async (req: Request, res: Response) =
       body: formData,
     });
 
-    fs.unlinkSync(file.path);
-
     if (!response.ok) {
       const errorBody = await response.json() as { detail?: string };
       return res.status(response.status).json({ success: false, error: errorBody.detail || 'OCR failed' });
     }
 
-    const result = await response.json() as { data: unknown };
-    res.json({ success: true, data: result.data });
+    const result = await response.json() as { data: { merchant?: string; amount?: number; date?: string; text?: string } };
+    const data = result.data || {};
+
+    let category = null;
+    if (data.merchant) {
+      category = await suggestCategoryWithML(req.userId, data.merchant, data.text || '');
+    }
+
+    res.json({
+      success: true,
+      data: { ...data, category: category?.categoryName || null, categoryId: category?.categoryId || null },
+    });
   } catch (error) {
     console.error('Receipt OCR error:', error);
     res.status(500).json({ success: false, error: 'OCR service unavailable. Make sure the ML service is running.' });
+  } finally {
+    // Previously only removed on success, so every failed OCR left the
+    // receipt image on disk indefinitely.
+    discardUpload(req.file as Express.Multer.File | undefined);
   }
 });
 
