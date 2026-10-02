@@ -22,6 +22,10 @@ export interface Transaction {
   status: TransactionStatus;
   isRecurring: boolean;
   deletedAt?: string | null;
+  /** Set when an amount has been converted for display; the value as stored. */
+  originalAmount?: number;
+  /** The currency the transaction actually occurred in. */
+  originalCurrency?: string;
   createdAt: string;
   updatedAt: string;
 }

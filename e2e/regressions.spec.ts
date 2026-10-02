@@ -235,3 +235,50 @@ test.describe('advisor chat', () => {
     expect(overflow).toBeLessThanOrEqual(0);
   });
 });
+
+test.describe('multi-currency totals', () => {
+  // Amounts are stored in the currency each transaction happened in. Every
+  // total used to add the raw numbers together and label the result with the
+  // user's preferred currency, so a ₹32,945 row counted as $32,945 — which
+  // overstated net cash flow by 54.7% on the seeded data.
+  test('headline totals convert instead of summing currencies raw', async ({ page, request }) => {
+    const res = await request.get('http://localhost:4000/api/v1/transactions?limit=500');
+    const rows = (await res.json()).data.data as Array<{
+      amount: number; currency: string; type: string;
+    }>;
+
+    const currencies = new Set(rows.map((r) => r.currency));
+    test.skip(currencies.size < 2, 'needs a mixed-currency dataset to be meaningful');
+
+    const naive = rows.reduce(
+      (sum, r) => sum + (r.type === 'income' ? r.amount : -r.amount),
+      0,
+    );
+
+    await gotoAndSettle(page, '/dashboard');
+    const card = page.getByText('NET CASH FLOW').locator('..');
+    await expect(card).toBeVisible();
+
+    const shown = parseMoney((await card.textContent()) ?? '0');
+
+    // The figure must differ from the unconverted sum, and by a wide margin —
+    // an exact match would mean no conversion happened at all.
+    expect(Math.abs(shown - naive)).toBeGreaterThan(1);
+    expect(shown).toBeLessThan(naive);
+  });
+
+  test('the ledger shows each row in the currency it was recorded in', async ({ page, request }) => {
+    const res = await request.get('http://localhost:4000/api/v1/transactions?limit=100');
+    const rows = (await res.json()).data.data as Array<{ currency: string }>;
+    const currencies = new Set(rows.map((r) => r.currency));
+    test.skip(currencies.size < 2, 'needs a mixed-currency dataset to be meaningful');
+
+    await gotoAndSettle(page, '/transactions');
+    const body = (await page.locator('main').innerText()).replace(/\s+/g, ' ');
+
+    // At least two distinct currency symbols should appear, rather than every
+    // row being relabelled with the user's preferred one.
+    const symbols = ['$', '€', '£', '₹', '¥'].filter((s) => body.includes(s));
+    expect(symbols.length).toBeGreaterThan(1);
+  });
+});

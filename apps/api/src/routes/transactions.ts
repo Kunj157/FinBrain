@@ -23,7 +23,11 @@ const createTransactionSchema = z.object({
   categoryId: z.string(),
   accountId: z.string().optional(),
   paymentMethod: z.enum(['cash', 'credit_card', 'debit_card', 'bank_transfer', 'upi', 'other']).default('other'),
-  date: z.string(),
+  // Must be parseable: `new Date('not-a-date')` is an Invalid Date, which
+  // Prisma rejects with an exception the route surfaced as a generic 500.
+  date: z.string().refine((value) => !Number.isNaN(Date.parse(value)), {
+    message: 'date must be a parseable date string',
+  }),
   notes: z.string().optional(),
   status: z.enum(['pending', 'cleared', 'flagged']).default('cleared'),
   isRecurring: z.boolean().default(false),

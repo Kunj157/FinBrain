@@ -4,6 +4,7 @@
 // the error handler below, which covers every async handler in the app.
 import 'express-async-errors';
 
+import { Prisma } from '@prisma/client';
 import express from 'express';
 import cors from 'cors';
 import helmet from 'helmet';
@@ -155,6 +156,32 @@ app.use((err: Error, _req: express.Request, res: express.Response, _next: expres
       success: false,
       error: 'That file type is not supported. Upload a CSV or PDF statement, or a receipt image.',
     });
+  }
+
+  // Prisma's known request errors describe something the caller did, not a
+  // server fault. Creating a category whose name already exists answered
+  // "Internal server error", which tells the user nothing and looks like an
+  // outage. Map the ones that are really client errors.
+  if (err instanceof Prisma.PrismaClientKnownRequestError) {
+    if (err.code === 'P2002') {
+      // Prisma reports every column in the constraint, including the internal
+      // scoping ones. Naming those back at the user ("that userId, name is
+      // already in use") is noise, so only the meaningful fields are kept.
+      const fields = (err.meta?.target as string[] | undefined)?.filter(
+        (field) => !['userId', 'id', 'householdId'].includes(field),
+      );
+      const subject = fields?.length ? fields.join(' and ') : 'value';
+      return res.status(409).json({
+        success: false,
+        error: `That ${subject} is already in use.`,
+      });
+    }
+    if (err.code === 'P2003') {
+      return res.status(400).json({ success: false, error: 'That reference does not exist.' });
+    }
+    if (err.code === 'P2025') {
+      return res.status(404).json({ success: false, error: 'Not found' });
+    }
   }
 
   console.error('Unhandled route error:', err);

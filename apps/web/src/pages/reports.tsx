@@ -85,7 +85,7 @@ export default function Reports() {
     setLoading(true);
     try {
       const [txns, catRes] = await Promise.all([
-        fetchAllTransactions(),
+        fetchAllTransactions('', user?.currency || 'USD'),
         api.get('/categories'),
       ]);
       setTransactions(txns);
@@ -97,7 +97,7 @@ export default function Reports() {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [user?.currency]);
 
   useEffect(() => { fetchData(); }, [fetchData]);
 

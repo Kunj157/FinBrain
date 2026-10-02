@@ -302,7 +302,7 @@ export default function Insights() {
     setLoading(true);
     try {
       const [txns, catRes, budgetRes, goalRes] = await Promise.all([
-        fetchAllTransactions(),
+        fetchAllTransactions('', user?.currency || 'USD'),
         api.get('/categories'),
         api.get('/budgets'),
         api.get('/goals'),
@@ -318,7 +318,7 @@ export default function Insights() {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [user?.currency]);
 
   useEffect(() => { fetchData(); }, [fetchData]);
 
