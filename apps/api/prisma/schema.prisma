@@ -93,6 +93,7 @@ model User {
   budgetPlans         BudgetPlan[]
   recurringPatterns   RecurringPattern[]
   creditScores        CreditScore[]
+  plaidItems          PlaidItem[]
 
   householdMemberships  HouseholdMember[]
   membersInvited        HouseholdMember[] @relation("HouseholdMembersInvited")
@@ -111,6 +112,32 @@ enum HouseholdMemberStatus {
   ACTIVE
   INVITED
   LEFT
+}
+
+/// A linked bank connection. The Plaid access token grants ongoing read access
+/// to the user's real accounts and never expires on its own, so it is stored
+/// here encrypted and never leaves the server.
+model PlaidItem {
+  id            String   @id @default(cuid())
+
+  /// Plaid's item id — safe to expose; identifies the connection, not access.
+  itemId        String   @unique
+  /// AES-256-GCM ciphertext of the access token. Never returned by any route.
+  accessToken   String
+  institution   String?
+  /// Cursor from the last transactionsSync, so a re-sync resumes rather than
+  /// replaying the entire history.
+  syncCursor    String?
+  lastSyncedAt  DateTime?
+
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([userId])
+  @@map("plaid_items")
 }
 
 model Household {
