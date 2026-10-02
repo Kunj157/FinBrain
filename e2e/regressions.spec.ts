@@ -274,11 +274,22 @@ test.describe('multi-currency totals', () => {
     test.skip(currencies.size < 2, 'needs a mixed-currency dataset to be meaningful');
 
     await gotoAndSettle(page, '/transactions');
-    const body = (await page.locator('main').innerText()).replace(/\s+/g, ' ');
+
+    // networkidle only means the requests finished; React has not necessarily
+    // painted, and innerText on an unrendered element returns ''. Waiting for
+    // the first row is what makes this deterministic -- without it the
+    // assertion saw an empty string roughly two runs in three.
+    await expect(page.locator('tbody tr').first()).toBeVisible();
 
     // At least two distinct currency symbols should appear, rather than every
     // row being relabelled with the user's preferred one.
-    const symbols = ['$', '€', '£', '₹', '¥'].filter((s) => body.includes(s));
-    expect(symbols.length).toBeGreaterThan(1);
+    await expect
+      .poll(() =>
+        page
+          .locator('main')
+          .innerText()
+          .then((text) => ['$', '€', '£', '₹', '¥'].filter((s) => text.includes(s)).length),
+      )
+      .toBeGreaterThan(1);
   });
 });
