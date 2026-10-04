@@ -71,6 +71,35 @@ as a secret instead of provisioning a Render database.
 Migrations run from the start command (`prisma migrate deploy`), so the schema
 is created on first boot. It is idempotent and replays harmlessly on restart.
 
+## The demo account
+
+A fresh database is empty and production auth is fail-closed, so a visitor
+would otherwise sign in and find empty states everywhere. `seed:demo` fills
+one named account with six months of history — four accounts, ~120
+transactions across USD, EUR, GBP and INR, four monthly budgets and three
+goals — so the dashboard, analytics, budgets, goals and the advisor all have
+something to show.
+
+The Clerk user has to exist first: the API creates the matching row on first
+sign-in, so sign in once as the demo user before seeding.
+
+```bash
+DATABASE_URL="<neon pooled url>" \
+DEMO_USER_EMAIL=demo@yourdomain.com \
+DEMO_SEED_CONFIRM=demo@yourdomain.com \
+pnpm --filter @finbrain/api seed:demo
+```
+
+The confirmation has to match the target email. The script deletes every
+transaction, account, budget and goal belonging to that user before
+re-creating them, so it asks you to name the target twice rather than take it
+from one mistyped variable. It is scoped to that account and touches no other
+user.
+
+The data is generated from a fixed seed, so re-running it reproduces the same
+demo rather than a different story each time. That makes it safe to run on a
+schedule to reset whatever visitors have changed.
+
 ## Free tier behaviour
 
 - **The API sleeps.** Render spins down a free web service after 15 minutes
