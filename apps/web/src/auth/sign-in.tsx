@@ -1,8 +1,9 @@
 import { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { Brain, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/hooks/use-auth';
+import { TryDemoButton } from '@/auth/try-demo';
 
 function DevSignIn() {
   const navigate = useNavigate();
@@ -63,6 +64,8 @@ function DevSignIn() {
 function ClerkSignInPage() {
   const navigate = useNavigate();
   const { isSignedIn, isLoading } = useAuth();
+  const [searchParams] = useSearchParams();
+  const autoDemo = searchParams.get('demo') === '1';
   const [ClerkSignIn, setClerkSignIn] = useState<any>(null);
 
   useEffect(() => {
@@ -83,8 +86,11 @@ function ClerkSignInPage() {
   }
 
   return (
-    <div className="flex justify-center">
-      <ClerkSignIn routing="hash" signUpUrl="/sign-up" afterSignInUrl="/dashboard" />
+    <div className="space-y-6">
+      <TryDemoButton autoStart={autoDemo} />
+      <div className="flex justify-center">
+        <ClerkSignIn routing="hash" signUpUrl="/sign-up" afterSignInUrl="/dashboard" />
+      </div>
     </div>
   );
 }

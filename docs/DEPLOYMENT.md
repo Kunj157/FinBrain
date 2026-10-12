@@ -100,6 +100,26 @@ The data is generated from a fixed seed, so re-running it reproduces the same
 demo rather than a different story each time. That makes it safe to run on a
 schedule to reset whatever visitors have changed.
 
+### One-click access
+
+Visitors should not have to sign up to look around, so the landing page's
+**Try the Live Demo** button (and any link to `/sign-in?demo=1`) signs them
+straight into the demo account. The API's public `POST /api/v1/demo/session`
+mints a Clerk sign-in ticket valid for two minutes, and the web app redeems it
+with Clerk's `ticket` strategy. No password is shipped in the bundle.
+
+It only ever issues tickets for the account named by `DEMO_USER_EMAIL` on
+`finbrain-api`; with that unset the endpoint returns 404. The endpoint is
+rate-limited per IP, and the demo account cannot be deleted through the app.
+
+Visitors share that one account, so the nightly `Reset demo data` workflow
+(`.github/workflows/reset-demo.yml`) re-runs `seed:demo` against it. It needs
+the repository secrets `DEMO_DATABASE_URL` (the Neon pooled URL) and
+`DEMO_USER_EMAIL`, and skips cleanly without them.
+
+The landing page also requests `/health` on load, so a sleeping free-tier API
+starts waking while the visitor is still reading.
+
 ## Free tier behaviour
 
 - **The API sleeps.** Render spins down a free web service after 15 minutes

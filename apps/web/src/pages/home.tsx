@@ -2,6 +2,8 @@ import { Brain, ArrowRight, TrendingUp, PiggyBank, Repeat, Zap, BarChart3, Githu
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/hooks/use-auth';
 import { Navigate } from 'react-router-dom';
+import { useEffect } from 'react';
+import { prewarmApi } from '@/lib/api';
 
 const features = [
   {
@@ -49,6 +51,9 @@ const steps = [
 
 export default function HomePage() {
   const { isSignedIn, isLoading } = useAuth();
+
+  // Start waking the API while the visitor reads, so the demo opens faster.
+  useEffect(prewarmApi, []);
 
   if (isLoading) return null;
   if (isSignedIn) return <Navigate to="/dashboard" replace />;
@@ -115,11 +120,19 @@ export default function HomePage() {
                 <ArrowRight className="ml-2 h-5 w-5" />
               </Button>
             </a>
-            <a href="#features">
-              <Button variant="outline" size="lg" className="h-12 px-8 text-base border-white/[0.08] hover:bg-white/[0.03]">
-                See Features
-              </Button>
-            </a>
+            {import.meta.env.VITE_CLERK_PUBLISHABLE_KEY ? (
+              <a href="/sign-in?demo=1">
+                <Button variant="outline" size="lg" className="h-12 px-8 text-base border-emerald-500/30 hover:bg-emerald-500/10">
+                  Try the Live Demo
+                </Button>
+              </a>
+            ) : (
+              <a href="#features">
+                <Button variant="outline" size="lg" className="h-12 px-8 text-base border-white/[0.08] hover:bg-white/[0.03]">
+                  See Features
+                </Button>
+              </a>
+            )}
           </div>
 
           <p className="mt-4 text-xs text-muted-foreground">No credit card required. Set up in 2 minutes.</p>

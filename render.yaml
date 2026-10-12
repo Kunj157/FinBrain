@@ -61,6 +61,11 @@ services:
         sync: false
       - key: PLAID_ENV
         value: sandbox
+      # The one account the public "Try the live demo" button signs visitors
+      # into. Unset, the button reports the demo as unavailable and no
+      # sign-in ticket can be issued for anyone. See docs/DEPLOYMENT.md.
+      - key: DEMO_USER_EMAIL
+        sync: false
 
   - type: web
     name: finbrain-web
