@@ -4,6 +4,15 @@ const api = axios.create({
   baseURL: import.meta.env.VITE_API_URL || '/api/v1',
 });
 
+/**
+ * Wake the API without waiting on it. The free host sleeps after 15 minutes
+ * idle and takes up to a minute to come back, so starting that early — while
+ * the visitor is still reading the landing page — hides most of it.
+ */
+export function prewarmApi() {
+  fetch(`${api.defaults.baseURL}/health`).catch(() => {});
+}
+
 let _getToken: (() => Promise<string | null>) | null = null;
 
 export function setTokenGetter(getter: () => Promise<string | null>) {

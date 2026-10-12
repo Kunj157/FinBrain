@@ -201,6 +201,10 @@ Required services:
 
 ## Running in Production
 
+See [DEPLOYMENT.md](./docs/DEPLOYMENT.md) to put it online — `render.yaml`
+deploys the API and web app on free tiers with Neon for Postgres, and scales
+to paid plans by changing one line.
+
 See [OPERATIONS.md](./docs/OPERATIONS.md) for health and readiness probes,
 structured logging, required configuration, and the backup and restore
 procedure (including how to verify a restore actually works).

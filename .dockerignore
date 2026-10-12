@@ -1,0 +1,39 @@
+# The API Dockerfile's builder stage does `COPY . .`, so without this an
+# .env sitting in the working tree is copied into a build layer along with
+# real Clerk and Plaid credentials. The final image does not carry it, but a
+# layer that does is still a layer that can be pushed or inspected.
+.env
+.env.*
+!.env.example
+!.env.template
+
+# Never belongs in an image, and makes the build context far larger than the
+# source it is meant to carry.
+.git
+node_modules
+**/node_modules
+**/dist
+apps/web/.vite
+.turbo
+
+# Local agent and operator state
+AGENTS.md
+memory/
+MEMORY.md
+backups/
+
+# Test and build output
+coverage/
+test-results/
+playwright-report/
+blob-report/
+.playwright-mcp/
+**/*.tsbuildinfo
+*.log
+
+# Python
+__pycache__/
+*.pyc
+.venv/
+venv/
+ml-venv/

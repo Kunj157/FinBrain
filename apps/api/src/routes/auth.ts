@@ -2,6 +2,7 @@ import { Router } from 'express';
 import bcrypt from 'bcryptjs';
 import { createClerkClient } from '@clerk/backend';
 import { prisma } from '../prisma';
+import { isDemoUser } from '../services/demo-session';
 
 const clerkClient = process.env.CLERK_SECRET_KEY
   ? createClerkClient({ secretKey: process.env.CLERK_SECRET_KEY })
@@ -95,6 +96,9 @@ router.delete('/profile', async (req, res) => {
   try {
     const user = await prisma.user.findUnique({ where: { id: req.userId } });
     if (!user) return res.status(404).json({ success: false, error: 'User not found' });
+    if (isDemoUser(user.email, process.env.DEMO_USER_EMAIL)) {
+      return res.status(403).json({ success: false, error: 'The demo account cannot be deleted.' });
+    }
 
     await prisma.user.delete({ where: { id: req.userId } });
 

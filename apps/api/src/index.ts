@@ -42,9 +42,14 @@ import dataQualityRoutes from './routes/data-quality';
 import householdRoutes from './routes/households';
 import creditScoreRoutes from './routes/credit-score';
 import scheduledReportRoutes from './routes/scheduled-reports';
+import demoRoutes from './routes/demo';
 
 const app = express();
 const PORT = process.env.PORT || 4000;
+
+// Hosted behind one reverse proxy (Render). Without this req.ip is the proxy's
+// address, so every IP-keyed rate limit becomes one bucket shared by all users.
+if (isProduction) app.set('trust proxy', 1);
 
 app.use(helmet());
 app.use(cors({ origin: process.env.FRONTEND_URL || 'http://localhost:5173', credentials: true }));
@@ -103,6 +108,10 @@ const aiLimiter = rateLimit({
     error: 'You are sending messages too quickly. Please wait a moment.',
   },
 });
+
+// Public by design: it can only ever sign a visitor into the one demo account
+// named by DEMO_USER_EMAIL. Mounted before the auth gate below.
+app.use('/api/v1/demo', demoRoutes);
 
 app.use('/api/v1', (req, res, next) => {
   if (req.path === '/health' || req.path === '/ready') return next();

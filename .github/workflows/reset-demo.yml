@@ -1,0 +1,49 @@
+# Restores the public demo account to its seeded state every night, so
+# whatever one visitor deleted or renamed is gone before the next one arrives.
+# Needs repository secrets DEMO_DATABASE_URL (Neon pooled URL) and
+# DEMO_USER_EMAIL. Without them the job reports that and exits cleanly.
+name: Reset demo data
+
+on:
+  schedule:
+    - cron: '17 3 * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  reset:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check secrets
+        id: check
+        env:
+          DATABASE_URL: ${{ secrets.DEMO_DATABASE_URL }}
+          DEMO_USER_EMAIL: ${{ secrets.DEMO_USER_EMAIL }}
+        run: |
+          if [ -z "$DATABASE_URL" ] || [ -z "$DEMO_USER_EMAIL" ]; then
+            echo "::notice::DEMO_DATABASE_URL / DEMO_USER_EMAIL not set; skipping demo reset."
+            echo "ready=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "ready=true" >> "$GITHUB_OUTPUT"
+          fi
+      - uses: actions/checkout@v4
+        if: steps.check.outputs.ready == 'true'
+      - uses: pnpm/action-setup@v4
+        if: steps.check.outputs.ready == 'true'
+      - uses: actions/setup-node@v4
+        if: steps.check.outputs.ready == 'true'
+        with:
+          node-version: 22
+          cache: pnpm
+      - name: Reseed demo account
+        if: steps.check.outputs.ready == 'true'
+        env:
+          DATABASE_URL: ${{ secrets.DEMO_DATABASE_URL }}
+          DEMO_USER_EMAIL: ${{ secrets.DEMO_USER_EMAIL }}
+          DEMO_SEED_CONFIRM: ${{ secrets.DEMO_USER_EMAIL }}
+        run: |
+          pnpm install --frozen-lockfile --filter @finbrain/api...
+          pnpm --filter @finbrain/api exec prisma generate
+          pnpm --filter @finbrain/api seed:demo

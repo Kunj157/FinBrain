@@ -1,0 +1,100 @@
+# Render Blueprint — https://render.com/docs/blueprint-spec
+#
+# Deploys FinBrain as two services plus a managed Postgres: a Node API, a
+# static build of the React app, and the database. Redis and the Python ML
+# service are deliberately absent -- the API never imports a Redis client, and
+# forecasting falls back to a local computation when the ML service is
+# unreachable, so neither is needed to run the product.
+#
+# Everything here is ordinary Node, static files and Postgres. Moving to a
+# paid plan is a one-line `plan:` change; moving off Render entirely means
+# pointing the same build and start commands at another host and carrying
+# DATABASE_URL across. Nothing below is a one-way door.
+#
+# See docs/DEPLOYMENT.md.
+
+services:
+  - type: web
+    name: finbrain-api
+    runtime: node
+    plan: free
+    region: frankfurt
+    branch: main
+    buildCommand: corepack enable && pnpm install --frozen-lockfile && pnpm --filter @finbrain/api build
+    # Migrations run on boot rather than at build time: the build step is not
+    # guaranteed to reach the database, and `migrate deploy` is idempotent, so
+    # replaying it on a cold start costs a second and protects against a
+    # deploy that ships code ahead of its schema.
+    startCommand: pnpm --filter @finbrain/api exec prisma migrate deploy && node apps/api/dist/index.js
+    # Liveness, not readiness: Render restarts an instance that fails this, and
+    # killing a healthy process because the database is briefly slow is worse
+    # than the slowness. /api/v1/ready is for load balancers.
+    healthCheckPath: /api/v1/health
+    envVars:
+      - key: NODE_VERSION
+        value: "22"
+      - key: NODE_ENV
+        value: production
+      # Neon, not Render's own free Postgres: a free Render database is
+      # deleted 30 days after creation, which would quietly take the demo's
+      # data with it. Neon's free tier has no such expiry. Use Neon's *pooled*
+      # connection string.
+      - key: DATABASE_URL
+        sync: false
+      # Generated once by Render and then held constant. Rotating it makes
+      # stored Plaid tokens unreadable, so it must never be regenerated
+      # casually -- see docs/OPERATIONS.md.
+      - key: ENCRYPTION_KEY
+        generateValue: true
+      # The API fails closed without this; it is set in the dashboard rather
+      # than here so the secret never enters the repository.
+      - key: CLERK_SECRET_KEY
+        sync: false
+      # CORS origin. Points at the static site below.
+      - key: FRONTEND_URL
+        sync: false
+      - key: GROQ_API_KEY
+        sync: false
+      - key: PLAID_CLIENT_ID
+        sync: false
+      - key: PLAID_SECRET
+        sync: false
+      - key: PLAID_ENV
+        value: sandbox
+      # The one account the public "Try the live demo" button signs visitors
+      # into. Unset, the button reports the demo as unavailable and no
+      # sign-in ticket can be issued for anyone. See docs/DEPLOYMENT.md.
+      - key: DEMO_USER_EMAIL
+        sync: false
+
+  - type: web
+    name: finbrain-web
+    runtime: static
+    branch: main
+    buildCommand: corepack enable && pnpm install --frozen-lockfile && pnpm --filter @finbrain/web build
+    staticPublishPath: apps/web/dist
+    envVars:
+      - key: NODE_VERSION
+        value: "22"
+      # Both are read by Vite at build time, so changing either needs a
+      # rebuild, not just a restart.
+      - key: VITE_API_URL
+        sync: false
+      - key: VITE_CLERK_PUBLISHABLE_KEY
+        sync: false
+    routes:
+      # The app is a single-page router: every path has to reach index.html or
+      # a refresh on /transactions returns a 404 from the static host.
+      - type: rewrite
+        source: /*
+        destination: /index.html
+    headers:
+      - path: /*
+        name: X-Frame-Options
+        value: DENY
+      - path: /*
+        name: X-Content-Type-Options
+        value: nosniff
+      - path: /*
+        name: Referrer-Policy
+        value: strict-origin-when-cross-origin
