@@ -33,11 +33,11 @@ interface SearchResults {
 }
 
 const SECTION_CONFIG = [
-  { key: 'transactions' as const, label: 'Transactions', icon: ArrowRightLeft, color: 'text-emerald-400' },
-  { key: 'categories' as const, label: 'Categories', icon: Tags, color: 'text-violet-400' },
-  { key: 'accounts' as const, label: 'Accounts', icon: Building2, color: 'text-blue-400' },
-  { key: 'budgets' as const, label: 'Budgets', icon: PiggyBank, color: 'text-amber-400' },
-  { key: 'goals' as const, label: 'Goals', icon: Target, color: 'text-rose-400' },
+  { key: 'transactions' as const, label: 'Transactions', icon: ArrowRightLeft, color: 'text-primary' },
+  { key: 'categories' as const, label: 'Categories', icon: Tags, color: 'text-accent' },
+  { key: 'accounts' as const, label: 'Accounts', icon: Building2, color: 'text-info' },
+  { key: 'budgets' as const, label: 'Budgets', icon: PiggyBank, color: 'text-warning' },
+  { key: 'goals' as const, label: 'Goals', icon: Target, color: 'text-negative' },
 ];
 
 export function SearchModal({ open, onClose }: { open: boolean; onClose: () => void }) {

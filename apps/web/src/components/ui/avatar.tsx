@@ -18,7 +18,7 @@ function Avatar({ className, src, alt, fallback, size = 'md', ...props }: Avatar
   return (
     <div
       className={cn(
-        'relative inline-flex items-center justify-center rounded-full bg-gradient-to-br from-emerald-500/20 to-teal-500/20 border border-emerald-500/10 overflow-hidden',
+        'relative inline-flex items-center justify-center rounded-full bg-gradient-to-br from-primary/20 to-accent/20 border border-primary/10 overflow-hidden',
         sizeClasses[size],
         className,
       )}
@@ -27,7 +27,7 @@ function Avatar({ className, src, alt, fallback, size = 'md', ...props }: Avatar
       {src ? (
         <img src={src} alt={alt || ''} className="h-full w-full object-cover" />
       ) : (
-        <span className="font-medium text-emerald-400">
+        <span className="font-medium text-primary">
           {fallback || '?'}
         </span>
       )}

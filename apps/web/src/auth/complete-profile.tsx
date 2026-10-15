@@ -24,15 +24,15 @@ function getStrength(password: string): { level: Strength; score: number; label:
 }
 
 const strengthColors: Record<Strength, string> = {
-  weak: 'bg-red-500',
-  good: 'bg-amber-500',
-  strong: 'bg-emerald-500',
+  weak: 'bg-negative',
+  good: 'bg-warning',
+  strong: 'bg-primary',
 };
 
 const strengthTextColors: Record<Strength, string> = {
-  weak: 'text-red-400',
-  good: 'text-amber-400',
-  strong: 'text-emerald-400',
+  weak: 'text-negative',
+  good: 'text-warning',
+  strong: 'text-primary',
 };
 
 export default function CompleteProfile() {
@@ -90,11 +90,11 @@ export default function CompleteProfile() {
 
   return (
     <div className="flex min-h-screen flex-col items-center justify-center bg-background">
-      <div className="absolute inset-0 bg-gradient-to-br from-emerald-500/5 via-transparent to-teal-500/5 pointer-events-none" />
+      <div className="absolute inset-0 bg-gradient-to-br from-primary/5 via-transparent to-accent/5 pointer-events-none" />
       <div className="relative w-full max-w-md space-y-8 px-4">
         <div className="text-center">
-          <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-2xl bg-emerald-500/10 border border-emerald-500/20 mb-6">
-            <Brain className="h-8 w-8 text-emerald-400" />
+          <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-2xl bg-primary/10 border border-primary/20 mb-6">
+            <Brain className="h-8 w-8 text-primary" />
           </div>
           <h1 className="text-2xl font-bold">
             Complete your <span className="text-gradient">profile</span>
@@ -107,7 +107,7 @@ export default function CompleteProfile() {
 
         <form onSubmit={handleSubmit} className="glass rounded-2xl p-8 space-y-5">
           {error && (
-            <div className="rounded-lg bg-red-500/10 border border-red-500/20 p-3 text-sm text-red-400">
+            <div className="rounded-lg bg-negative/10 border border-negative/20 p-3 text-sm text-negative">
               {error}
             </div>
           )}
@@ -127,7 +127,7 @@ export default function CompleteProfile() {
               placeholder="e.g. john_doe"
               required
               minLength={3}
-              className="w-full h-11 px-4 rounded-xl bg-foreground/[0.03] border border-foreground/[0.06] text-sm text-foreground placeholder:text-muted-foreground/50 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500/30 transition-all"
+              className="w-full h-11 px-4 rounded-xl bg-foreground/[0.03] border border-foreground/[0.06] text-sm text-foreground placeholder:text-muted-foreground/50 focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary/30 transition-all"
             />
             {username && (
               <p className="text-xs text-muted-foreground">
@@ -148,7 +148,7 @@ export default function CompleteProfile() {
                 onChange={(e) => setPassword(e.target.value)}
                 placeholder="Create a strong password"
                 required
-                className="w-full h-11 px-4 pr-11 rounded-xl bg-foreground/[0.03] border border-foreground/[0.06] text-sm text-foreground placeholder:text-muted-foreground/50 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500/30 transition-all"
+                className="w-full h-11 px-4 pr-11 rounded-xl bg-foreground/[0.03] border border-foreground/[0.06] text-sm text-foreground placeholder:text-muted-foreground/50 focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary/30 transition-all"
               />
               <button
                 type="button"
@@ -181,11 +181,11 @@ export default function CompleteProfile() {
                 return (
                   <div key={rule.label} className="flex items-center gap-2 text-xs">
                     {passed ? (
-                      <Check className="h-3.5 w-3.5 text-emerald-400" />
+                      <Check className="h-3.5 w-3.5 text-primary" />
                     ) : (
                       <X className="h-3.5 w-3.5 text-muted-foreground/50" />
                     )}
-                    <span className={passed ? 'text-emerald-400' : 'text-muted-foreground/60'}>
+                    <span className={passed ? 'text-primary' : 'text-muted-foreground/60'}>
                       {rule.label}
                     </span>
                   </div>

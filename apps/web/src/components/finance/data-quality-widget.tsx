@@ -18,10 +18,10 @@ interface DataQualitySummary {
 }
 
 function getQualityLevel(score: number) {
-  if (score >= 80) return { label: 'Excellent', color: 'text-emerald-400', icon: ShieldCheck, bg: 'bg-emerald-500/10' };
-  if (score >= 60) return { label: 'Good', color: 'text-blue-400', icon: ShieldCheck, bg: 'bg-blue-500/10' };
-  if (score >= 40) return { label: 'Fair', color: 'text-amber-400', icon: ShieldAlert, bg: 'bg-amber-500/10' };
-  return { label: 'Needs Work', color: 'text-rose-400', icon: ShieldX, bg: 'bg-rose-500/10' };
+  if (score >= 80) return { label: 'Excellent', color: 'text-primary', icon: ShieldCheck, bg: 'bg-primary/10' };
+  if (score >= 60) return { label: 'Good', color: 'text-info', icon: ShieldCheck, bg: 'bg-info/10' };
+  if (score >= 40) return { label: 'Fair', color: 'text-warning', icon: ShieldAlert, bg: 'bg-warning/10' };
+  return { label: 'Needs Work', color: 'text-negative', icon: ShieldX, bg: 'bg-negative/10' };
 }
 
 export function DataQualityWidget() {
@@ -62,7 +62,7 @@ export function DataQualityWidget() {
     <Card>
       <CardHeader className="pb-3">
         <CardTitle className="text-sm font-medium flex items-center gap-2">
-          <ShieldCheck className="h-4 w-4 text-emerald-400" />
+          <ShieldCheck className="h-4 w-4 text-primary" />
           Data Quality
         </CardTitle>
       </CardHeader>
@@ -92,8 +92,8 @@ export function DataQualityWidget() {
           <div className="w-full h-1.5 bg-foreground/5 rounded-full overflow-hidden">
             <div
               className={`h-full rounded-full transition-all ${
-                quality.categorizedPercent >= 80 ? 'bg-emerald-400' :
-                quality.categorizedPercent >= 50 ? 'bg-amber-400' : 'bg-rose-400'
+                quality.categorizedPercent >= 80 ? 'bg-primary' :
+                quality.categorizedPercent >= 50 ? 'bg-warning' : 'bg-negative'
               }`}
               style={{ width: `${quality.categorizedPercent}%` }}
             />
@@ -103,8 +103,8 @@ export function DataQualityWidget() {
         {highIssues.length > 0 && (
           <div className="space-y-1.5">
             {highIssues.slice(0, 2).map((issue, i) => (
-              <div key={i} className="flex items-start gap-2 rounded-lg bg-rose-500/5 border border-rose-500/10 p-2">
-                <AlertTriangle className="h-3 w-3 text-rose-400 mt-0.5 flex-shrink-0" />
+              <div key={i} className="flex items-start gap-2 rounded-lg bg-negative/5 border border-negative/10 p-2">
+                <AlertTriangle className="h-3 w-3 text-negative mt-0.5 flex-shrink-0" />
                 <p className="text-[10px] text-muted-foreground leading-relaxed">{issue.description}</p>
               </div>
             ))}
@@ -115,7 +115,7 @@ export function DataQualityWidget() {
           <div className="space-y-1.5">
             {quality.recommendations.slice(0, 2).map((rec, i) => (
               <div key={i} className="flex items-start gap-2">
-                <CheckCircle2 className="h-3 w-3 text-emerald-400 mt-0.5 flex-shrink-0" />
+                <CheckCircle2 className="h-3 w-3 text-primary mt-0.5 flex-shrink-0" />
                 <p className="text-[10px] text-muted-foreground leading-relaxed">{rec}</p>
               </div>
             ))}

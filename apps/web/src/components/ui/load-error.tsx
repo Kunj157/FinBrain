@@ -20,7 +20,7 @@ export function LoadError({ message, onRetry }: LoadErrorProps) {
       role="alert"
       className="flex min-h-[60vh] flex-col items-center justify-center gap-4 text-center"
     >
-      <AlertCircle className="h-10 w-10 text-rose-400" aria-hidden="true" />
+      <AlertCircle className="h-10 w-10 text-negative" aria-hidden="true" />
       <div className="space-y-1">
         <p className="font-medium">Something went wrong</p>
         <p className="text-sm text-muted-foreground">{message}</p>

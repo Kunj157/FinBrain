@@ -63,7 +63,7 @@ export function WeeklyRecap() {
       <CardHeader className="pb-3">
         <div className="flex items-center justify-between">
           <CardTitle className="text-sm font-medium flex items-center gap-2">
-            <Calendar className="h-4 w-4 text-emerald-400" />
+            <Calendar className="h-4 w-4 text-primary" />
             Weekly Recap
           </CardTitle>
           <span className="text-[10px] text-muted-foreground">
@@ -75,28 +75,28 @@ export function WeeklyRecap() {
         <div className="grid grid-cols-3 gap-3">
           <div className="text-center">
             <div className="flex items-center justify-center gap-1 mb-1">
-              <TrendingUp className="h-3 w-3 text-emerald-400" />
+              <TrendingUp className="h-3 w-3 text-primary" />
               <span className="text-[10px] text-muted-foreground">Income</span>
             </div>
-            <p className="text-sm font-semibold text-emerald-400">
+            <p className="text-sm font-semibold text-primary">
               {formatCurrency(recap.totalIncome, currency)}
             </p>
           </div>
           <div className="text-center">
             <div className="flex items-center justify-center gap-1 mb-1">
-              <TrendingDown className="h-3 w-3 text-rose-400" />
+              <TrendingDown className="h-3 w-3 text-negative" />
               <span className="text-[10px] text-muted-foreground">Expenses</span>
             </div>
-            <p className="text-sm font-semibold text-rose-400">
+            <p className="text-sm font-semibold text-negative">
               {formatCurrency(recap.totalExpenses, currency)}
             </p>
           </div>
           <div className="text-center">
             <div className="flex items-center justify-center gap-1 mb-1">
-              <DollarSign className={`h-3 w-3 ${isPositive ? 'text-emerald-400' : 'text-rose-400'}`} />
+              <DollarSign className={`h-3 w-3 ${isPositive ? 'text-positive' : 'text-negative'}`} />
               <span className="text-[10px] text-muted-foreground">Net</span>
             </div>
-            <p className={`text-sm font-semibold ${isPositive ? 'text-emerald-400' : 'text-rose-400'}`}>
+            <p className={`text-sm font-semibold ${isPositive ? 'text-positive' : 'text-negative'}`}>
               {isPositive ? '+' : ''}{formatCurrency(recap.netCashFlow, currency)}
             </p>
           </div>
@@ -117,10 +117,10 @@ export function WeeklyRecap() {
         )}
 
         {recap.newRecurringCharges.length > 0 && (
-          <div className="rounded-lg bg-amber-500/5 border border-amber-500/10 p-3">
+          <div className="rounded-lg bg-warning/5 border border-warning/10 p-3">
             <div className="flex items-center gap-1.5 mb-1">
-              <Repeat className="h-3 w-3 text-amber-400" />
-              <span className="text-[10px] font-medium text-amber-400">New Recurring Charges</span>
+              <Repeat className="h-3 w-3 text-warning" />
+              <span className="text-[10px] font-medium text-warning">New Recurring Charges</span>
             </div>
             {recap.newRecurringCharges.map((c) => (
               <p key={c.merchant} className="text-xs text-muted-foreground">
@@ -147,8 +147,8 @@ export function WeeklyRecap() {
                       <div className="w-full h-1.5 bg-foreground/5 rounded-full overflow-hidden">
                         <div
                           className={`h-full rounded-full transition-all ${
-                            b.utilization > 100 ? 'bg-rose-400' :
-                            b.utilization > 80 ? 'bg-amber-400' : 'bg-emerald-400'
+                            b.utilization > 100 ? 'bg-negative' :
+                            b.utilization > 80 ? 'bg-warning' : 'bg-primary'
                           }`}
                           style={{ width: `${Math.min(b.utilization, 100)}%` }}
                         />
@@ -165,7 +165,7 @@ export function WeeklyRecap() {
                 <div className="space-y-2">
                   {recap.goalProgress.map((g) => (
                     <div key={g.name} className="flex items-center gap-2">
-                      <Target className="h-3 w-3 text-emerald-400 flex-shrink-0" />
+                      <Target className="h-3 w-3 text-primary flex-shrink-0" />
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center justify-between">
                           <span className="text-xs truncate">{g.name}</span>
@@ -173,7 +173,7 @@ export function WeeklyRecap() {
                         </div>
                         <div className="w-full h-1 bg-foreground/5 rounded-full overflow-hidden mt-1">
                           <div
-                            className="h-full rounded-full bg-emerald-400 transition-all"
+                            className="h-full rounded-full bg-primary transition-all"
                             style={{ width: `${Math.min(g.progressPercent, 100)}%` }}
                           />
                         </div>
@@ -187,9 +187,9 @@ export function WeeklyRecap() {
         )}
 
         {recap.recommendedAction && (
-          <div className="rounded-lg bg-emerald-500/5 border border-emerald-500/10 p-3">
+          <div className="rounded-lg bg-primary/5 border border-primary/10 p-3">
             <div className="flex items-start gap-2">
-              <Lightbulb className="h-3.5 w-3.5 text-emerald-400 mt-0.5 flex-shrink-0" />
+              <Lightbulb className="h-3.5 w-3.5 text-primary mt-0.5 flex-shrink-0" />
               <p className="text-xs text-muted-foreground leading-relaxed">{recap.recommendedAction}</p>
             </div>
           </div>

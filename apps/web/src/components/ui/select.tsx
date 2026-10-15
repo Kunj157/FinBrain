@@ -51,7 +51,7 @@ export function Select({
       <SelectPrimitive.Trigger
         aria-label={ariaLabel ?? placeholder ?? selectedLabel}
         className={cn(
-          'flex h-10 w-full items-center justify-between rounded-lg border border-foreground/[0.08] bg-foreground/[0.02] px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:ring-offset-1 disabled:cursor-not-allowed disabled:opacity-50 cursor-pointer hover:bg-foreground/[0.04] hover:border-foreground/[0.12] transition-colors [&>span]:line-clamp-1',
+          'flex h-10 w-full items-center justify-between rounded-lg border border-foreground/[0.08] bg-foreground/[0.02] px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/20 focus:ring-offset-1 disabled:cursor-not-allowed disabled:opacity-50 cursor-pointer hover:bg-foreground/[0.04] hover:border-foreground/[0.12] transition-colors [&>span]:line-clamp-1',
         )}
       >
         <SelectPrimitive.Value placeholder={selectedLabel ?? placeholder} />
