@@ -25,6 +25,9 @@ export default defineConfig({
 
   use: {
     baseURL: BASE_URL,
+    // Figures count up to their value; with reduced motion they render
+    // settled at once, so assertions read the real figure, not a frame.
+    reducedMotion: 'reduce',
     trace: 'on-first-retry',
     screenshot: 'only-on-failure',
     video: 'retain-on-failure',
