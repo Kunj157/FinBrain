@@ -24,11 +24,33 @@
   <img src="https://img.shields.io/badge/pnpm-9-F69220?logo=pnpm&logoColor=white" alt="pnpm"/>
 </div>
 
+<p align="center">
+  <a href="https://kunj157.github.io/FinBrain/"><strong>Live site →</strong> kunj157.github.io/FinBrain</a>
+</p>
+
+<p align="center">
+  <img src="docs/media/hero.gif" width="900" alt="The FinBrain landing hero: 3D coin stacks rising into a growth curve that leans toward the cursor"/>
+</p>
+
+---
+
+## Screenshots
+
+| Dashboard | Goals |
+|---|---|
+| <img src="docs/media/dashboard-dark.webp" alt="Dashboard with animated stat cards and a 3D spending mix ring"/> | <img src="docs/media/goals-dark.webp" alt="Goals with 3D progress rings"/> |
+| **Analytics** | **Advisor** |
+| <img src="docs/media/analytics-dark.webp" alt="Analytics with themed charts and segmented controls"/> | <img src="docs/media/advisor-dark.webp" alt="AI advisor chat"/> |
+| **Transactions** | **Light theme** |
+| <img src="docs/media/transactions-dark.webp" alt="Transactions ledger"/> | <img src="docs/media/dashboard-light.webp" alt="Dashboard in the light theme"/> |
+
+A short recording of the 3D hero is also available as [MP4](docs/media/hero.mp4).
+
 ---
 
 ## Overview
 
-FinBrain is a full-stack AI-powered personal finance tracker built as a monorepo. It combines ML-powered transaction categorization (XLM-RoBERTa, 86.5% accuracy), an LLM financial advisor (Groq/OpenAI), German bank PDF parsing, investment portfolio tracking, and a glass-morphism dark UI into a single application.
+FinBrain is a full-stack AI-powered personal finance tracker built as a monorepo. It combines ML-powered transaction categorization (XLM-RoBERTa, 86.5% accuracy), an LLM financial advisor (Groq/OpenAI), German bank PDF parsing, investment portfolio tracking, and a premium light and dark interface with motion and 3D into a single application.
 
 ### Core Philosophy
 
@@ -36,6 +58,14 @@ FinBrain is a full-stack AI-powered personal finance tracker built as a monorepo
 - **Personal financial advisor** — LLM answers questions with reasoning based on your complete financial context
 - **Data-first onboarding** — Import via Plaid, CSV, or German bank PDFs before anything else
 - **Adaptive budgets** — Learn from your spending, alert at thresholds, rollover support
+
+### Interface
+
+- **Design system** — light and dark themes built from HSL tokens, with money semantics (positive, negative, warning, info), an AI accent and a chart palette checked for colour-vision deficiency in both themes
+- **Motion** — animated and sliding numbers, a sliding active indicator in navigation and tabs, scroll reveals, spotlight and 3D tilt on cards, a shimmer and travelling border while the AI works; all of it respects `prefers-reduced-motion`
+- **3D** — an interactive landing hero, goal progress rings and a dashboard spending-mix ring (three.js via React Three Fiber), loaded lazily only when WebGL is available, paused off screen, with static fallbacks
+- **Performance** — every page is code-split; the entry bundle is about 150 kB gzip
+- **Accessible** — labelled controls, visible focus rings, real switches and sortable headers announced to screen readers
 
 ### Key Features
 
@@ -65,7 +95,7 @@ FinBrain is a full-stack AI-powered personal finance tracker built as a monorepo
 | Sankey Diagrams (money flow visualization) | ✅ Done |
 | PDF Report Export (jsPDF + autoTable) | ✅ Done |
 | Cash Flow Projection (recurring-aware, 6-month) | ✅ Done |
-| Public Landing Page | ✅ Done |
+| Public Landing Page ([live](https://kunj157.github.io/FinBrain/)) | ✅ Done |
 | Mobile Responsive Layout | ✅ Done |
 | Categorization Rules Engine (CRUD, auto-apply) | ✅ Done |
 | Advisor Profile & Memory Layer | ✅ Done |
@@ -81,7 +111,8 @@ FinBrain is a full-stack AI-powered personal finance tracker built as a monorepo
 | Scenario Simulator | ✅ Done |
 | Spending Pattern Detection | ✅ Done |
 | Anomaly Detection | ✅ Done |
-| Customizable Dashboard (drag-and-drop) | 📋 Planned |
+| Customizable Dashboard (drag-and-drop) | ✅ Done |
+| Interface redesign (tokens, motion, 3D) | ✅ Done |
 | Scheduled Reports (email) | 📋 Planned |
 | Mobile Apps (React Native / Capacitor) | 📋 Planned |
 
@@ -92,7 +123,8 @@ FinBrain is a full-stack AI-powered personal finance tracker built as a monorepo
 ```
 ┌────────────────────────────────────────────┐
 │           React 19 + Vite 5                │
-│      Tailwind CSS + shadcn/ui + Chart.js   │
+│  Tailwind CSS + Radix UI + Chart.js + nivo │
+│   Motion + three.js (React Three Fiber)    │
 │        TanStack Query + Groq / OpenAI       │
 ├────────────────────────────────────────────┤
 │          Express + Prisma ORM              │
@@ -140,7 +172,8 @@ FinBrain is a full-stack AI-powered personal finance tracker built as a monorepo
 ```
 FinBrain/
 ├── apps/
-│   ├── web/                  # React 19 + Vite frontend (17 pages, 17 components)
+│   ├── web/                  # React 19 + Vite frontend (design system, motion, 3D)
+│   ├── landing/              # Static marketing site published to GitHub Pages
 │   ├── api/                  # Express REST API (18 route files, 16 Prisma models)
 │   └── ml-service/           # FastAPI Python ML service (XLM-RoBERTa + sklearn)
 ├── packages/
@@ -148,6 +181,7 @@ FinBrain/
 ├── .github/workflows/        # CI/CD pipelines
 ├── docker-compose.yml        # Local development
 ├── docs/
+│   ├── media/                # Screenshots and the hero recording (README + landing)
 │   ├── FEATURE_ROADMAP.md    # Gap analysis vs Industry Standard
 │   └── SPRINTS.md            # Sprint plan
 └── package.json              # Root workspace config
@@ -170,15 +204,39 @@ FinBrain/
 # Install dependencies
 pnpm install
 
-# Generate Prisma client
+# Generate the Prisma client and create the schema
 pnpm --filter @finbrain/api db:generate
+pnpm --filter @finbrain/api db:push
 
-# Start in dev mode (web + api)
+# Optional: seed a demo user with transactions
+pnpm --filter @finbrain/api seed
+
+# Start in dev mode (web on :5173, api on :4000)
 pnpm dev
 
 # Or start everything with Docker
 docker compose up
 ```
+
+Without a Clerk key the web app signs you in as a local development user, which is the quickest way to try it.
+
+### Checks
+
+```bash
+pnpm lint && pnpm typecheck   # every workspace
+pnpm test                     # API (Vitest + PostgreSQL) and web component tests
+pnpm test:e2e                 # Playwright, starts the API and web app itself
+pnpm build
+```
+
+### Landing page
+
+```bash
+pnpm --filter @finbrain/landing dev     # http://localhost:5190
+PAGES_BASE_PATH=/FinBrain pnpm --filter @finbrain/landing build
+```
+
+The `landing` workflow publishes it to GitHub Pages on every push to `main` or `dev` that touches it.
 
 ### Environment Variables
 
@@ -213,9 +271,7 @@ procedure (including how to verify a restore actually works).
 |--------|---------|
 | `main` | Stable releases |
 | `dev` | Active development — all tested code |
-| `feat/*` | Feature branches merged into `dev` |
-
-Current feature branches: `feat/phase4-phase5-gaps`, `feat/quality-polish-phase1`, `feat/feature-parity-core`, and others.
+| `feature/*` | Feature branches merged into `dev` |
 
 ---
 
