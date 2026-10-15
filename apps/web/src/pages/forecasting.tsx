@@ -3,12 +3,26 @@ import {
   TrendingUp, TrendingDown, Minus, Loader2, BarChart3,
   Plus, X, Check, GitCompare,
 } from 'lucide-react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { PageHeader } from '@/components/ui/page-header';
+import { Segmented } from '@/components/ui/segmented';
+import { CardSkeleton, Skeleton } from '@/components/ui/skeleton';
+import { EmptyState } from '@/components/ui/empty-state';
+import { MetricCard } from '@/components/finance/metric-card';
+import { TransitionPanel } from '@/components/motion/transition-panel';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/hooks/use-auth';
 import api from '@/lib/api';
 import { formatCurrency } from '@/lib/utils';
 import type { Currency as SharedCurrency } from '@finbrain/shared';
+import { Chart as ChartJS, BarElement, CategoryScale, Filler, LinearScale, LineElement, PointElement, Tooltip, Legend } from 'chart.js';
+import { Bar, Line } from 'react-chartjs-2';
+import { areaFill, token, useChartTheme } from '@/lib/chart-theme';
+
+ChartJS.register(BarElement, CategoryScale, LinearScale, LineElement, PointElement, Filler, Tooltip, Legend);
+
+/** The token each metric is drawn in. */
+const METRIC_TOKEN: Record<MetricKey, string> = { income: 'positive', expense: 'negative', net: 'info' };
 
 interface MonthlySeries {
   dates: string[];
@@ -40,9 +54,21 @@ type ModelKey = 'moving_average' | 'linear_regression' | 'arima' | 'prophet';
 type TabKey = 'forecast' | 'scenarios' | 'net-worth';
 
 const METRIC_OPTIONS: { key: MetricKey; label: string; color: string }[] = [
-  { key: 'income', label: 'Income', color: '#34d399' },
-  { key: 'expense', label: 'Expenses', color: '#fb7185' },
-  { key: 'net', label: 'Net Cash Flow', color: '#60a5fa' },
+  { key: 'income', label: 'Income', color: 'hsl(var(--positive))' },
+  { key: 'expense', label: 'Expenses', color: 'hsl(var(--negative))' },
+  { key: 'net', label: 'Net Cash Flow', color: 'hsl(var(--info))' },
+];
+
+const TABS: { value: TabKey; label: string }[] = [
+  { value: 'forecast', label: 'Cash Flow' },
+  { value: 'scenarios', label: 'Scenarios' },
+  { value: 'net-worth', label: 'Net Worth' },
+];
+
+const HORIZONS = [
+  { value: '3', label: '3m' },
+  { value: '6', label: '6m' },
+  { value: '12', label: '12m' },
 ];
 
 const MODEL_OPTIONS: { key: ModelKey; label: string }[] = [
@@ -142,6 +168,42 @@ export default function Forecasting() {
     return currentForecast.models[selectedModel];
   }, [currentForecast, selectedModel]);
 
+  const chart = useChartTheme();
+
+  // History as solid bars, the selected model's forecast as outlined bars after it.
+  const forecastChart = useMemo(() => {
+    const hist = currentForecast?.historical ?? { dates: [], values: [] };
+    const ahead = modelData?.forecast ?? [];
+    const name = METRIC_TOKEN[selectedMetric];
+    const bar = { borderRadius: { topLeft: 4, topRight: 4 }, borderSkipped: 'bottom' as const, barPercentage: 0.85, categoryPercentage: 0.8 };
+    return {
+      labels: [...hist.dates.map((d) => d.slice(0, 7)), ...ahead.map((_, i) => `+${i + 1}m`)],
+      datasets: [
+        { label: 'Historical', data: [...hist.values, ...ahead.map(() => null)], backgroundColor: token(name, 0.85), ...bar },
+        {
+          label: 'Forecast',
+          data: [...hist.values.map(() => null), ...ahead],
+          backgroundColor: token(name, 0.18),
+          borderColor: token(name),
+          borderWidth: 1.5,
+          ...bar,
+        },
+      ],
+    };
+    // `chart` re-reads the tokens when the theme flips.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [currentForecast, modelData, selectedMetric, chart]);
+
+  const forecastOptions = {
+    responsive: true,
+    maintainAspectRatio: false,
+    plugins: {
+      legend: { display: true, position: 'top' as const, align: 'end' as const, labels: { usePointStyle: true, pointStyle: 'rectRounded', boxWidth: 8, boxHeight: 8, color: chart.ink } },
+      tooltip: chart.tooltip,
+    },
+    scales: { ...chart.axes, x: { ...chart.axes.x, stacked: true }, y: { ...chart.axes.y, stacked: false } },
+  };
+
   const summaryStats = useMemo(() => {
     if (!data) return null;
     const net = data.forecasts.net;
@@ -163,26 +225,36 @@ export default function Forecasting() {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center h-full">
-        <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+      <div className="space-y-6" aria-busy="true" aria-label="Loading forecast">
+        <div className="space-y-2"><Skeleton className="h-8 w-48" /><Skeleton className="h-4 w-80" /></div>
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+          {Array.from({ length: 4 }, (_, i) => <CardSkeleton key={i} lines={0} className="h-[88px]" />)}
+        </div>
+        <CardSkeleton className="h-80" />
       </div>
     );
   }
 
+  const header = (actions?: React.ReactNode) => (
+    <PageHeader
+      icon={TrendingUp}
+      title="Forecasting"
+      description="Predict future income, expenses, and cash flow"
+      actions={actions}
+    />
+  );
+
   if (error) {
     return (
       <div className="space-y-6">
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight">Forecasting</h1>
-          <p className="text-sm text-muted-foreground">Predict future income, expenses, and cash flow</p>
-        </div>
+        {header()}
         <Card>
-          <CardContent className="p-8 text-center">
-            <p className="text-sm text-muted-foreground">{error}</p>
-            <Button variant="outline" size="sm" className="mt-4" onClick={fetchForecast}>
-              Try Again
-            </Button>
-          </CardContent>
+          <EmptyState
+            icon={BarChart3}
+            title="Forecast unavailable"
+            description={error}
+            action={<Button variant="outline" size="sm" onClick={fetchForecast}>Try Again</Button>}
+          />
         </Card>
       </div>
     );
@@ -192,133 +264,77 @@ export default function Forecasting() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight">Forecasting</h1>
-          <p className="text-sm text-muted-foreground">Predict future income, expenses, and cash flow</p>
-        </div>
-        <div className="flex items-center gap-2">
-          <div className="flex gap-1 p-1 rounded-lg bg-foreground/5">
-            {([['forecast', 'Cash Flow'], ['scenarios', 'Scenarios'], ['net-worth', 'Net Worth']] as [TabKey, string][]).map(([key, label]) => (
-              <Button key={key} variant={activeTab === key ? 'default' : 'ghost'} size="sm" onClick={() => setActiveTab(key)} className="h-7 text-xs">
-                {label}
-              </Button>
-            ))}
-          </div>
+      {header(
+        <>
+          <Segmented id="forecast-tab" label="View" value={activeTab} onChange={setActiveTab} options={TABS} />
           {activeTab === 'forecast' && (
-            <>
-              <span className="text-xs text-muted-foreground">Months:</span>
-              {[3, 6, 12].map((p) => (
-                <Button key={p} variant={periods === p ? 'default' : 'outline'} size="sm" onClick={() => setPeriods(p)} className="h-7 text-xs">
-                  {p}m
-                </Button>
-              ))}
-            </>
+            <Segmented
+              id="forecast-horizon"
+              label="Months to forecast"
+              value={String(periods)}
+              onChange={(value) => setPeriods(Number(value))}
+              options={HORIZONS}
+            />
           )}
-        </div>
-      </div>
+        </>,
+      )}
+
+      <TransitionPanel
+        activeKey={activeTab}
+        direction={TABS.findIndex((t) => t.value === activeTab) > 0 ? 1 : -1}
+        className="space-y-6"
+      >
 
       {activeTab === 'forecast' && (<>
         {summaryStats && (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-          <Card>
-            <CardContent className="p-4">
-              <div className="flex items-center gap-3">
-                <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10">
-                  <TrendingUp className="h-5 w-5 text-primary" />
-                </div>
-                <div>
-                  <p className="text-xs text-muted-foreground">Avg Monthly Income</p>
-                  <p className="text-lg font-bold text-primary">{formatCurrency(summaryStats.avgIncome, currency)}</p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardContent className="p-4">
-              <div className="flex items-center gap-3">
-                <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-negative/10">
-                  <TrendingDown className="h-5 w-5 text-negative" />
-                </div>
-                <div>
-                  <p className="text-xs text-muted-foreground">Avg Monthly Expenses</p>
-                  <p className="text-lg font-bold text-negative">{formatCurrency(summaryStats.avgExpense, currency)}</p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardContent className="p-4">
-              <div className="flex items-center gap-3">
-                <div className={`flex h-10 w-10 items-center justify-center rounded-lg ${summaryStats.avgNet >= 0 ? 'bg-info/10' : 'bg-negative/10'}`}>
-                  <BarChart3 className={`h-5 w-5 ${summaryStats.avgNet >= 0 ? 'text-info' : 'text-negative'}`} />
-                </div>
-                <div>
-                  <p className="text-xs text-muted-foreground">Avg Monthly Net</p>
-                  <p className={`text-lg font-bold ${summaryStats.avgNet >= 0 ? 'text-info' : 'text-negative'}`}>
-                    {formatCurrency(summaryStats.avgNet, currency)}
-                  </p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardContent className="p-4">
-              <div className="flex items-center gap-3">
-                <div className={`flex h-10 w-10 items-center justify-center rounded-lg ${summaryStats.nextMonthForecast >= 0 ? 'bg-positive/10' : 'bg-negative/10'}`}>
-                  {summaryStats.trend > 0 ? <TrendingUp className="h-5 w-5 text-primary" /> :
-                   summaryStats.trend < 0 ? <TrendingDown className="h-5 w-5 text-negative" /> :
-                   <Minus className="h-5 w-5 text-info" />}
-                </div>
-                <div>
-                  <p className="text-xs text-muted-foreground">Next Month (MA)</p>
-                  <p className={`text-lg font-bold ${summaryStats.nextMonthForecast >= 0 ? 'text-positive' : 'text-negative'}`}>
-                    {formatCurrency(summaryStats.nextMonthForecast, currency)}
-                  </p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+          <MetricCard label="Avg Monthly Income" value={summaryStats.avgIncome} icon={TrendingUp} tone="positive" currency={currency} />
+          <MetricCard label="Avg Monthly Expenses" value={summaryStats.avgExpense} icon={TrendingDown} tone="negative" currency={currency} />
+          <MetricCard
+            label="Avg Monthly Net"
+            value={summaryStats.avgNet}
+            icon={BarChart3}
+            tone={summaryStats.avgNet >= 0 ? 'info' : 'negative'}
+            valueTone={summaryStats.avgNet >= 0 ? undefined : 'negative'}
+            currency={currency}
+          />
+          <MetricCard
+            label="Next Month (MA)"
+            value={summaryStats.nextMonthForecast}
+            icon={summaryStats.trend > 0 ? TrendingUp : summaryStats.trend < 0 ? TrendingDown : Minus}
+            tone={summaryStats.trend > 0 ? 'positive' : summaryStats.trend < 0 ? 'negative' : 'info'}
+            valueTone={summaryStats.nextMonthForecast >= 0 ? 'positive' : 'negative'}
+            currency={currency}
+          />
         </div>
       )}
 
       {/* Both groups wrap: side by side they exceed the content width at
           common laptop sizes, which pushed the last model tab off-screen and
           gave the whole page a horizontal scrollbar. */}
-      <div className="flex flex-wrap items-center gap-4">
-        <div className="flex flex-wrap gap-1 p-1 rounded-lg bg-foreground/5">
-          {METRIC_OPTIONS.map((opt) => (
-            <Button
-              key={opt.key}
-              variant={selectedMetric === opt.key ? 'default' : 'ghost'}
-              size="sm"
-              onClick={() => setSelectedMetric(opt.key)}
-              className="h-7 text-xs"
-            >
-              {opt.label}
-            </Button>
-          ))}
-        </div>
-        <div className="flex flex-wrap gap-1 p-1 rounded-lg bg-foreground/5">
-          {MODEL_OPTIONS.map((opt) => (
-            <Button
-              key={opt.key}
-              variant={selectedModel === opt.key ? 'default' : 'ghost'}
-              size="sm"
-              onClick={() => setSelectedModel(opt.key)}
-              className="h-7 text-xs"
-            >
-              {opt.label}
-            </Button>
-          ))}
-        </div>
+      <div className="flex flex-wrap items-center gap-3">
+        <Segmented
+          id="forecast-metric"
+          label="Metric"
+          value={selectedMetric}
+          onChange={setSelectedMetric}
+          options={METRIC_OPTIONS.map((opt) => ({ value: opt.key, label: opt.label }))}
+        />
+        <Segmented
+          id="forecast-model"
+          label="Model"
+          value={selectedModel}
+          onChange={setSelectedModel}
+          options={MODEL_OPTIONS.map((opt) => ({ value: opt.key, label: opt.label }))}
+        />
       </div>
 
       <Card>
-        <CardHeader className="pb-2">
-          <CardTitle className="text-sm font-medium">
+        <CardHeader>
+          <CardTitle>
             {METRIC_OPTIONS.find((m) => m.key === selectedMetric)?.label} Forecast — {MODEL_OPTIONS.find((m) => m.key === selectedModel)?.label}
           </CardTitle>
+          <CardDescription>Solid bars are history; outlined bars are the forecast</CardDescription>
         </CardHeader>
         <CardContent>
           {currentForecast && (
@@ -331,68 +347,18 @@ export default function Forecasting() {
                 {modelData?.error && <span className="text-warning">{modelData.error}</span>}
               </div>
 
-              <div className="space-y-3">
-                <div>
-                  <p className="text-xs font-medium text-muted-foreground mb-2">Historical Values</p>
-                  <div className="flex flex-wrap gap-1">
-                    {currentForecast.historical.dates.map((d, i) => (
-                      <div key={d} className="text-center">
-                        <div
-                          className="w-10 h-16 rounded-sm flex items-end justify-center"
-                          style={{ backgroundColor: 'rgba(255,255,255,0.03)' }}
-                        >
-                          <div
-                            className="w-full rounded-sm transition-all"
-                            style={{
-                              height: `${Math.min(100, Math.max(4, (Math.abs(currentForecast.historical.values[i]) / Math.max(...currentForecast.historical.values.map(Math.abs), 1)) * 100))}%`,
-                              backgroundColor: METRIC_OPTIONS.find((m) => m.key === selectedMetric)?.color || '#60a5fa',
-                              opacity: 0.7,
-                            }}
-                          />
-                        </div>
-                        <p className="text-[8px] text-muted-foreground mt-1">{d.slice(0, 7)}</p>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-
-                {modelData && modelData.forecast.length > 0 && (
-                  <div>
-                    <p className="text-xs font-medium text-muted-foreground mb-2">Forecasted Values</p>
-                    <div className="flex flex-wrap gap-1">
-                      {modelData.forecast.map((val, i) => (
-                        <div key={i} className="text-center">
-                          <div
-                            className="w-10 h-16 rounded-sm flex items-end justify-center"
-                            style={{ backgroundColor: 'rgba(255,255,255,0.03)' }}
-                          >
-                            <div
-                              className="w-full rounded-sm transition-all"
-                              style={{
-                                height: `${Math.min(100, Math.max(4, (Math.abs(val) / Math.max(...currentForecast.historical.values.map(Math.abs), 1)) * 100))}%`,
-                                backgroundColor: METRIC_OPTIONS.find((m) => m.key === selectedMetric)?.color || '#60a5fa',
-                                opacity: 1,
-                                border: '1px dashed rgba(255,255,255,0.2)',
-                              }}
-                            />
-                          </div>
-                          <p className="text-[8px] text-muted-foreground mt-1">+{i + 1}m</p>
-                          <p className="text-[9px] font-medium">{formatCurrency(val, currency)}</p>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                )}
+              <div className="h-[260px]">
+                <Bar data={forecastChart} options={forecastOptions} />
               </div>
 
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 pt-2 border-t border-foreground/5">
-                <div className="p-3 rounded-lg bg-foreground/[0.02]">
+                <div className="rounded-lg border bg-foreground/[0.02] p-3">
                   <p className="text-[10px] text-muted-foreground uppercase tracking-wider">Last Month</p>
                   <p className="text-sm font-medium mt-0.5">
                     {formatCurrency(currentForecast.historical.values[currentForecast.historical.values.length - 1] || 0, currency)}
                   </p>
                 </div>
-                <div className="p-3 rounded-lg bg-foreground/[0.02]">
+                <div className="rounded-lg border bg-foreground/[0.02] p-3">
                   <p className="text-[10px] text-muted-foreground uppercase tracking-wider">Forecast (Next)</p>
                   <p className="text-sm font-medium mt-0.5">
                     {modelData && modelData.forecast.length > 0
@@ -400,7 +366,7 @@ export default function Forecasting() {
                       : '—'}
                   </p>
                 </div>
-                <div className="p-3 rounded-lg bg-foreground/[0.02]">
+                <div className="rounded-lg border bg-foreground/[0.02] p-3">
                   <p className="text-[10px] text-muted-foreground uppercase tracking-wider">3-Month Avg</p>
                   <p className="text-sm font-medium mt-0.5">
                     {formatCurrency(
@@ -409,7 +375,7 @@ export default function Forecasting() {
                     )}
                   </p>
                 </div>
-                <div className="p-3 rounded-lg bg-foreground/[0.02]">
+                <div className="rounded-lg border bg-foreground/[0.02] p-3">
                   <p className="text-[10px] text-muted-foreground uppercase tracking-wider">6-Month Avg</p>
                   <p className="text-sm font-medium mt-0.5">
                     {formatCurrency(
@@ -426,19 +392,19 @@ export default function Forecasting() {
 
       <Card>
         <CardHeader className="pb-2">
-          <CardTitle className="text-sm font-medium">All Models Comparison</CardTitle>
+          <CardTitle>All Models Comparison</CardTitle>
         </CardHeader>
         <CardContent>
           <div className="overflow-x-auto">
             <table className="w-full text-xs">
               <thead>
                 <tr className="border-b border-foreground/5">
-                  <th className="text-left py-2 pr-4 text-muted-foreground font-medium">Model</th>
-                  <th className="text-right py-2 px-4 text-muted-foreground font-medium">Next Month</th>
-                  <th className="text-right py-2 px-4 text-muted-foreground font-medium">3-Month</th>
-                  <th className="text-right py-2 px-4 text-muted-foreground font-medium">6-Month</th>
-                  <th className="text-right py-2 px-4 text-muted-foreground font-medium">MAPE</th>
-                  <th className="text-right py-2 pl-4 text-muted-foreground font-medium">Trend</th>
+                  <th className="py-2 pr-4 text-left text-[11px] font-medium uppercase tracking-[0.06em] text-muted-foreground">Model</th>
+                  <th className="px-4 py-2 text-right text-[11px] font-medium uppercase tracking-[0.06em] text-muted-foreground">Next Month</th>
+                  <th className="px-4 py-2 text-right text-[11px] font-medium uppercase tracking-[0.06em] text-muted-foreground">3-Month</th>
+                  <th className="px-4 py-2 text-right text-[11px] font-medium uppercase tracking-[0.06em] text-muted-foreground">6-Month</th>
+                  <th className="px-4 py-2 text-right text-[11px] font-medium uppercase tracking-[0.06em] text-muted-foreground">MAPE</th>
+                  <th className="py-2 pl-4 text-right text-[11px] font-medium uppercase tracking-[0.06em] text-muted-foreground">Trend</th>
                 </tr>
               </thead>
               <tbody>
@@ -451,7 +417,7 @@ export default function Forecasting() {
                   const trend = next - last;
 
                   return (
-                    <tr key={key} className="border-b border-foreground/[0.02]">
+                    <tr key={key} className="border-b border-border/60 transition-colors hover:bg-foreground/[0.025]">
                       <td className="py-2.5 pr-4 font-medium">{MODEL_OPTIONS.find((m) => m.key === key)?.label || key}</td>
                       <td className={`py-2.5 px-4 text-right ${next >= 0 ? 'text-positive' : 'text-negative'}`}>
                         {forecast.length > 0 ? formatCurrency(next, currency) : <span className="text-muted-foreground">—</span>}
@@ -502,7 +468,7 @@ export default function Forecasting() {
 
           {compareData.length >= 2 && (
             <Card>
-              <CardHeader className="pb-2"><CardTitle className="text-sm font-medium">Scenario Comparison</CardTitle></CardHeader>
+              <CardHeader><CardTitle>Scenario Comparison</CardTitle></CardHeader>
               <CardContent>
                 <div className="overflow-x-auto">
                   <table className="w-full text-xs">
@@ -544,10 +510,8 @@ export default function Forecasting() {
 
           {scenarios.length === 0 ? (
             <Card>
-              <CardContent className="flex flex-col items-center justify-center py-16">
-                <GitCompare className="h-10 w-10 text-muted-foreground/30" />
-                <p className="mt-3 text-sm text-muted-foreground">No scenarios yet</p>
-                <p className="text-xs text-muted-foreground mt-1">Create scenarios to compare life decisions</p>
+              <CardContent>
+                <EmptyState icon={GitCompare} title="No scenarios yet" description="Create scenarios to compare life decisions" />
               </CardContent>
             </Card>
           ) : (
@@ -595,20 +559,20 @@ export default function Forecasting() {
           )}
 
           {showScenarioForm && (
-            <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm" onClick={() => setShowScenarioForm(false)}>
-              <Card className="w-full max-w-md mx-4" onClick={(e) => e.stopPropagation()}>
+            <div className="fixed inset-0 z-50 flex items-center justify-center bg-background/60 backdrop-blur-md" onClick={() => setShowScenarioForm(false)}>
+              <Card role="dialog" aria-modal="true" aria-label="New Scenario" className="mx-4 w-full max-w-md animate-in fade-in-0 zoom-in-95 bg-popover shadow-float" onClick={(e) => e.stopPropagation()}>
                 <CardHeader className="flex flex-row items-center justify-between pb-4">
                   <CardTitle className="text-lg">New Scenario</CardTitle>
-                  <Button variant="ghost" size="sm" onClick={() => setShowScenarioForm(false)} className="h-8 w-8 p-0"><X className="h-4 w-4" /></Button>
+                  <Button variant="ghost" size="icon" aria-label="Close" onClick={() => setShowScenarioForm(false)} className="h-8 w-8"><X className="h-4 w-4" /></Button>
                 </CardHeader>
                 <CardContent className="space-y-4">
                   <div>
                     <label className="text-xs font-medium text-muted-foreground mb-1 block">Name</label>
-                    <input value={scenarioForm.name} onChange={(e) => setScenarioForm({ ...scenarioForm, name: e.target.value })} placeholder="e.g., Buy a house" className="w-full h-9 px-3 rounded-lg bg-foreground/5 border border-foreground/10 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50" />
+                    <input value={scenarioForm.name} onChange={(e) => setScenarioForm({ ...scenarioForm, name: e.target.value })} placeholder="e.g., Buy a house" className="h-9 w-full px-3 rounded-lg border border-input bg-surface-sunken/60 text-sm transition-[border-color,box-shadow] focus-visible:border-primary/60 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-ring/15" />
                   </div>
                   <div>
                     <label className="text-xs font-medium text-muted-foreground mb-1 block">Type</label>
-                    <select value={scenarioForm.scenarioType} onChange={(e) => setScenarioForm({ ...scenarioForm, scenarioType: e.target.value })} className="w-full h-9 px-3 rounded-lg bg-foreground/5 border border-foreground/10 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50">
+                    <select value={scenarioForm.scenarioType} onChange={(e) => setScenarioForm({ ...scenarioForm, scenarioType: e.target.value })} className="h-9 w-full px-3 rounded-lg border border-input bg-surface-sunken/60 text-sm transition-[border-color,box-shadow] focus-visible:border-primary/60 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-ring/15">
                       <option value="purchase">Purchase</option>
                       <option value="income_change">Income Change</option>
                       <option value="expense_change">Expense Change</option>
@@ -621,7 +585,7 @@ export default function Forecasting() {
                   </div>
                   <div>
                     <label className="text-xs font-medium text-muted-foreground mb-1 block">Parameters (JSON)</label>
-                    <textarea value={scenarioForm.input} onChange={(e) => setScenarioForm({ ...scenarioForm, input: e.target.value })} rows={3} placeholder='{"amount": 1200}' className="w-full px-3 rounded-lg bg-foreground/5 border border-foreground/10 text-sm font-mono focus:outline-none focus:ring-2 focus:ring-primary/50" />
+                    <textarea value={scenarioForm.input} onChange={(e) => setScenarioForm({ ...scenarioForm, input: e.target.value })} rows={3} placeholder='{"amount": 1200}' className="w-full px-3 py-2 font-mono rounded-lg border border-input bg-surface-sunken/60 text-sm transition-[border-color,box-shadow] focus-visible:border-primary/60 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-ring/15" />
                     <p className="text-[10px] text-muted-foreground mt-1">
                       {scenarioForm.scenarioType === 'home_purchase' && 'Use: {"downPayment": 50000, "monthlyMortgage": 1500}'}
                       {scenarioForm.scenarioType === 'rent_increase' && 'Use: {"increasePercent": 15}'}
@@ -649,53 +613,44 @@ export default function Forecasting() {
       {activeTab === 'net-worth' && (
         <div className="space-y-4">
           {!netWorthProj ? (
-            <Card><CardContent className="flex items-center justify-center py-16"><Loader2 className="h-6 w-6 animate-spin text-muted-foreground" /></CardContent></Card>
+            <div className="grid gap-4 sm:grid-cols-3">{Array.from({ length: 3 }, (_, i) => <CardSkeleton key={i} lines={0} className="h-[88px]" />)}</div>
           ) : (
             <>
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                <Card>
-                  <CardContent className="p-4">
-                    <p className="text-xs text-muted-foreground">Current Net Worth</p>
-                    <p className={`text-xl font-bold ${netWorthProj.currentNetWorth >= 0 ? 'text-positive' : 'text-negative'}`}>
-                      {formatCurrency(netWorthProj.currentNetWorth, currency)}
-                    </p>
-                  </CardContent>
-                </Card>
-                <Card>
-                  <CardContent className="p-4">
-                    <p className="text-xs text-muted-foreground">Monthly Net Flow</p>
-                    <p className={`text-xl font-bold ${netWorthProj.monthlyNetFlow >= 0 ? 'text-positive' : 'text-negative'}`}>
-                      {formatCurrency(netWorthProj.monthlyNetFlow, currency)}
-                    </p>
-                  </CardContent>
-                </Card>
-                <Card>
-                  <CardContent className="p-4">
-                    <p className="text-xs text-muted-foreground">24-Month Projection</p>
-                    <p className={`text-xl font-bold ${(netWorthProj.projections[23]?.netWorth || 0) >= 0 ? 'text-positive' : 'text-negative'}`}>
-                      {formatCurrency(netWorthProj.projections[23]?.netWorth || 0, currency)}
-                    </p>
-                  </CardContent>
-                </Card>
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+                <MetricCard label="Current Net Worth" value={netWorthProj.currentNetWorth} icon={BarChart3} tone="info" valueTone={netWorthProj.currentNetWorth >= 0 ? 'positive' : 'negative'} currency={currency} />
+                <MetricCard label="Monthly Net Flow" value={netWorthProj.monthlyNetFlow} icon={netWorthProj.monthlyNetFlow >= 0 ? TrendingUp : TrendingDown} tone={netWorthProj.monthlyNetFlow >= 0 ? 'positive' : 'negative'} valueTone={netWorthProj.monthlyNetFlow >= 0 ? 'positive' : 'negative'} currency={currency} />
+                <MetricCard label="24-Month Projection" value={netWorthProj.projections[23]?.netWorth || 0} icon={TrendingUp} tone="accent" valueTone={(netWorthProj.projections[23]?.netWorth || 0) >= 0 ? 'positive' : 'negative'} currency={currency} />
               </div>
 
               <Card>
-                <CardHeader className="pb-2"><CardTitle className="text-sm font-medium">Net Worth Projection — 24 Months</CardTitle></CardHeader>
+                <CardHeader><CardTitle>Net Worth Projection — 24 Months</CardTitle><CardDescription>Your current position carried forward at today&apos;s monthly net flow</CardDescription></CardHeader>
                 <CardContent>
-                  <div className="flex items-end gap-1 overflow-x-auto pb-2">
-                    {netWorthProj.projections.map((p) => {
-                      const maxAbs = Math.max(...netWorthProj.projections.map((pp) => Math.abs(pp.netWorth)), 1);
-                      const height = Math.max(4, (Math.abs(p.netWorth) / maxAbs) * 100);
-                      return (
-                        <div key={p.month} className="text-center flex-shrink-0">
-                          <div className="w-8 h-20 flex items-end justify-center" style={{ backgroundColor: 'rgba(255,255,255,0.03)' }}>
-                            <div className="w-full rounded-sm transition-all" style={{ height: `${height}%`, backgroundColor: p.netWorth >= 0 ? '#10b981' : '#fb7185', opacity: 0.8 }} />
-                          </div>
-                          <p className="text-[7px] text-muted-foreground mt-0.5">{p.month.slice(5)}</p>
-                          <p className="text-[8px] font-medium">{formatCurrency(p.netWorth, currency)}</p>
-                        </div>
-                      );
-                    })}
+                  <div className="h-[280px]">
+                    <Line
+                      data={{
+                        labels: netWorthProj.projections.map((p) => p.month),
+                        datasets: [{
+                          label: 'Projected net worth',
+                          data: netWorthProj.projections.map((p) => p.netWorth),
+                          borderColor: chart.primary,
+                          backgroundColor: areaFill('primary'),
+                          fill: true,
+                          tension: 0.35,
+                          pointRadius: 0,
+                          pointHoverRadius: 5,
+                          pointHoverBorderColor: chart.surface,
+                          pointHoverBorderWidth: 2,
+                          borderWidth: 2,
+                        }],
+                      }}
+                      options={{
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: { legend: { display: false }, tooltip: chart.tooltip },
+                        interaction: { intersect: false, mode: 'index' },
+                        scales: chart.axes,
+                      }}
+                    />
                   </div>
                 </CardContent>
               </Card>
@@ -703,6 +658,7 @@ export default function Forecasting() {
           )}
         </div>
       )}
+      </TransitionPanel>
     </div>
   );
 }

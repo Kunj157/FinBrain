@@ -10,6 +10,7 @@ import { PlaidLinkButton } from '@/components/finance/plaid-link';
 import { CsvImport } from '@/components/finance/csv-import';
 import { WeeklyRecap } from '@/components/finance/weekly-recap';
 import { DataQualityWidget } from '@/components/finance/data-quality-widget';
+import { SpendingMixCard } from '@/components/finance/spending-mix-card';
 import {
   SortableWidget,
   DashboardGrid,
@@ -183,6 +184,8 @@ export default function Dashboard() {
             <StatCard title="Total Savings" value={summary.savings} icon={PiggyBank} variant={summary.savings >= 0 ? 'positive' : 'negative'} currency={currency} />
           </div>
         );
+      case 'spending-mix':
+        return <SpendingMixCard transactions={allTransactions} categories={categories} currency={currency} />;
       case 'quick-actions':
         return (
           <div className="grid gap-4 sm:grid-cols-2">

@@ -13,20 +13,20 @@ import remarkGfm from 'remark-gfm';
  */
 export function MarkdownMessage({ content }: { content: string }) {
   return (
-    <div className="text-sm leading-relaxed space-y-3 break-words">
+    <div className="space-y-3 break-words text-sm leading-relaxed text-foreground/90">
       <ReactMarkdown
         remarkPlugins={[remarkGfm]}
         components={{
           p: ({ children }) => <p className="first:mt-0 last:mb-0">{children}</p>,
 
-          h1: ({ children }) => <h3 className="text-sm font-semibold mt-4 first:mt-0">{children}</h3>,
-          h2: ({ children }) => <h3 className="text-sm font-semibold mt-4 first:mt-0">{children}</h3>,
-          h3: ({ children }) => <h4 className="text-sm font-semibold mt-3 first:mt-0">{children}</h4>,
-          h4: ({ children }) => <h4 className="text-sm font-semibold mt-3 first:mt-0">{children}</h4>,
+          h1: ({ children }) => <h3 className="mt-4 text-[15px] font-semibold tracking-tight text-foreground first:mt-0">{children}</h3>,
+          h2: ({ children }) => <h3 className="mt-4 text-[15px] font-semibold tracking-tight text-foreground first:mt-0">{children}</h3>,
+          h3: ({ children }) => <h4 className="mt-3 text-sm font-semibold text-foreground first:mt-0">{children}</h4>,
+          h4: ({ children }) => <h4 className="mt-3 text-sm font-semibold text-foreground first:mt-0">{children}</h4>,
 
           ul: ({ children }) => <ul className="list-disc pl-5 space-y-1">{children}</ul>,
           ol: ({ children }) => <ol className="list-decimal pl-5 space-y-1">{children}</ol>,
-          li: ({ children }) => <li className="marker:text-muted-foreground">{children}</li>,
+          li: ({ children }) => <li className="pl-0.5 marker:text-accent/70">{children}</li>,
 
           strong: ({ children }) => <strong className="font-semibold text-foreground">{children}</strong>,
           em: ({ children }) => <em className="italic">{children}</em>,
@@ -38,7 +38,7 @@ export function MarkdownMessage({ content }: { content: string }) {
               // window reference, and never leak the referrer.
               target="_blank"
               rel="noopener noreferrer nofollow"
-              className="text-primary underline underline-offset-2 hover:text-primary"
+              className="font-medium text-primary underline decoration-primary/40 underline-offset-2 transition-colors hover:decoration-primary"
             >
               {children}
             </a>
@@ -54,7 +54,7 @@ export function MarkdownMessage({ content }: { content: string }) {
           ),
 
           blockquote: ({ children }) => (
-            <blockquote className="border-l-2 border-foreground/20 pl-3 text-muted-foreground">
+            <blockquote className="rounded-r-lg border-l-2 border-accent/50 bg-accent/[0.05] py-1.5 pl-3 text-muted-foreground">
               {children}
             </blockquote>
           ),
@@ -63,13 +63,13 @@ export function MarkdownMessage({ content }: { content: string }) {
           // they are the one element that can exceed the bubble — so the table
           // scrolls inside its own container rather than widening the page.
           table: ({ children }) => (
-            <div className="overflow-x-auto rounded-lg border border-foreground/[0.08]">
-              <table className="w-full border-collapse text-xs">{children}</table>
+            <div className="overflow-x-auto rounded-lg border bg-background/40">
+              <table className="w-full border-collapse text-xs tabular-nums">{children}</table>
             </div>
           ),
           thead: ({ children }) => <thead className="bg-foreground/[0.04]">{children}</thead>,
           th: ({ children }) => (
-            <th className="border-b border-foreground/[0.08] px-3 py-2 text-left font-medium whitespace-nowrap">
+            <th className="whitespace-nowrap border-b px-3 py-2 text-left text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
               {children}
             </th>
           ),

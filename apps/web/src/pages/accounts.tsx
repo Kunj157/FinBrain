@@ -1,7 +1,12 @@
 import { useState, useEffect } from 'react';
-import { Plus, Building2, Wallet, CreditCard, PiggyBank, TrendingUp, Home, Loader2, X, Check } from 'lucide-react';
+import { Plus, Building2, Wallet, CreditCard, PiggyBank, TrendingUp, TrendingDown, Home, X, Check } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
+import { PageHeader } from '@/components/ui/page-header';
+import { EmptyState } from '@/components/ui/empty-state';
+import { CardSkeleton } from '@/components/ui/skeleton';
+import { StatCard } from '@/components/finance/stat-card';
+import { InView } from '@/components/motion/in-view';
 import { Select } from '@/components/ui/select';
 import { NetWorthTrend } from '@/components/finance/net-worth-trend';
 import { useAuth } from '@/hooks/use-auth';
@@ -28,6 +33,12 @@ const ACCOUNT_TYPE_LABELS: Record<string, string> = {
   real_estate: 'Real Estate',
   other: 'Other',
 };
+
+/** Liabilities carry the negative tone; everything else reads as an asset. */
+const LIABILITY_TYPES = new Set(['credit', 'loan']);
+
+const fieldClass =
+  'w-full h-10 px-3 rounded-lg border border-input bg-surface-sunken/60 text-sm transition-[border-color,box-shadow] placeholder:text-muted-foreground/70 hover:border-border-strong focus-visible:border-primary/60 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-ring/15';
 
 const ACCOUNT_TYPE_OPTIONS = [
   { value: 'checking', label: 'Checking' },
@@ -77,140 +88,123 @@ export default function AccountsPage() {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center min-h-[60vh]">
-        <Loader2 className="h-8 w-8 text-muted-foreground animate-spin" />
+      <div className="space-y-6" aria-busy="true" aria-label="Loading accounts">
+        <CardSkeleton lines={0} className="h-16 w-72 border-0 bg-transparent p-0 shadow-none" />
+        <div className="grid gap-4 sm:grid-cols-3">
+          {Array.from({ length: 3 }, (_, i) => <CardSkeleton key={i} lines={0} className="h-[150px]" />)}
+        </div>
+        <CardSkeleton className="h-72" />
       </div>
     );
   }
 
   return (
-    <div className="space-y-6 animate-fade-in">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-semibold tracking-tight">Accounts</h1>
-          <p className="text-sm text-muted-foreground mt-1">
-            {accounts.length} {accounts.length === 1 ? 'account' : 'accounts'}
-          </p>
-        </div>
-        <Button onClick={() => setShowForm(true)} className="gap-2">
-          <Plus className="h-4 w-4" />
-          Add Account
-        </Button>
-      </div>
+    <div className="space-y-6">
+      <PageHeader
+        icon={Building2}
+        title="Accounts"
+        description={`${accounts.length} ${accounts.length === 1 ? 'account' : 'accounts'}`}
+        actions={
+          <Button onClick={() => setShowForm(true)}>
+            <Plus className="h-4 w-4" />
+            Add Account
+          </Button>
+        }
+      />
 
       {netWorth && (
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-          <Card>
-            <CardHeader className="pb-2">
-              <CardTitle className="text-xs text-muted-foreground font-normal">Net Worth</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <p className={`text-2xl font-semibold ${netWorth.netWorth >= 0 ? 'text-positive' : 'text-negative'}`}>
-                {formatCurrency(netWorth.netWorth, currency)}
-              </p>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardHeader className="pb-2">
-              <CardTitle className="text-xs text-muted-foreground font-normal">Total Assets</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <p className="text-2xl font-semibold text-primary">{formatCurrency(netWorth.totalAssets, currency)}</p>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardHeader className="pb-2">
-              <CardTitle className="text-xs text-muted-foreground font-normal">Total Liabilities</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <p className="text-2xl font-semibold text-negative">{formatCurrency(netWorth.totalLiabilities, currency)}</p>
-            </CardContent>
-          </Card>
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+          <StatCard title="Net Worth" value={netWorth.netWorth} icon={Wallet} variant={netWorth.netWorth >= 0 ? 'positive' : 'negative'} currency={currency} />
+          <StatCard title="Total Assets" value={netWorth.totalAssets} icon={TrendingUp} variant="positive" currency={currency} />
+          <StatCard title="Total Liabilities" value={netWorth.totalLiabilities} icon={TrendingDown} variant="negative" currency={currency} />
         </div>
       )}
 
       {accounts.length > 0 && (
-        <Card>
-          <CardContent className="p-5">
-            <NetWorthTrend currency={currency} />
-          </CardContent>
-        </Card>
+        <InView>
+          <Card>
+            <CardContent className="pt-0">
+              <NetWorthTrend currency={currency} />
+            </CardContent>
+          </Card>
+        </InView>
       )}
 
       {accounts.length === 0 && (
         <Card>
-          <CardContent className="flex flex-col items-center gap-4 py-16 text-center">
-            <div className="flex h-12 w-12 items-center justify-center rounded-full bg-primary/10">
-              <Building2 className="h-6 w-6 text-primary" aria-hidden="true" />
-            </div>
-            <div className="space-y-1">
-              <p className="font-medium">No accounts yet</p>
-              <p className="text-sm text-muted-foreground">
-                Add a checking, savings, credit or loan account to start tracking your net worth.
-              </p>
-            </div>
-            <Button onClick={() => setShowForm(true)} className="gap-2">
-              <Plus className="h-4 w-4" aria-hidden="true" />
-              Add Account
-            </Button>
-          </CardContent>
+          <EmptyState
+            icon={Building2}
+            title="No accounts yet"
+            description="Add a checking, savings, credit or loan account to start tracking your net worth."
+            action={
+              <Button onClick={() => setShowForm(true)}>
+                <Plus className="h-4 w-4" aria-hidden="true" />
+                Add Account
+              </Button>
+            }
+          />
         </Card>
       )}
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-        {accounts.map((acct) => {
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        {accounts.map((acct, i) => {
           const Icon = ACCOUNT_TYPE_ICONS[acct.type] || Building2;
+          const liability = LIABILITY_TYPES.has(acct.type);
           return (
-            <Card key={acct.id} className="group">
-              <CardHeader className="pb-2">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10">
-                      <Icon className="h-5 w-5 text-primary" />
+            <InView key={acct.id} index={i}>
+              <Card className="group h-full overflow-hidden card-hover">
+                {/* A tinted band along the top marks assets and liabilities apart. */}
+                <span
+                  aria-hidden
+                  className={`absolute inset-x-0 top-0 h-1 ${liability ? 'bg-gradient-to-r from-negative/70 to-negative/10' : 'bg-gradient-to-r from-primary/70 to-accent/40'}`}
+                />
+                <div className="flex items-start justify-between gap-3">
+                  <div className="flex min-w-0 items-center gap-3">
+                    <div className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl ring-1 ring-inset ${liability ? 'bg-negative/10 text-negative ring-negative/20' : 'bg-primary/10 text-primary ring-primary/20'}`}>
+                      <Icon className="h-5 w-5" />
                     </div>
-                    <div>
-                      <CardTitle className="text-sm font-medium">{acct.name}</CardTitle>
-                      <p className="text-xs text-muted-foreground">{ACCOUNT_TYPE_LABELS[acct.type]}</p>
+                    <div className="min-w-0">
+                      <p className="truncate text-sm font-semibold">{acct.name}</p>
+                      <p className="truncate text-xs text-muted-foreground">{acct.institution || ACCOUNT_TYPE_LABELS[acct.type]}</p>
                     </div>
                   </div>
+                  <span className="shrink-0 rounded-full border bg-foreground/[0.03] px-2 py-0.5 text-[10px] font-medium uppercase tracking-wider text-muted-foreground">
+                    {ACCOUNT_TYPE_LABELS[acct.type]}
+                  </span>
                 </div>
-              </CardHeader>
-              <CardContent>
-                <p className={`text-lg font-semibold ${acct.balance >= 0 ? 'text-positive' : 'text-negative'}`}>
+                <p className="mt-2 text-[11px] font-medium uppercase tracking-[0.08em] text-muted-foreground">Balance</p>
+                <p className={`mt-1 text-2xl font-semibold tracking-tight tabular-nums ${acct.balance >= 0 ? 'text-foreground' : 'text-negative'}`}>
                   {formatCurrency(acct.balance, acct.currency || currency)}
                 </p>
-                {acct.institution && (
-                  <p className="text-xs text-muted-foreground mt-1">{acct.institution}</p>
-                )}
-              </CardContent>
-            </Card>
+              </Card>
+            </InView>
           );
         })}
       </div>
 
       {showForm && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm" onClick={() => setShowForm(false)}>
-          <div className="w-full max-w-md mx-4 glass rounded-xl" onClick={(e) => e.stopPropagation()}>
-            <div className="flex items-center justify-between p-5 border-b border-foreground/[0.06]">
-              <h2 className="text-lg font-semibold">Add Account</h2>
-              <button onClick={() => setShowForm(false)} className="p-1.5 rounded-lg hover:bg-foreground/[0.04]">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-background/60 p-4 backdrop-blur-md animate-in fade-in-0" onClick={() => setShowForm(false)}>
+          <div role="dialog" aria-modal="true" aria-labelledby="account-form-title" className="w-full max-w-md rounded-2xl border bg-popover shadow-float [background-image:var(--sheen)] animate-in fade-in-0 zoom-in-95 slide-in-from-bottom-2 duration-200" onClick={(e) => e.stopPropagation()}>
+            <div className="flex items-center justify-between border-b p-5">
+              <h2 id="account-form-title" className="text-lg font-semibold tracking-tight">Add Account</h2>
+              <button onClick={() => setShowForm(false)} aria-label="Close" className="rounded-lg p-1.5 text-muted-foreground transition-colors hover:bg-foreground/[0.05] hover:text-foreground">
                 <X className="h-5 w-5" />
               </button>
             </div>
             <div className="p-5 space-y-4">
               <div>
-                <label className="text-xs text-muted-foreground block mb-1">Name *</label>
+                <label className="mb-1.5 block text-xs font-medium text-muted-foreground">Name *</label>
                 <input
                   type="text"
                   required
                   value={form.name}
                   onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))}
                   placeholder="e.g. Main Checking"
-                  className="w-full h-10 px-3 rounded-lg bg-foreground/[0.02] border border-foreground/[0.08] text-sm focus:outline-none focus:ring-2 focus:ring-primary/20"
+                  className={fieldClass}
                 />
               </div>
               <div>
-                <label className="text-xs text-muted-foreground block mb-1">Type</label>
+                <label className="mb-1.5 block text-xs font-medium text-muted-foreground">Type</label>
                 <Select
                   value={form.type}
                   onValueChange={(value) => setForm((f) => ({ ...f, type: value }))}
@@ -218,23 +212,23 @@ export default function AccountsPage() {
                 />
               </div>
               <div>
-                <label className="text-xs text-muted-foreground block mb-1">Balance</label>
+                <label className="mb-1.5 block text-xs font-medium text-muted-foreground">Balance</label>
                 <input
                   type="number"
                   value={form.balance}
                   onChange={(e) => setForm((f) => ({ ...f, balance: parseFloat(e.target.value) || 0 }))}
                   placeholder="0.00"
-                  className="w-full h-10 px-3 rounded-lg bg-foreground/[0.02] border border-foreground/[0.08] text-sm focus:outline-none focus:ring-2 focus:ring-primary/20"
+                  className={fieldClass}
                 />
               </div>
               <div>
-                <label className="text-xs text-muted-foreground block mb-1">Institution</label>
+                <label className="mb-1.5 block text-xs font-medium text-muted-foreground">Institution</label>
                 <input
                   type="text"
                   value={form.institution}
                   onChange={(e) => setForm((f) => ({ ...f, institution: e.target.value }))}
                   placeholder="e.g. Chase"
-                  className="w-full h-10 px-3 rounded-lg bg-foreground/[0.02] border border-foreground/[0.08] text-sm focus:outline-none focus:ring-2 focus:ring-primary/20"
+                  className={fieldClass}
                 />
               </div>
               <div className="flex gap-3 pt-2">
