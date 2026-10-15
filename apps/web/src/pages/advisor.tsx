@@ -1,12 +1,16 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { Brain, Send, Loader2, History, AlertTriangle, CheckCircle2, XCircle, ChevronDown, ChevronUp, Lightbulb, Target, Shield } from 'lucide-react';
+import { Send, History, AlertTriangle, CheckCircle2, XCircle, ChevronDown, ChevronUp, Lightbulb, Target, Shield, Sparkles, ThumbsUp, ThumbsDown, X, ArrowUpRight } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
+import { PageHeader } from '@/components/ui/page-header';
 import api from '@/lib/api';
 import { streamAdvisorChat } from '@/lib/advisor-stream';
 import { MarkdownMessage } from '@/components/advisor/markdown-message';
-import { formatCurrency } from '@/lib/utils';
+import { AssistantAvatar, ChatError, ConfidenceBadge, ThinkingIndicator } from '@/components/advisor/chat-bubble';
+import { AnimatedNumber } from '@/components/motion/animated-number';
+import { BorderTrail } from '@/components/motion/border-trail';
+import { ProgressiveBlur } from '@/components/motion/progressive-blur';
+import { cn, formatCurrency } from '@/lib/utils';
 
 interface AdvisorProfile {
   confidence: string;
@@ -62,7 +66,7 @@ interface AffordabilityDecision {
 }
 
 const decisionColors: Record<string, string> = {
-  recommended: 'text-primary bg-primary/10 border-primary/20',
+  recommended: 'text-positive bg-positive/10 border-positive/20',
   reasonable: 'text-info bg-info/10 border-info/20',
   caution: 'text-warning bg-warning/10 border-warning/20',
   not_recommended: 'text-negative bg-negative/10 border-negative/20',
@@ -238,230 +242,230 @@ export default function AdvisorPage() {
     }
   };
 
-  const confidenceBadge = (confidence: string) => {
-    const colors: Record<string, string> = {
-      high: 'bg-primary/10 text-primary border-primary/20',
-      medium: 'bg-warning/10 text-warning border-warning/20',
-      low: 'bg-negative/10 text-negative border-negative/20',
-    };
-    return (
-      <Badge variant="outline" className={`${colors[confidence] || colors.low} text-xs`}>
-        {confidence} confidence
-      </Badge>
-    );
-  };
+  const savingsTone = (rate: number) => (rate >= 20 ? 'positive' : rate >= 10 ? 'warning' : 'negative');
+  const fundTone = (months: number) => (months >= 3 ? 'positive' : months >= 1 ? 'warning' : 'negative');
 
   return (
-    <div className="flex h-[calc(100vh-4rem)] gap-4">
-      {showHistory && (
-        <div className="w-64 flex-shrink-0 overflow-y-auto glass-strong rounded-xl p-3">
-          <div className="flex items-center justify-between mb-3">
-            <h3 className="text-sm font-medium text-muted-foreground">Conversations</h3>
-            <Button variant="ghost" size="sm" onClick={() => setShowHistory(false)}>
-              <XCircle className="h-4 w-4" />
-            </Button>
-          </div>
-          <div className="space-y-1">
-            {conversations.map((c) => (
-              <button
-                key={c.id}
-                onClick={() => loadConversation(c.id)}
-                className={`w-full text-left p-2 rounded-lg text-sm transition-colors ${
-                  activeConvId === c.id
-                    ? 'bg-primary/10 text-primary'
-                    : 'hover:bg-foreground/5 text-muted-foreground'
-                }`}
-              >
-                <p className="truncate">{c.title || 'New conversation'}</p>
-                <p className="text-xs opacity-50 mt-0.5">
-                  {new Date(c.updatedAt).toLocaleDateString()}
-                </p>
-              </button>
-            ))}
-          </div>
-        </div>
-      )}
-
-      <div className="flex-1 flex flex-col min-w-0">
-        <div className="flex items-center justify-between mb-4">
-          <div className="flex items-center gap-3">
-            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary/10 border border-primary/20">
-              <Brain className="h-5 w-5 text-primary" />
-            </div>
-            <div>
-              <h1 className="text-lg font-semibold">Advisor</h1>
-              <p className="text-xs text-muted-foreground">Personalized financial guidance</p>
-            </div>
-          </div>
-          <div className="flex items-center gap-2">
-            {profile && confidenceBadge(profile.confidence)}
-            <Button variant="ghost" size="sm" onClick={() => setShowHistory(!showHistory)}>
+    <div className="flex h-[calc(100dvh-7.5rem)] min-h-[560px] flex-col gap-5 md:h-[calc(100dvh-8.5rem)] lg:h-[calc(100dvh-9.5rem)]">
+      <PageHeader
+        title="Advisor"
+        description="Personalized guidance grounded in your own numbers"
+        icon={Sparkles}
+        tone="accent"
+        actions={
+          <>
+            {profile && <ConfidenceBadge confidence={profile.confidence} />}
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setShowHistory(!showHistory)}
+              aria-label="Conversation history"
+              aria-expanded={showHistory}
+            >
               <History className="h-4 w-4" />
+              <span className="hidden sm:inline">History</span>
             </Button>
-          </div>
-        </div>
+          </>
+        }
+      />
 
-        <div className="flex gap-4 flex-1 min-h-0">
-          {profile && (
-            <div className="w-72 flex-shrink-0 overflow-y-auto space-y-3">
-              <Card className="glass">
-                <CardHeader className="pb-2">
-                  <CardTitle className="text-sm font-medium">Financial Profile</CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-3">
-                  <div className="flex justify-between text-sm">
-                    <span className="text-muted-foreground">Monthly Income</span>
-                    <span className="font-medium">{formatCurrency(profile.monthlyIncomeAvg)}</span>
-                  </div>
-                  <div className="flex justify-between text-sm">
-                    <span className="text-muted-foreground">Monthly Expenses</span>
-                    <span className="font-medium">{formatCurrency(profile.monthlyExpenseAvg)}</span>
-                  </div>
-                  <div className="flex justify-between text-sm">
-                    <span className="text-muted-foreground">Savings Rate</span>
-                    <span className={`font-medium ${profile.savingsRateAvg >= 20 ? 'text-positive' : profile.savingsRateAvg >= 10 ? 'text-warning' : 'text-negative'}`}>
-                      {profile.savingsRateAvg.toFixed(1)}%
-                    </span>
-                  </div>
-                  <div className="flex justify-between text-sm">
-                    <span className="text-muted-foreground">Emergency Fund</span>
-                    <span className={`font-medium ${profile.emergencyFundMonths >= 3 ? 'text-positive' : profile.emergencyFundMonths >= 1 ? 'text-warning' : 'text-negative'}`}>
-                      {profile.emergencyFundMonths} months
-                    </span>
-                  </div>
-                  <div className="flex justify-between text-sm">
-                    <span className="text-muted-foreground">Risk Level</span>
-                    <span className="font-medium capitalize">{profile.riskLevel}</span>
-                  </div>
-                </CardContent>
-              </Card>
-
-              {profile.advisorSummary && (
-                <Card className="glass">
-                  <CardContent className="p-3">
-                    <p className="text-xs text-muted-foreground leading-relaxed">{profile.advisorSummary}</p>
-                  </CardContent>
-                </Card>
+      <div className="flex min-h-0 flex-1 gap-5">
+        {showHistory && (
+          <aside className="glass w-64 flex-shrink-0 overflow-y-auto rounded-2xl p-3 animate-fade-in" aria-label="Conversations">
+            <div className="mb-2 flex items-center justify-between px-1">
+              <h2 className="text-xs font-semibold uppercase tracking-[0.12em] text-muted-foreground">Conversations</h2>
+              <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => setShowHistory(false)} aria-label="Close history">
+                <X className="h-4 w-4" />
+              </Button>
+            </div>
+            <div className="space-y-0.5">
+              {conversations.length === 0 && (
+                <p className="px-2 py-6 text-center text-xs text-muted-foreground">No conversations yet</p>
               )}
+              {conversations.map((c) => (
+                <button
+                  key={c.id}
+                  onClick={() => loadConversation(c.id)}
+                  className={cn(
+                    'w-full rounded-lg px-2.5 py-2 text-left text-sm transition-colors',
+                    activeConvId === c.id
+                      ? 'bg-accent/10 text-foreground ring-1 ring-inset ring-accent/25'
+                      : 'text-muted-foreground hover:bg-foreground/[0.05] hover:text-foreground',
+                  )}
+                >
+                  <p className="truncate">{c.title || 'New conversation'}</p>
+                  <p className="mt-0.5 text-[11px] opacity-60">{new Date(c.updatedAt).toLocaleDateString()}</p>
+                </button>
+              ))}
+            </div>
+          </aside>
+        )}
 
-              <Card className="glass">
-                <CardHeader className="pb-2">
-                  <CardTitle className="text-sm font-medium flex items-center gap-2">
-                    <Lightbulb className="h-4 w-4 text-warning" />
-                    Suggested Questions
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-1">
-                  {suggestedQuestions.map((q, i) => (
+        {profile && (
+          <aside className="hidden w-72 flex-shrink-0 space-y-4 overflow-y-auto pb-1 lg:block" aria-label="Financial profile">
+            <Card>
+              <CardHeader>
+                <CardTitle>Financial profile</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="rounded-xl border bg-foreground/[0.02] p-3">
+                    <p className="text-[11px] text-muted-foreground">Monthly income</p>
+                    <p className="mt-1 text-sm font-semibold">
+                      <AnimatedNumber value={profile.monthlyIncomeAvg} from={0} format={(n) => formatCurrency(n)} />
+                    </p>
+                  </div>
+                  <div className="rounded-xl border bg-foreground/[0.02] p-3">
+                    <p className="text-[11px] text-muted-foreground">Monthly spend</p>
+                    <p className="mt-1 text-sm font-semibold">
+                      <AnimatedNumber value={profile.monthlyExpenseAvg} from={0} format={(n) => formatCurrency(n)} />
+                    </p>
+                  </div>
+                </div>
+                <ProfileMeter
+                  label="Savings rate"
+                  value={`${profile.savingsRateAvg.toFixed(1)}%`}
+                  fill={Math.max(0, Math.min(100, profile.savingsRateAvg))}
+                  tone={savingsTone(profile.savingsRateAvg)}
+                />
+                <ProfileMeter
+                  label="Emergency fund"
+                  value={`${profile.emergencyFundMonths} months`}
+                  fill={Math.min(100, (profile.emergencyFundMonths / 6) * 100)}
+                  tone={fundTone(profile.emergencyFundMonths)}
+                />
+                <div className="flex items-center justify-between border-t pt-3 text-sm">
+                  <span className="text-muted-foreground">Risk level</span>
+                  <span className="font-medium capitalize">{profile.riskLevel}</span>
+                </div>
+              </CardContent>
+            </Card>
+
+            {profile.advisorSummary && (
+              <Card className="border-accent/20">
+                <div className="mb-2 flex items-center gap-2 text-xs font-semibold text-accent">
+                  <Sparkles className="h-3.5 w-3.5" aria-hidden />
+                  Summary
+                </div>
+                <p className="text-xs leading-relaxed text-muted-foreground">{profile.advisorSummary}</p>
+              </Card>
+            )}
+
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Lightbulb className="h-4 w-4 text-warning" aria-hidden />
+                  Suggested questions
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-0.5">
+                {suggestedQuestions.map((q, i) => (
+                  <button
+                    key={i}
+                    onClick={() => handleSend(q)}
+                    disabled={isLoading}
+                    className="group flex w-full items-center gap-2 rounded-lg px-2 py-2 text-left text-xs text-muted-foreground transition-colors hover:bg-foreground/[0.05] hover:text-foreground disabled:opacity-50"
+                  >
+                    <span className="flex-1">{q}</span>
+                    <ArrowUpRight className="h-3 w-3 shrink-0 opacity-0 transition-opacity group-hover:opacity-100" aria-hidden />
+                  </button>
+                ))}
+              </CardContent>
+            </Card>
+          </aside>
+        )}
+
+        <section className="surface-raised relative flex min-w-0 flex-1 flex-col overflow-hidden rounded-2xl" aria-label="Conversation">
+          <div className="flex-1 space-y-5 overflow-y-auto px-4 pb-8 pt-5 md:px-6">
+            {messages.length === 0 && (
+              <div className="flex h-full flex-col items-center justify-center py-8 text-center">
+                <div className="relative mb-5">
+                  <span aria-hidden className="absolute inset-0 -z-10 scale-[2] rounded-full bg-accent/20 blur-2xl" />
+                  <AssistantAvatar className="h-14 w-14 rounded-2xl [&_svg]:h-6 [&_svg]:w-6" />
+                </div>
+                <h2 className="text-xl font-semibold tracking-tight">Ask your financial advisor</h2>
+                <p className="mb-7 mt-2 max-w-md text-sm leading-relaxed text-muted-foreground">
+                  I can help you make financial decisions based on your actual income, expenses, goals, and spending patterns.
+                </p>
+                <div className="grid w-full max-w-xl gap-2 sm:grid-cols-2">
+                  {suggestedQuestions.slice(0, 4).map((q, i) => (
                     <button
                       key={i}
                       onClick={() => handleSend(q)}
-                      className="w-full text-left p-2 rounded-lg text-xs text-muted-foreground hover:bg-foreground/5 hover:text-foreground transition-colors"
+                      className="group flex items-center gap-2 rounded-xl border bg-card/60 px-3.5 py-3 text-left text-sm shadow-edge transition-[border-color,background-color,transform] duration-200 hover:-translate-y-0.5 hover:border-accent/40 hover:bg-accent/[0.05]"
                     >
-                      {q}
+                      <Sparkles className="h-3.5 w-3.5 shrink-0 text-accent" aria-hidden />
+                      <span className="flex-1">{q}</span>
                     </button>
                   ))}
-                </CardContent>
-              </Card>
-            </div>
-          )}
-
-          <div className="flex-1 flex flex-col min-w-0">
-            <div className="flex-1 overflow-y-auto space-y-4 p-4 glass-strong rounded-xl">
-              {messages.length === 0 && (
-                <div className="flex flex-col items-center justify-center h-full text-center">
-                  <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-primary/10 border border-primary/20 mb-4">
-                    <Brain className="h-8 w-8 text-primary" />
-                  </div>
-                  <h2 className="text-lg font-semibold mb-2">Ask your financial advisor</h2>
-                  <p className="text-sm text-muted-foreground max-w-md mb-6">
-                    I can help you make financial decisions based on your actual income, expenses, goals, and spending patterns.
-                  </p>
-                  <div className="grid grid-cols-2 gap-2 max-w-lg">
-                    {suggestedQuestions.slice(0, 4).map((q, i) => (
-                      <button
-                        key={i}
-                        onClick={() => handleSend(q)}
-                        className="p-3 rounded-xl text-sm text-left glass hover:bg-foreground/5 transition-colors"
-                      >
-                        {q}
-                      </button>
-                    ))}
-                  </div>
                 </div>
-              )}
+              </div>
+            )}
 
-              {messages.map((msg, idx) => (
-                <div key={idx} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
-                  <div className={`max-w-[80%] min-w-0 rounded-2xl px-4 py-3 ${
-                    msg.role === 'user'
-                      ? 'bg-primary/10 border border-primary/20'
-                      : msg.isError
-                        ? 'bg-negative/5 border border-negative/20'
-                        : 'glass'
-                  }`}>
-                    {msg.role === 'assistant' && !msg.isError && (
-                      <div className="flex items-center gap-2 mb-2">
-                        <Brain className="h-4 w-4 text-primary" />
-                        <span className="text-xs font-medium text-primary">Advisor</span>
-                        {/* Per answer, not per profile: how much data this
-                            specific reply rested on is what the reader needs. */}
-                        {msg.confidence && confidenceBadge(msg.confidence)}
-                      </div>
-                    )}
-
-                    {/* A failure is labelled as one. Branding it as the advisor
-                        made an outage read as financial advice. */}
-                    {msg.isError ? (
-                      <div role="alert" className="space-y-2">
-                        <div className="flex items-center gap-2">
-                          <AlertTriangle className="h-4 w-4 text-negative" aria-hidden="true" />
-                          <span className="text-xs font-medium text-negative">Couldn't get a response</span>
-                        </div>
-                        <p className="text-sm text-muted-foreground">{msg.content}</p>
-                        <Button variant="outline" size="sm" className="h-7" onClick={handleRetry}>
-                          Try again
-                        </Button>
-                      </div>
-                    ) : msg.role === 'assistant' ? (
-                      <>
-                        <MarkdownMessage content={msg.content} />
-                        {msg.isStreaming && (
-                          <span className="ml-0.5 inline-block h-4 w-1.5 translate-y-0.5 animate-pulse rounded-sm bg-primary/70 align-middle" />
-                        )}
-                      </>
-                    ) : (
-                      // break-words so an unbroken token — a pasted URL or
-                      // account number — wraps instead of stretching the chat
-                      // pane sideways.
-                      <div className="text-sm whitespace-pre-wrap break-words">{msg.content}</div>
+            {messages.map((msg, idx) => {
+              if (msg.role === 'user') {
+                return (
+                  <div key={idx} className="flex justify-end">
+                    {/* break-words so an unbroken token — a pasted URL or
+                        account number — wraps instead of stretching the chat
+                        pane sideways. */}
+                    <div className="min-w-0 max-w-[80%] whitespace-pre-wrap break-words rounded-2xl rounded-br-md bg-primary px-4 py-2.5 text-sm text-primary-foreground shadow-[inset_0_1px_0_hsl(0_0%_100%/0.2)]">
+                      {msg.content}
+                    </div>
+                  </div>
+                );
+              }
+              // A failure is labelled as one. Branding it as the advisor made
+              // an outage read as financial advice.
+              if (msg.isError) {
+                return (
+                  <div key={idx} className="flex justify-start">
+                    <ChatError content={msg.content} onRetry={handleRetry} />
+                  </div>
+                );
+              }
+              // Until the first token lands, a shimmer stands in for the reply.
+              if (msg.isStreaming && msg.content === '') return <ThinkingIndicator key={idx} />;
+              return (
+                <div key={idx} className="flex items-start gap-3">
+                  <AssistantAvatar className="mt-0.5" />
+                  <div className="min-w-0 max-w-[80%] rounded-2xl rounded-tl-md border bg-card/80 px-4 py-3 shadow-edge [background-image:var(--sheen)]">
+                    <div className="mb-1.5 flex items-center gap-2">
+                      <span className="text-xs font-semibold text-accent">Advisor</span>
+                      {/* Per answer, not per profile: how much data this
+                          specific reply rested on is what the reader needs. */}
+                      {msg.confidence && <ConfidenceBadge confidence={msg.confidence} />}
+                    </div>
+                    <MarkdownMessage content={msg.content} />
+                    {msg.isStreaming && (
+                      <span className="ml-0.5 inline-block h-4 w-1.5 translate-y-0.5 animate-pulse rounded-sm bg-accent/70 align-middle" />
                     )}
 
                     {msg.structuredData?.type === 'affordability' && typeof msg.structuredData.decision === 'object' && msg.structuredData.decision !== null && (
                       <AffordabilityCard decision={msg.structuredData.decision as unknown as AffordabilityDecision} />
                     )}
 
-                    {msg.role === 'assistant' && !msg.isError && !msg.isStreaming && msg.id && (
-                      <div className="flex items-center gap-1 mt-2">
+                    {!msg.isStreaming && msg.id && (
+                      <div className="mt-2.5 flex items-center gap-1 border-t pt-2">
                         <Button
                           variant="ghost"
                           size="sm"
-                          className={`h-6 px-2 ${feedbackState[msg.id] === 'thumbs_up' ? 'text-primary' : ''}`}
+                          className={cn('h-7 px-2', feedbackState[msg.id] === 'thumbs_up' && 'text-positive')}
                           aria-label="This answer was helpful"
                           aria-pressed={feedbackState[msg.id] === 'thumbs_up'}
                           onClick={() => handleFeedback(msg.id, 'thumbs_up')}
                         >
-                          <CheckCircle2 className="h-3 w-3" />
+                          <ThumbsUp className="h-3.5 w-3.5" />
                         </Button>
                         <Button
                           variant="ghost"
                           size="sm"
-                          className={`h-6 px-2 ${feedbackState[msg.id] === 'thumbs_down' ? 'text-negative' : ''}`}
+                          className={cn('h-7 px-2', feedbackState[msg.id] === 'thumbs_down' && 'text-negative')}
                           aria-label="This answer was not helpful"
                           aria-pressed={feedbackState[msg.id] === 'thumbs_down'}
                           onClick={() => handleFeedback(msg.id, 'thumbs_down')}
                         >
-                          <XCircle className="h-3 w-3" />
+                          <ThumbsDown className="h-3.5 w-3.5" />
                         </Button>
                         {feedbackState[msg.id] === 'failed' && (
                           <span className="text-xs text-muted-foreground">Couldn't save that</span>
@@ -470,43 +474,56 @@ export default function AdvisorPage() {
                     )}
                   </div>
                 </div>
-              ))}
+              );
+            })}
+            <div ref={messagesEndRef} />
+          </div>
 
-              {/* Only shown until the first token lands — after that the
-                  streaming bubble itself is the progress indicator. */}
-              {isLoading && messages[messages.length - 1]?.content === '' && (
-                <div className="flex justify-start">
-                  <div className="glass rounded-2xl px-4 py-3">
-                    <div className="flex items-center gap-2">
-                      <Loader2 className="h-4 w-4 animate-spin text-primary" />
-                      <span className="text-sm text-muted-foreground">Thinking...</span>
-                    </div>
-                  </div>
-                </div>
-              )}
-              <div ref={messagesEndRef} />
-            </div>
-
-            <div className="mt-4 flex gap-2">
+          <div className="relative border-t bg-card/60 p-3 backdrop-blur-xl md:p-4">
+            <ProgressiveBlur side="bottom" className="-top-8 h-8 bottom-auto" />
+            <div className="relative flex items-center gap-2 rounded-xl border border-input bg-surface-sunken/60 p-1.5 pl-4 transition-[border-color,box-shadow] focus-within:border-accent/60 focus-within:ring-4 focus-within:ring-accent/15">
+              {isLoading && <BorderTrail tone="accent" size={90} />}
               <input
                 type="text"
                 value={chatInput}
                 onChange={(e) => setChatInput(e.target.value)}
                 onKeyDown={handleKeyDown}
                 placeholder="Ask about your finances..."
-                className="flex-1 bg-foreground/5 border border-foreground/10 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-primary/50 placeholder:text-muted-foreground"
+                aria-label="Ask about your finances"
+                className="min-w-0 flex-1 bg-transparent py-2 text-sm placeholder:text-muted-foreground/70 focus-visible:outline-none"
                 disabled={isLoading}
               />
               <Button
+                variant="accent"
+                size="icon"
                 onClick={() => handleSend()}
                 disabled={!chatInput.trim() || isLoading}
-                className="bg-primary hover:bg-primary text-white px-4"
+                aria-label="Send"
               >
                 <Send className="h-4 w-4" />
               </Button>
             </div>
+            <p className="mt-2 text-center text-[11px] text-muted-foreground">
+              Answers are generated from your data and may be imperfect. Not professional financial advice.
+            </p>
           </div>
-        </div>
+        </section>
+      </div>
+    </div>
+  );
+}
+
+function ProfileMeter({ label, value, fill, tone }: { label: string; value: string; fill: number; tone: 'positive' | 'warning' | 'negative' }) {
+  const bar = { positive: 'bg-positive', warning: 'bg-warning', negative: 'bg-negative' }[tone];
+  const text = { positive: 'text-positive', warning: 'text-warning', negative: 'text-negative' }[tone];
+  return (
+    <div>
+      <div className="flex items-center justify-between text-sm">
+        <span className="text-muted-foreground">{label}</span>
+        <span className={cn('font-medium tabular-nums', text)}>{value}</span>
+      </div>
+      <div className="mt-1.5 h-1.5 overflow-hidden rounded-full bg-foreground/[0.06]" aria-hidden>
+        <div className={cn('h-full rounded-full transition-[width] duration-700 ease-out', bar)} style={{ width: `${fill}%` }} />
       </div>
     </div>
   );
@@ -517,10 +534,10 @@ function AffordabilityCard({ decision }: { decision: AffordabilityDecision }) {
   const DecisionIcon = decisionIcons[decision.decision] || AlertTriangle;
 
   return (
-    <div className="mt-3 p-3 rounded-xl bg-black/20 border border-foreground/5">
+    <div className="mt-3 rounded-xl border bg-foreground/[0.03] p-3">
       <div className="flex items-center justify-between mb-2">
         <div className="flex items-center gap-2">
-          <DecisionIcon className="h-4 w-4" />
+          <DecisionIcon className={`h-4 w-4 ${decisionColors[decision.decision]?.split(' ')[0]}`} aria-hidden />
           <span className={`text-sm font-medium capitalize ${decisionColors[decision.decision]?.split(' ')[0]}`}>
             {decision.decision.replace('_', ' ')}
           </span>
