@@ -1,12 +1,16 @@
 import { useState, useEffect, useMemo, useRef } from 'react';
 import {
-  Plus, X, Check, Tags, Pencil, Trash2, Loader2, ChevronDown, ChevronRight,
+  Plus, X, Check, Tags, Pencil, Trash2, ChevronDown, ChevronRight,
   ShoppingCart, Car, Home, Utensils, Heart, Gamepad2,
   BookOpen, Gift, Plane, Briefcase, Zap, DollarSign,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Select } from '@/components/ui/select';
+import { Badge } from '@/components/ui/badge';
+import { PageHeader } from '@/components/ui/page-header';
+import { Skeleton, CardSkeleton } from '@/components/ui/skeleton';
+import { InView } from '@/components/motion/in-view';
 import api from '@/lib/api';
 import type { Category } from '@finbrain/shared';
 
@@ -186,20 +190,22 @@ export default function CategoriesPage() {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center min-h-[60vh]">
-        <Loader2 className="h-8 w-8 text-muted-foreground animate-spin" />
+      <div className="space-y-6" aria-busy="true" aria-label="Loading categories">
+        <Skeleton className="h-8 w-48" />
+        <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+          {Array.from({ length: 6 }, (_, i) => <CardSkeleton key={i} lines={2} />)}
+        </div>
       </div>
     );
   }
 
   return (
-    <div className="space-y-6 animate-fade-in">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-semibold tracking-tight">Categories</h1>
-          <p className="text-sm text-muted-foreground mt-1">{categories.length} categories in {groups.length} groups</p>
-        </div>
-        <div className="flex gap-2">
+    <div className="space-y-6">
+      <PageHeader
+        icon={Tags}
+        title="Categories"
+        description={`${categories.length} categories in ${groups.length} groups`}
+        actions={<>
           <Button onClick={() => openCreate(false)} variant="outline" className="gap-2">
             <Plus className="h-4 w-4" />
             Subcategory
@@ -208,44 +214,53 @@ export default function CategoriesPage() {
             <Plus className="h-4 w-4" />
             Group
           </Button>
-        </div>
-      </div>
+        </>}
+      />
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        {groups.map((group) => {
+      <div className="grid grid-cols-1 items-start gap-4 md:grid-cols-2">
+        {groups.map((group, index) => {
           const children = childMap[group.id] || [];
           const IconComponent = ICON_MAP[group.icon] || Tags;
           const isExpanded = expandedGroups.has(group.id);
           return (
-            <Card key={group.id} className="border-l-[3px]" style={{ borderLeftColor: group.color }}>
+            <InView key={group.id} index={index}>
+            <Card className="overflow-hidden p-0">
+              {/* The group's own colour as a lit top edge. */}
+              <span aria-hidden className="absolute inset-x-0 top-0 h-[2px]" style={{ background: `linear-gradient(90deg, ${group.color}, transparent 80%)` }} />
               <CardHeader
-                className="pb-2 cursor-pointer select-none"
+                className="cursor-pointer select-none p-5 pb-3"
                 onClick={() => toggleGroup(group.id)}
+                role="button"
+                tabIndex={0}
+                aria-expanded={isExpanded}
+                onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); toggleGroup(group.id); } }}
               >
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-3">
                     <div
-                      className="flex h-10 w-10 items-center justify-center rounded-lg"
-                      style={{ backgroundColor: `${group.color}15` }}
+                      className="flex h-10 w-10 items-center justify-center rounded-xl ring-1 ring-inset ring-border"
+                      style={{ backgroundColor: `${group.color}1f` }}
                     >
                       <IconComponent className="h-5 w-5" style={{ color: group.color }} />
                     </div>
                     <div>
-                      <CardTitle className="text-sm font-medium">{group.name}</CardTitle>
+                      <CardTitle>{group.name}</CardTitle>
                       <p className="text-xs text-muted-foreground">{children.length} categories</p>
                     </div>
                   </div>
                   <div className="flex items-center gap-1">
                     <button
                       onClick={(e) => { e.stopPropagation(); openEdit(group); }}
-                      className="p-1.5 rounded-lg hover:bg-foreground/[0.04] hover:text-foreground transition-colors"
+                      aria-label={`Edit ${group.name}`}
+                      className="rounded-lg p-1.5 text-muted-foreground transition-colors hover:bg-foreground/[0.05] hover:text-foreground"
                     >
                       <Pencil className="h-3 w-3" />
                     </button>
                     {group.isCustom && (
                       <button
                         onClick={(e) => { e.stopPropagation(); handleDelete(group.id); }}
-                        className="p-1.5 rounded-lg hover:bg-foreground/[0.04] hover:text-negative transition-colors"
+                        aria-label={`Delete ${group.name}`}
+                        className="rounded-lg p-1.5 text-muted-foreground transition-colors hover:bg-negative/10 hover:text-negative"
                       >
                         <Trash2 className="h-3 w-3" />
                       </button>
@@ -255,7 +270,7 @@ export default function CategoriesPage() {
                 </div>
               </CardHeader>
               {isExpanded && (
-                <CardContent className="pt-0 space-y-1">
+                <CardContent className="space-y-0.5 border-t px-3 pb-3 pt-2">
                   {children.length === 0 ? (
                     <p className="text-xs text-muted-foreground py-2 text-center">No subcategories yet</p>
                   ) : (
@@ -264,7 +279,7 @@ export default function CategoriesPage() {
                       return (
                         <div
                           key={child.id}
-                          className="flex items-center justify-between p-2 rounded-lg hover:bg-foreground/[0.02] group/item"
+                          className="group/item flex items-center justify-between rounded-lg p-2 transition-colors hover:bg-foreground/[0.03]"
                         >
                           <div className="flex items-center gap-2">
                             <div
@@ -274,14 +289,14 @@ export default function CategoriesPage() {
                               <ChildIcon className="h-3.5 w-3.5" style={{ color: child.color }} />
                             </div>
                             <span className="text-sm">{child.name}</span>
-                            <span className="text-[10px] text-muted-foreground">{child.isCustom ? 'Custom' : 'Default'}</span>
+                            <Badge variant={child.isCustom ? 'accent' : 'secondary'} className="px-1.5 py-0 text-[10px]">{child.isCustom ? 'Custom' : 'Default'}</Badge>
                           </div>
-                          <div className="flex gap-0.5 opacity-0 group-hover/item:opacity-100 transition-opacity">
-                            <button onClick={() => openEdit(child)} className="p-1 rounded-lg hover:bg-foreground/[0.04] hover:text-foreground transition-colors">
+                          <div className="flex gap-0.5 opacity-0 transition-opacity focus-within:opacity-100 group-hover/item:opacity-100">
+                            <button onClick={() => openEdit(child)} aria-label={`Edit ${child.name}`} className="rounded-lg p-1 text-muted-foreground transition-colors hover:bg-foreground/[0.05] hover:text-foreground">
                               <Pencil className="h-3 w-3" />
                             </button>
                             {child.isCustom && (
-                              <button onClick={() => handleDelete(child.id)} className="p-1 rounded-lg hover:bg-foreground/[0.04] hover:text-negative transition-colors">
+                              <button onClick={() => handleDelete(child.id)} aria-label={`Delete ${child.name}`} className="rounded-lg p-1 text-muted-foreground transition-colors hover:bg-negative/10 hover:text-negative">
                                 <Trash2 className="h-3 w-3" />
                               </button>
                             )}
@@ -292,20 +307,22 @@ export default function CategoriesPage() {
                   )}
                   <button
                     onClick={() => { openCreate(false); setForm((f) => ({ ...f, parentId: group.id })); }}
-                    className="w-full text-left p-2 rounded-lg text-xs text-muted-foreground hover:text-primary hover:bg-primary/5 transition-colors"
+                    className="flex w-full items-center gap-1.5 rounded-lg border border-dashed border-transparent p-2 text-left text-xs text-muted-foreground transition-colors hover:border-primary/30 hover:bg-primary/5 hover:text-primary"
                   >
-                    + Add subcategory
+                    <Plus className="h-3 w-3" aria-hidden />Add subcategory
                   </button>
                 </CardContent>
               )}
             </Card>
+            </InView>
           );
         })}
 
         {standalone.map((cat) => {
           const IconComponent = ICON_MAP[cat.icon] || Tags;
           return (
-            <Card key={cat.id} className="border-l-[3px] opacity-60" style={{ borderLeftColor: cat.color }}>
+            <Card key={cat.id} className="overflow-hidden opacity-70">
+              <span aria-hidden className="absolute inset-x-0 top-0 h-[2px]" style={{ background: `linear-gradient(90deg, ${cat.color}, transparent 80%)` }} />
               <CardHeader className="pb-2">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-3">
@@ -318,11 +335,11 @@ export default function CategoriesPage() {
                     <CardTitle className="text-sm font-medium">{cat.name}</CardTitle>
                   </div>
                   <div className="flex items-center gap-1">
-                    <button onClick={() => openEdit(cat)} className="p-1.5 rounded-lg hover:bg-foreground/[0.04] hover:text-foreground transition-colors">
+                    <button onClick={() => openEdit(cat)} aria-label={`Edit ${cat.name}`} className="rounded-lg p-1.5 text-muted-foreground transition-colors hover:bg-foreground/[0.05] hover:text-foreground">
                       <Pencil className="h-3 w-3" />
                     </button>
                     {cat.isCustom && (
-                      <button onClick={() => handleDelete(cat.id)} className="p-1.5 rounded-lg hover:bg-foreground/[0.04] hover:text-negative transition-colors">
+                      <button onClick={() => handleDelete(cat.id)} aria-label={`Delete ${cat.name}`} className="rounded-lg p-1.5 text-muted-foreground transition-colors hover:bg-negative/10 hover:text-negative">
                         <Trash2 className="h-3 w-3" />
                       </button>
                     )}
@@ -338,8 +355,8 @@ export default function CategoriesPage() {
       </div>
 
       {showForm && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm" onClick={() => setShowForm(false)}>
-          <div className="w-full max-w-md mx-4 glass rounded-xl" onClick={(e) => e.stopPropagation()}>
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-background/60 backdrop-blur-md" onClick={() => setShowForm(false)}>
+          <div className="mx-4 w-full max-w-md animate-in fade-in-0 zoom-in-95 rounded-2xl border bg-popover shadow-float duration-200 [background-image:var(--sheen)]" onClick={(e) => e.stopPropagation()}>
             <div className="flex items-center justify-between p-5 border-b border-foreground/[0.06]">
               <h2 className="text-lg font-semibold">
                 {formMode === 'create'
@@ -376,7 +393,7 @@ export default function CategoriesPage() {
                   value={form.name}
                   onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))}
                   placeholder={formType === 'group' ? 'e.g. Housing' : 'e.g. Rent'}
-                  className="w-full h-10 px-3 rounded-lg bg-foreground/[0.02] border border-foreground/[0.08] text-sm focus:outline-none focus:ring-2 focus:ring-primary/20"
+                  className="w-full h-10 px-3 rounded-lg border border-input bg-surface-sunken/60 text-sm transition-[border-color,box-shadow] hover:border-border-strong focus-visible:border-primary/60 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-ring/15"
                 />
               </div>
 
