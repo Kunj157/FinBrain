@@ -224,12 +224,12 @@ export default function Forecasting() {
           <Card>
             <CardContent className="p-4">
               <div className="flex items-center gap-3">
-                <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-emerald-500/10">
-                  <TrendingUp className="h-5 w-5 text-emerald-400" />
+                <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10">
+                  <TrendingUp className="h-5 w-5 text-primary" />
                 </div>
                 <div>
                   <p className="text-xs text-muted-foreground">Avg Monthly Income</p>
-                  <p className="text-lg font-bold text-emerald-400">{formatCurrency(summaryStats.avgIncome, currency)}</p>
+                  <p className="text-lg font-bold text-primary">{formatCurrency(summaryStats.avgIncome, currency)}</p>
                 </div>
               </div>
             </CardContent>
@@ -237,12 +237,12 @@ export default function Forecasting() {
           <Card>
             <CardContent className="p-4">
               <div className="flex items-center gap-3">
-                <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-rose-500/10">
-                  <TrendingDown className="h-5 w-5 text-rose-400" />
+                <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-negative/10">
+                  <TrendingDown className="h-5 w-5 text-negative" />
                 </div>
                 <div>
                   <p className="text-xs text-muted-foreground">Avg Monthly Expenses</p>
-                  <p className="text-lg font-bold text-rose-400">{formatCurrency(summaryStats.avgExpense, currency)}</p>
+                  <p className="text-lg font-bold text-negative">{formatCurrency(summaryStats.avgExpense, currency)}</p>
                 </div>
               </div>
             </CardContent>
@@ -250,12 +250,12 @@ export default function Forecasting() {
           <Card>
             <CardContent className="p-4">
               <div className="flex items-center gap-3">
-                <div className={`flex h-10 w-10 items-center justify-center rounded-lg ${summaryStats.avgNet >= 0 ? 'bg-blue-500/10' : 'bg-rose-500/10'}`}>
-                  <BarChart3 className={`h-5 w-5 ${summaryStats.avgNet >= 0 ? 'text-blue-400' : 'text-rose-400'}`} />
+                <div className={`flex h-10 w-10 items-center justify-center rounded-lg ${summaryStats.avgNet >= 0 ? 'bg-info/10' : 'bg-negative/10'}`}>
+                  <BarChart3 className={`h-5 w-5 ${summaryStats.avgNet >= 0 ? 'text-info' : 'text-negative'}`} />
                 </div>
                 <div>
                   <p className="text-xs text-muted-foreground">Avg Monthly Net</p>
-                  <p className={`text-lg font-bold ${summaryStats.avgNet >= 0 ? 'text-blue-400' : 'text-rose-400'}`}>
+                  <p className={`text-lg font-bold ${summaryStats.avgNet >= 0 ? 'text-info' : 'text-negative'}`}>
                     {formatCurrency(summaryStats.avgNet, currency)}
                   </p>
                 </div>
@@ -265,14 +265,14 @@ export default function Forecasting() {
           <Card>
             <CardContent className="p-4">
               <div className="flex items-center gap-3">
-                <div className={`flex h-10 w-10 items-center justify-center rounded-lg ${summaryStats.nextMonthForecast >= 0 ? 'bg-emerald-500/10' : 'bg-rose-500/10'}`}>
-                  {summaryStats.trend > 0 ? <TrendingUp className="h-5 w-5 text-emerald-400" /> :
-                   summaryStats.trend < 0 ? <TrendingDown className="h-5 w-5 text-rose-400" /> :
-                   <Minus className="h-5 w-5 text-blue-400" />}
+                <div className={`flex h-10 w-10 items-center justify-center rounded-lg ${summaryStats.nextMonthForecast >= 0 ? 'bg-positive/10' : 'bg-negative/10'}`}>
+                  {summaryStats.trend > 0 ? <TrendingUp className="h-5 w-5 text-primary" /> :
+                   summaryStats.trend < 0 ? <TrendingDown className="h-5 w-5 text-negative" /> :
+                   <Minus className="h-5 w-5 text-info" />}
                 </div>
                 <div>
                   <p className="text-xs text-muted-foreground">Next Month (MA)</p>
-                  <p className={`text-lg font-bold ${summaryStats.nextMonthForecast >= 0 ? 'text-emerald-400' : 'text-rose-400'}`}>
+                  <p className={`text-lg font-bold ${summaryStats.nextMonthForecast >= 0 ? 'text-positive' : 'text-negative'}`}>
                     {formatCurrency(summaryStats.nextMonthForecast, currency)}
                   </p>
                 </div>
@@ -328,7 +328,7 @@ export default function Forecasting() {
                 {modelData?.accuracy !== null && modelData?.accuracy !== undefined && (
                   <span>MAPE: {modelData.accuracy}%</span>
                 )}
-                {modelData?.error && <span className="text-amber-400">{modelData.error}</span>}
+                {modelData?.error && <span className="text-warning">{modelData.error}</span>}
               </div>
 
               <div className="space-y-3">
@@ -453,7 +453,7 @@ export default function Forecasting() {
                   return (
                     <tr key={key} className="border-b border-foreground/[0.02]">
                       <td className="py-2.5 pr-4 font-medium">{MODEL_OPTIONS.find((m) => m.key === key)?.label || key}</td>
-                      <td className={`py-2.5 px-4 text-right ${next >= 0 ? 'text-emerald-400' : 'text-rose-400'}`}>
+                      <td className={`py-2.5 px-4 text-right ${next >= 0 ? 'text-positive' : 'text-negative'}`}>
                         {forecast.length > 0 ? formatCurrency(next, currency) : <span className="text-muted-foreground">—</span>}
                       </td>
                       <td className="py-2.5 px-4 text-right">
@@ -467,7 +467,7 @@ export default function Forecasting() {
                       </td>
                       <td className="py-2.5 pl-4 text-right">
                         {forecast.length > 0 ? (
-                          <span className={trend > 0 ? 'text-emerald-400' : trend < 0 ? 'text-rose-400' : 'text-muted-foreground'}>
+                          <span className={trend > 0 ? 'text-positive' : trend < 0 ? 'text-negative' : 'text-muted-foreground'}>
                             {trend > 0 ? '↑' : trend < 0 ? '↓' : '→'} {formatCurrency(Math.abs(trend), currency)}
                           </span>
                         ) : (
@@ -569,19 +569,19 @@ export default function Forecasting() {
                             onChange={(e) => setCompareIds(e.target.checked ? [...compareIds, s.id] : compareIds.filter((id) => id !== s.id))}
                             className="rounded border-foreground/20"
                           />
-                          <button onClick={() => handleDeleteScenario(s.id)} className="text-red-400 hover:text-red-300 p-0.5"><X className="h-3 w-3" /></button>
+                          <button onClick={() => handleDeleteScenario(s.id)} className="text-negative hover:text-negative p-0.5"><X className="h-3 w-3" /></button>
                         </div>
                       </div>
                       <div className="grid grid-cols-2 gap-2 text-xs">
                         <div>
                           <p className="text-muted-foreground">Projected Balance</p>
-                          <p className={`font-medium ${(result.projectedBalance as number) >= 0 ? 'text-emerald-400' : 'text-rose-400'}`}>
+                          <p className={`font-medium ${(result.projectedBalance as number) >= 0 ? 'text-positive' : 'text-negative'}`}>
                             {formatCurrency(result.projectedBalance as number, currency)}
                           </p>
                         </div>
                         <div>
                           <p className="text-muted-foreground">Monthly Net</p>
-                          <p className={`font-medium ${(result.monthlyNetFlow as number) >= 0 ? 'text-emerald-400' : 'text-rose-400'}`}>
+                          <p className={`font-medium ${(result.monthlyNetFlow as number) >= 0 ? 'text-positive' : 'text-negative'}`}>
                             {formatCurrency(result.monthlyNetFlow as number, currency)}
                           </p>
                         </div>
@@ -604,11 +604,11 @@ export default function Forecasting() {
                 <CardContent className="space-y-4">
                   <div>
                     <label className="text-xs font-medium text-muted-foreground mb-1 block">Name</label>
-                    <input value={scenarioForm.name} onChange={(e) => setScenarioForm({ ...scenarioForm, name: e.target.value })} placeholder="e.g., Buy a house" className="w-full h-9 px-3 rounded-lg bg-foreground/5 border border-foreground/10 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/50" />
+                    <input value={scenarioForm.name} onChange={(e) => setScenarioForm({ ...scenarioForm, name: e.target.value })} placeholder="e.g., Buy a house" className="w-full h-9 px-3 rounded-lg bg-foreground/5 border border-foreground/10 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50" />
                   </div>
                   <div>
                     <label className="text-xs font-medium text-muted-foreground mb-1 block">Type</label>
-                    <select value={scenarioForm.scenarioType} onChange={(e) => setScenarioForm({ ...scenarioForm, scenarioType: e.target.value })} className="w-full h-9 px-3 rounded-lg bg-foreground/5 border border-foreground/10 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/50">
+                    <select value={scenarioForm.scenarioType} onChange={(e) => setScenarioForm({ ...scenarioForm, scenarioType: e.target.value })} className="w-full h-9 px-3 rounded-lg bg-foreground/5 border border-foreground/10 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50">
                       <option value="purchase">Purchase</option>
                       <option value="income_change">Income Change</option>
                       <option value="expense_change">Expense Change</option>
@@ -621,7 +621,7 @@ export default function Forecasting() {
                   </div>
                   <div>
                     <label className="text-xs font-medium text-muted-foreground mb-1 block">Parameters (JSON)</label>
-                    <textarea value={scenarioForm.input} onChange={(e) => setScenarioForm({ ...scenarioForm, input: e.target.value })} rows={3} placeholder='{"amount": 1200}' className="w-full px-3 rounded-lg bg-foreground/5 border border-foreground/10 text-sm font-mono focus:outline-none focus:ring-2 focus:ring-emerald-500/50" />
+                    <textarea value={scenarioForm.input} onChange={(e) => setScenarioForm({ ...scenarioForm, input: e.target.value })} rows={3} placeholder='{"amount": 1200}' className="w-full px-3 rounded-lg bg-foreground/5 border border-foreground/10 text-sm font-mono focus:outline-none focus:ring-2 focus:ring-primary/50" />
                     <p className="text-[10px] text-muted-foreground mt-1">
                       {scenarioForm.scenarioType === 'home_purchase' && 'Use: {"downPayment": 50000, "monthlyMortgage": 1500}'}
                       {scenarioForm.scenarioType === 'rent_increase' && 'Use: {"increasePercent": 15}'}
@@ -656,7 +656,7 @@ export default function Forecasting() {
                 <Card>
                   <CardContent className="p-4">
                     <p className="text-xs text-muted-foreground">Current Net Worth</p>
-                    <p className={`text-xl font-bold ${netWorthProj.currentNetWorth >= 0 ? 'text-emerald-400' : 'text-rose-400'}`}>
+                    <p className={`text-xl font-bold ${netWorthProj.currentNetWorth >= 0 ? 'text-positive' : 'text-negative'}`}>
                       {formatCurrency(netWorthProj.currentNetWorth, currency)}
                     </p>
                   </CardContent>
@@ -664,7 +664,7 @@ export default function Forecasting() {
                 <Card>
                   <CardContent className="p-4">
                     <p className="text-xs text-muted-foreground">Monthly Net Flow</p>
-                    <p className={`text-xl font-bold ${netWorthProj.monthlyNetFlow >= 0 ? 'text-emerald-400' : 'text-rose-400'}`}>
+                    <p className={`text-xl font-bold ${netWorthProj.monthlyNetFlow >= 0 ? 'text-positive' : 'text-negative'}`}>
                       {formatCurrency(netWorthProj.monthlyNetFlow, currency)}
                     </p>
                   </CardContent>
@@ -672,7 +672,7 @@ export default function Forecasting() {
                 <Card>
                   <CardContent className="p-4">
                     <p className="text-xs text-muted-foreground">24-Month Projection</p>
-                    <p className={`text-xl font-bold ${(netWorthProj.projections[23]?.netWorth || 0) >= 0 ? 'text-emerald-400' : 'text-rose-400'}`}>
+                    <p className={`text-xl font-bold ${(netWorthProj.projections[23]?.netWorth || 0) >= 0 ? 'text-positive' : 'text-negative'}`}>
                       {formatCurrency(netWorthProj.projections[23]?.netWorth || 0, currency)}
                     </p>
                   </CardContent>

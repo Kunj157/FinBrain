@@ -21,11 +21,11 @@ import { formatCurrency } from '@/lib/utils';
 import type { Currency as SharedCurrency, RecurringPattern, RecurringSummary } from '@finbrain/shared';
 
 const FREQUENCY_COLORS: Record<string, string> = {
-  weekly: 'bg-blue-500/10 text-blue-400 border-blue-500/20',
-  biweekly: 'bg-violet-500/10 text-violet-400 border-violet-500/20',
-  monthly: 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20',
-  quarterly: 'bg-amber-500/10 text-amber-400 border-amber-500/20',
-  yearly: 'bg-rose-500/10 text-rose-400 border-rose-500/20',
+  weekly: 'bg-info/10 text-info border-info/20',
+  biweekly: 'bg-accent/10 text-accent border-accent/20',
+  monthly: 'bg-primary/10 text-primary border-primary/20',
+  quarterly: 'bg-warning/10 text-warning border-warning/20',
+  yearly: 'bg-negative/10 text-negative border-negative/20',
 };
 
 const FREQUENCY_LABELS: Record<string, string> = {
@@ -212,9 +212,9 @@ export default function Recurring() {
                 return (
                   <div
                     key={day}
-                    className={`bg-muted/60 p-1.5 min-h-[80px] hover:bg-muted/60 transition-colors ${isToday ? 'ring-1 ring-emerald-500/30' : ''}`}
+                    className={`bg-muted/60 p-1.5 min-h-[80px] hover:bg-muted/60 transition-colors ${isToday ? 'ring-1 ring-primary/30' : ''}`}
                   >
-                    <span className={`text-xs font-medium ${isToday ? 'text-emerald-400' : 'text-muted-foreground'}`}>
+                    <span className={`text-xs font-medium ${isToday ? 'text-primary' : 'text-muted-foreground'}`}>
                       {day}
                     </span>
                     <div className="mt-1 space-y-0.5">
@@ -313,7 +313,7 @@ function PatternCard({
 
   return (
     <Card
-      className={`group card-hover cursor-pointer ${isPast ? 'opacity-60' : ''} ${isDueSoon ? 'border-amber-500/30' : ''}`}
+      className={`group card-hover cursor-pointer ${isPast ? 'opacity-60' : ''} ${isDueSoon ? 'border-warning/30' : ''}`}
       onClick={onToggle}
     >
       <CardHeader className="pb-2">
@@ -357,7 +357,7 @@ function PatternCard({
 
         <div className="flex items-center gap-1.5 mt-3">
           <Calendar className="h-3.5 w-3.5 text-muted-foreground" />
-          <span className={`text-xs ${isDueSoon ? 'text-amber-400 font-medium' : 'text-muted-foreground'}`}>
+          <span className={`text-xs ${isDueSoon ? 'text-warning font-medium' : 'text-muted-foreground'}`}>
             {daysUntil < 0
               ? `${Math.abs(daysUntil)} days overdue`
               : daysUntil === 0

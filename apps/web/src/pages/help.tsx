@@ -93,7 +93,7 @@ export default function HelpPage() {
           <Card>
             <CardHeader className="pb-3">
               <CardTitle className="text-sm font-medium flex items-center gap-2">
-                <Plus className="h-4 w-4 text-emerald-400" />
+                <Plus className="h-4 w-4 text-primary" />
                 Quick Start Guide
               </CardTitle>
             </CardHeader>
@@ -105,7 +105,7 @@ export default function HelpPage() {
                     href={step.link}
                     className="block p-3 rounded-lg bg-foreground/[0.02] hover:bg-foreground/[0.04] transition-colors border border-foreground/[0.06]"
                   >
-                    <span className="inline-flex items-center justify-center w-6 h-6 rounded-full bg-emerald-500/10 text-emerald-400 text-xs font-bold mb-2">
+                    <span className="inline-flex items-center justify-center w-6 h-6 rounded-full bg-primary/10 text-primary text-xs font-bold mb-2">
                       {i + 1}
                     </span>
                     <p className="text-xs font-medium mb-0.5">{step.title}</p>
@@ -119,7 +119,7 @@ export default function HelpPage() {
           <Card>
             <CardHeader className="pb-3">
               <CardTitle className="text-sm font-medium flex items-center gap-2">
-                <HelpCircle className="h-4 w-4 text-emerald-400" />
+                <HelpCircle className="h-4 w-4 text-primary" />
                 Frequently Asked Questions
               </CardTitle>
             </CardHeader>

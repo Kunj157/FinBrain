@@ -62,10 +62,10 @@ interface AffordabilityDecision {
 }
 
 const decisionColors: Record<string, string> = {
-  recommended: 'text-emerald-400 bg-emerald-500/10 border-emerald-500/20',
-  reasonable: 'text-blue-400 bg-blue-500/10 border-blue-500/20',
-  caution: 'text-yellow-400 bg-yellow-500/10 border-yellow-500/20',
-  not_recommended: 'text-red-400 bg-red-500/10 border-red-500/20',
+  recommended: 'text-primary bg-primary/10 border-primary/20',
+  reasonable: 'text-info bg-info/10 border-info/20',
+  caution: 'text-warning bg-warning/10 border-warning/20',
+  not_recommended: 'text-negative bg-negative/10 border-negative/20',
   insufficient_data: 'text-muted-foreground bg-muted-foreground/10 border-border-strong/20',
 };
 
@@ -240,9 +240,9 @@ export default function AdvisorPage() {
 
   const confidenceBadge = (confidence: string) => {
     const colors: Record<string, string> = {
-      high: 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20',
-      medium: 'bg-yellow-500/10 text-yellow-400 border-yellow-500/20',
-      low: 'bg-red-500/10 text-red-400 border-red-500/20',
+      high: 'bg-primary/10 text-primary border-primary/20',
+      medium: 'bg-warning/10 text-warning border-warning/20',
+      low: 'bg-negative/10 text-negative border-negative/20',
     };
     return (
       <Badge variant="outline" className={`${colors[confidence] || colors.low} text-xs`}>
@@ -268,7 +268,7 @@ export default function AdvisorPage() {
                 onClick={() => loadConversation(c.id)}
                 className={`w-full text-left p-2 rounded-lg text-sm transition-colors ${
                   activeConvId === c.id
-                    ? 'bg-emerald-500/10 text-emerald-400'
+                    ? 'bg-primary/10 text-primary'
                     : 'hover:bg-foreground/5 text-muted-foreground'
                 }`}
               >
@@ -285,8 +285,8 @@ export default function AdvisorPage() {
       <div className="flex-1 flex flex-col min-w-0">
         <div className="flex items-center justify-between mb-4">
           <div className="flex items-center gap-3">
-            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-emerald-500/10 border border-emerald-500/20">
-              <Brain className="h-5 w-5 text-emerald-400" />
+            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary/10 border border-primary/20">
+              <Brain className="h-5 w-5 text-primary" />
             </div>
             <div>
               <h1 className="text-lg font-semibold">Advisor</h1>
@@ -319,13 +319,13 @@ export default function AdvisorPage() {
                   </div>
                   <div className="flex justify-between text-sm">
                     <span className="text-muted-foreground">Savings Rate</span>
-                    <span className={`font-medium ${profile.savingsRateAvg >= 20 ? 'text-emerald-400' : profile.savingsRateAvg >= 10 ? 'text-yellow-400' : 'text-red-400'}`}>
+                    <span className={`font-medium ${profile.savingsRateAvg >= 20 ? 'text-positive' : profile.savingsRateAvg >= 10 ? 'text-warning' : 'text-negative'}`}>
                       {profile.savingsRateAvg.toFixed(1)}%
                     </span>
                   </div>
                   <div className="flex justify-between text-sm">
                     <span className="text-muted-foreground">Emergency Fund</span>
-                    <span className={`font-medium ${profile.emergencyFundMonths >= 3 ? 'text-emerald-400' : profile.emergencyFundMonths >= 1 ? 'text-yellow-400' : 'text-red-400'}`}>
+                    <span className={`font-medium ${profile.emergencyFundMonths >= 3 ? 'text-positive' : profile.emergencyFundMonths >= 1 ? 'text-warning' : 'text-negative'}`}>
                       {profile.emergencyFundMonths} months
                     </span>
                   </div>
@@ -347,7 +347,7 @@ export default function AdvisorPage() {
               <Card className="glass">
                 <CardHeader className="pb-2">
                   <CardTitle className="text-sm font-medium flex items-center gap-2">
-                    <Lightbulb className="h-4 w-4 text-yellow-400" />
+                    <Lightbulb className="h-4 w-4 text-warning" />
                     Suggested Questions
                   </CardTitle>
                 </CardHeader>
@@ -370,8 +370,8 @@ export default function AdvisorPage() {
             <div className="flex-1 overflow-y-auto space-y-4 p-4 glass-strong rounded-xl">
               {messages.length === 0 && (
                 <div className="flex flex-col items-center justify-center h-full text-center">
-                  <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-emerald-500/10 border border-emerald-500/20 mb-4">
-                    <Brain className="h-8 w-8 text-emerald-400" />
+                  <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-primary/10 border border-primary/20 mb-4">
+                    <Brain className="h-8 w-8 text-primary" />
                   </div>
                   <h2 className="text-lg font-semibold mb-2">Ask your financial advisor</h2>
                   <p className="text-sm text-muted-foreground max-w-md mb-6">
@@ -395,15 +395,15 @@ export default function AdvisorPage() {
                 <div key={idx} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
                   <div className={`max-w-[80%] min-w-0 rounded-2xl px-4 py-3 ${
                     msg.role === 'user'
-                      ? 'bg-emerald-500/10 border border-emerald-500/20'
+                      ? 'bg-primary/10 border border-primary/20'
                       : msg.isError
-                        ? 'bg-rose-500/5 border border-rose-500/20'
+                        ? 'bg-negative/5 border border-negative/20'
                         : 'glass'
                   }`}>
                     {msg.role === 'assistant' && !msg.isError && (
                       <div className="flex items-center gap-2 mb-2">
-                        <Brain className="h-4 w-4 text-emerald-400" />
-                        <span className="text-xs font-medium text-emerald-400">Advisor</span>
+                        <Brain className="h-4 w-4 text-primary" />
+                        <span className="text-xs font-medium text-primary">Advisor</span>
                         {/* Per answer, not per profile: how much data this
                             specific reply rested on is what the reader needs. */}
                         {msg.confidence && confidenceBadge(msg.confidence)}
@@ -415,8 +415,8 @@ export default function AdvisorPage() {
                     {msg.isError ? (
                       <div role="alert" className="space-y-2">
                         <div className="flex items-center gap-2">
-                          <AlertTriangle className="h-4 w-4 text-rose-400" aria-hidden="true" />
-                          <span className="text-xs font-medium text-rose-400">Couldn't get a response</span>
+                          <AlertTriangle className="h-4 w-4 text-negative" aria-hidden="true" />
+                          <span className="text-xs font-medium text-negative">Couldn't get a response</span>
                         </div>
                         <p className="text-sm text-muted-foreground">{msg.content}</p>
                         <Button variant="outline" size="sm" className="h-7" onClick={handleRetry}>
@@ -427,7 +427,7 @@ export default function AdvisorPage() {
                       <>
                         <MarkdownMessage content={msg.content} />
                         {msg.isStreaming && (
-                          <span className="ml-0.5 inline-block h-4 w-1.5 translate-y-0.5 animate-pulse rounded-sm bg-emerald-400/70 align-middle" />
+                          <span className="ml-0.5 inline-block h-4 w-1.5 translate-y-0.5 animate-pulse rounded-sm bg-primary/70 align-middle" />
                         )}
                       </>
                     ) : (
@@ -446,7 +446,7 @@ export default function AdvisorPage() {
                         <Button
                           variant="ghost"
                           size="sm"
-                          className={`h-6 px-2 ${feedbackState[msg.id] === 'thumbs_up' ? 'text-emerald-400' : ''}`}
+                          className={`h-6 px-2 ${feedbackState[msg.id] === 'thumbs_up' ? 'text-primary' : ''}`}
                           aria-label="This answer was helpful"
                           aria-pressed={feedbackState[msg.id] === 'thumbs_up'}
                           onClick={() => handleFeedback(msg.id, 'thumbs_up')}
@@ -456,7 +456,7 @@ export default function AdvisorPage() {
                         <Button
                           variant="ghost"
                           size="sm"
-                          className={`h-6 px-2 ${feedbackState[msg.id] === 'thumbs_down' ? 'text-rose-400' : ''}`}
+                          className={`h-6 px-2 ${feedbackState[msg.id] === 'thumbs_down' ? 'text-negative' : ''}`}
                           aria-label="This answer was not helpful"
                           aria-pressed={feedbackState[msg.id] === 'thumbs_down'}
                           onClick={() => handleFeedback(msg.id, 'thumbs_down')}
@@ -478,7 +478,7 @@ export default function AdvisorPage() {
                 <div className="flex justify-start">
                   <div className="glass rounded-2xl px-4 py-3">
                     <div className="flex items-center gap-2">
-                      <Loader2 className="h-4 w-4 animate-spin text-emerald-400" />
+                      <Loader2 className="h-4 w-4 animate-spin text-primary" />
                       <span className="text-sm text-muted-foreground">Thinking...</span>
                     </div>
                   </div>
@@ -494,13 +494,13 @@ export default function AdvisorPage() {
                 onChange={(e) => setChatInput(e.target.value)}
                 onKeyDown={handleKeyDown}
                 placeholder="Ask about your finances..."
-                className="flex-1 bg-foreground/5 border border-foreground/10 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-emerald-500/50 placeholder:text-muted-foreground"
+                className="flex-1 bg-foreground/5 border border-foreground/10 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-primary/50 placeholder:text-muted-foreground"
                 disabled={isLoading}
               />
               <Button
                 onClick={() => handleSend()}
                 disabled={!chatInput.trim() || isLoading}
-                className="bg-emerald-500 hover:bg-emerald-600 text-white px-4"
+                className="bg-primary hover:bg-primary text-white px-4"
               >
                 <Send className="h-4 w-4" />
               </Button>
@@ -553,7 +553,7 @@ function AffordabilityCard({ decision }: { decision: AffordabilityDecision }) {
         <div className="space-y-1 mb-2">
           {decision.reasons.map((r, i) => (
             <div key={i} className="flex items-start gap-2 text-xs">
-              <AlertTriangle className="h-3 w-3 mt-0.5 text-yellow-400 flex-shrink-0" />
+              <AlertTriangle className="h-3 w-3 mt-0.5 text-warning flex-shrink-0" />
               <span>{r}</span>
             </div>
           ))}
@@ -564,7 +564,7 @@ function AffordabilityCard({ decision }: { decision: AffordabilityDecision }) {
         <div className="space-y-1 mb-2">
           {decision.impact.goalDelays.map((g, i) => (
             <div key={i} className="flex items-center gap-2 text-xs">
-              <Target className="h-3 w-3 text-blue-400 flex-shrink-0" />
+              <Target className="h-3 w-3 text-info flex-shrink-0" />
               <span>"{g.name}" delayed by {g.delayDays} days</span>
             </div>
           ))}
@@ -573,14 +573,14 @@ function AffordabilityCard({ decision }: { decision: AffordabilityDecision }) {
 
       {decision.impact.debtRisk && (
         <div className="flex items-center gap-2 text-xs mb-2">
-          <Shield className="h-3 w-3 text-orange-400 flex-shrink-0" />
+          <Shield className="h-3 w-3 text-warning flex-shrink-0" />
           <span>{decision.impact.debtRisk}</span>
         </div>
       )}
 
       <button
         onClick={() => setExpanded(!expanded)}
-        className="flex items-center gap-1 text-xs text-emerald-400 hover:text-emerald-300 mt-2"
+        className="flex items-center gap-1 text-xs text-primary hover:text-primary mt-2"
       >
         {expanded ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />}
         {expanded ? 'Show less' : 'Show details'}
@@ -595,7 +595,7 @@ function AffordabilityCard({ decision }: { decision: AffordabilityDecision }) {
                 {decision.projectedBalances.map((p, i) => (
                   <div key={i} className="flex justify-between text-xs">
                     <span className="text-muted-foreground">{p.date}</span>
-                    <span className={p.after >= 0 ? 'text-emerald-400' : 'text-red-400'}>
+                    <span className={p.after >= 0 ? 'text-positive' : 'text-negative'}>
                       {formatCurrency(p.after)}
                     </span>
                   </div>
@@ -610,7 +610,7 @@ function AffordabilityCard({ decision }: { decision: AffordabilityDecision }) {
               <ul className="space-y-1">
                 {decision.alternatives.map((a, i) => (
                   <li key={i} className="text-xs text-muted-foreground flex items-start gap-2">
-                    <span className="text-emerald-400">•</span> {a}
+                    <span className="text-primary">•</span> {a}
                   </li>
                 ))}
               </ul>
@@ -623,7 +623,7 @@ function AffordabilityCard({ decision }: { decision: AffordabilityDecision }) {
               <ul className="space-y-1">
                 {decision.nextBestActions.map((a, i) => (
                   <li key={i} className="text-xs text-muted-foreground flex items-start gap-2">
-                    <CheckCircle2 className="h-3 w-3 mt-0.5 text-emerald-400 flex-shrink-0" /> {a}
+                    <CheckCircle2 className="h-3 w-3 mt-0.5 text-primary flex-shrink-0" /> {a}
                   </li>
                 ))}
               </ul>

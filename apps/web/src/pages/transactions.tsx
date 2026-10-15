@@ -180,7 +180,7 @@ export default function TransactionsPage() {
                 placeholder="Search transactions..."
                 value={filters.search}
                 onChange={(e) => { setFilters((f) => ({ ...f, search: e.target.value })); setPage(1); }}
-                className="w-full h-10 pl-9 pr-3 rounded-lg bg-foreground/[0.02] border border-foreground/[0.08] text-sm text-foreground placeholder:text-muted-foreground/50 focus:outline-none focus:ring-2 focus:ring-emerald-500/20"
+                className="w-full h-10 pl-9 pr-3 rounded-lg bg-foreground/[0.02] border border-foreground/[0.08] text-sm text-foreground placeholder:text-muted-foreground/50 focus:outline-none focus:ring-2 focus:ring-primary/20"
               />
             </div>
             <Select
@@ -293,7 +293,7 @@ export default function TransactionsPage() {
                           {categoryMap[txn.categoryId] || 'Other'}
                         </span>
                       </td>
-                      <td className={`px-3 py-3 text-right font-medium tabular-nums ${txn.type === 'income' ? 'text-emerald-400' : ''}`}>
+                      <td className={`px-3 py-3 text-right font-medium tabular-nums ${txn.type === 'income' ? 'text-positive' : ''}`}>
                         {txn.type === 'income' ? '+' : '-'}{formatCurrency(txn.amount, txn.currency || currency)}
                       </td>
                       <td className="px-3 py-3 text-center">
@@ -306,7 +306,7 @@ export default function TransactionsPage() {
                           <button onClick={() => openEdit(txn)} className="p-1.5 rounded-lg hover:bg-foreground/[0.04] text-muted-foreground hover:text-foreground transition-colors">
                             <Pencil className="h-3.5 w-3.5" />
                           </button>
-                          <button onClick={() => handleDelete(txn.id)} className="p-1.5 rounded-lg hover:bg-foreground/[0.04] text-muted-foreground hover:text-rose-400 transition-colors">
+                          <button onClick={() => handleDelete(txn.id)} className="p-1.5 rounded-lg hover:bg-foreground/[0.04] text-muted-foreground hover:text-negative transition-colors">
                             <Trash2 className="h-3.5 w-3.5" />
                           </button>
                         </div>
@@ -454,7 +454,7 @@ function TransactionForm({
                 onClick={() => setForm((f) => ({ ...f, type: t }))}
                 className={`flex-1 py-2.5 rounded-lg text-sm font-medium transition-all ${
                   form.type === t
-                    ? t === 'income' ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20' : 'bg-rose-500/10 text-rose-400 border border-rose-500/20'
+                    ? t === 'income' ? 'bg-positive/10 text-positive border border-positive/20' : 'bg-negative/10 text-negative border border-negative/20'
                     : 'bg-foreground/[0.02] text-muted-foreground border border-foreground/[0.06]'
                 }`}
               >
@@ -474,7 +474,7 @@ function TransactionForm({
                 value={form.amount}
                 onChange={(e) => setForm((f) => ({ ...f, amount: e.target.value }))}
                 placeholder="0.00"
-                className="w-full h-10 px-3 rounded-lg bg-foreground/[0.02] border border-foreground/[0.08] text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/20"
+                className="w-full h-10 px-3 rounded-lg bg-foreground/[0.02] border border-foreground/[0.08] text-sm focus:outline-none focus:ring-2 focus:ring-primary/20"
               />
             </div>
             <div>
@@ -484,7 +484,7 @@ function TransactionForm({
                 required
                 value={form.date}
                 onChange={(e) => setForm((f) => ({ ...f, date: e.target.value }))}
-                className="w-full h-10 px-3 rounded-lg bg-foreground/[0.02] border border-foreground/[0.08] text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/20"
+                className="w-full h-10 px-3 rounded-lg bg-foreground/[0.02] border border-foreground/[0.08] text-sm focus:outline-none focus:ring-2 focus:ring-primary/20"
               />
             </div>
           </div>
@@ -497,7 +497,7 @@ function TransactionForm({
               value={form.description}
               onChange={(e) => setForm((f) => ({ ...f, description: e.target.value }))}
               placeholder="Coffee, Groceries, etc."
-              className="w-full h-10 px-3 rounded-lg bg-foreground/[0.02] border border-foreground/[0.08] text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/20"
+              className="w-full h-10 px-3 rounded-lg bg-foreground/[0.02] border border-foreground/[0.08] text-sm focus:outline-none focus:ring-2 focus:ring-primary/20"
             />
           </div>
 
@@ -509,7 +509,7 @@ function TransactionForm({
                 value={form.merchant}
                 onChange={(e) => setForm((f) => ({ ...f, merchant: e.target.value }))}
                 placeholder="Starbucks, Amazon, etc."
-                className="w-full h-10 px-3 rounded-lg bg-foreground/[0.02] border border-foreground/[0.08] text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/20"
+                className="w-full h-10 px-3 rounded-lg bg-foreground/[0.02] border border-foreground/[0.08] text-sm focus:outline-none focus:ring-2 focus:ring-primary/20"
               />
             </div>
             <div>
@@ -552,7 +552,7 @@ function TransactionForm({
               onChange={(e) => setForm((f) => ({ ...f, notes: e.target.value }))}
               placeholder="Optional notes..."
               rows={2}
-              className="w-full px-3 py-2 rounded-lg bg-foreground/[0.02] border border-foreground/[0.08] text-sm resize-none focus:outline-none focus:ring-2 focus:ring-emerald-500/20"
+              className="w-full px-3 py-2 rounded-lg bg-foreground/[0.02] border border-foreground/[0.08] text-sm resize-none focus:outline-none focus:ring-2 focus:ring-primary/20"
             />
           </div>
 

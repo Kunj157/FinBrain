@@ -408,7 +408,7 @@ export default function Analytics() {
           <select
             value={categoryFilter}
             onChange={(e) => setCategoryFilter(e.target.value)}
-            className="h-8 px-2 rounded-lg bg-foreground/5 border border-foreground/[0.08] text-xs text-foreground focus:outline-none focus:ring-2 focus:ring-emerald-500/20"
+            className="h-8 px-2 rounded-lg bg-foreground/5 border border-foreground/[0.08] text-xs text-foreground focus:outline-none focus:ring-2 focus:ring-primary/20"
           >
             <option value="all">All Categories</option>
             {categories.map((c) => (
@@ -448,12 +448,12 @@ export default function Analytics() {
         <Card>
           <CardContent className="p-4">
             <div className="flex items-center gap-3">
-              <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-emerald-500/10">
-                <TrendingUp className="h-5 w-5 text-emerald-400" />
+              <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10">
+                <TrendingUp className="h-5 w-5 text-primary" />
               </div>
               <div>
                 <p className="text-xs text-muted-foreground">Total Income</p>
-                <p className="text-lg font-bold text-emerald-400">{formatCurrency(stats.income, currency)}</p>
+                <p className="text-lg font-bold text-primary">{formatCurrency(stats.income, currency)}</p>
               </div>
             </div>
           </CardContent>
@@ -461,12 +461,12 @@ export default function Analytics() {
         <Card>
           <CardContent className="p-4">
             <div className="flex items-center gap-3">
-              <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-rose-500/10">
-                <TrendingDown className="h-5 w-5 text-rose-400" />
+              <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-negative/10">
+                <TrendingDown className="h-5 w-5 text-negative" />
               </div>
               <div>
                 <p className="text-xs text-muted-foreground">Total Expenses</p>
-                <p className="text-lg font-bold text-rose-400">{formatCurrency(stats.expense, currency)}</p>
+                <p className="text-lg font-bold text-negative">{formatCurrency(stats.expense, currency)}</p>
               </div>
             </div>
           </CardContent>
@@ -474,12 +474,12 @@ export default function Analytics() {
         <Card>
           <CardContent className="p-4">
             <div className="flex items-center gap-3">
-              <div className={`flex h-10 w-10 items-center justify-center rounded-lg ${stats.net >= 0 ? 'bg-emerald-500/10' : 'bg-rose-500/10'}`}>
-                {stats.net >= 0 ? <ArrowUpRight className="h-5 w-5 text-emerald-400" /> : <ArrowDownRight className="h-5 w-5 text-rose-400" />}
+              <div className={`flex h-10 w-10 items-center justify-center rounded-lg ${stats.net >= 0 ? 'bg-positive/10' : 'bg-negative/10'}`}>
+                {stats.net >= 0 ? <ArrowUpRight className="h-5 w-5 text-positive" /> : <ArrowDownRight className="h-5 w-5 text-negative" />}
               </div>
               <div>
                 <p className="text-xs text-muted-foreground">Net Cash Flow</p>
-                <p className={`text-lg font-bold ${stats.net >= 0 ? 'text-emerald-400' : 'text-rose-400'}`}>{formatCurrency(stats.net, currency)}</p>
+                <p className={`text-lg font-bold ${stats.net >= 0 ? 'text-positive' : 'text-negative'}`}>{formatCurrency(stats.net, currency)}</p>
               </div>
             </div>
           </CardContent>
@@ -487,8 +487,8 @@ export default function Analytics() {
         <Card>
           <CardContent className="p-4">
             <div className="flex items-center gap-3">
-              <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-blue-500/10">
-                <Calendar className="h-5 w-5 text-blue-400" />
+              <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-info/10">
+                <Calendar className="h-5 w-5 text-info" />
               </div>
               <div>
                 <p className="text-xs text-muted-foreground">Savings Rate</p>
@@ -634,7 +634,7 @@ export default function Analytics() {
                 {cashFlowForecast.forecast.map((f) => (
                   <div key={f.days} className="p-3 rounded-lg bg-foreground/[0.02] text-center">
                     <p className="text-[10px] text-muted-foreground uppercase tracking-wider">{f.label}</p>
-                    <p className={`text-lg font-bold mt-1 ${f.balance >= 0 ? 'text-emerald-400' : 'text-rose-400'}`}>
+                    <p className={`text-lg font-bold mt-1 ${f.balance >= 0 ? 'text-positive' : 'text-negative'}`}>
                       {formatCurrency(f.balance, currency)}
                     </p>
                   </div>
@@ -655,7 +655,7 @@ export default function Analytics() {
                         }}
                       />
                     </div>
-                    <span className={`text-xs font-medium w-20 text-right ${p.balance >= 0 ? 'text-emerald-400' : 'text-rose-400'}`}>
+                    <span className={`text-xs font-medium w-20 text-right ${p.balance >= 0 ? 'text-positive' : 'text-negative'}`}>
                       {formatCurrency(p.balance, currency)}
                     </span>
                   </div>
@@ -663,9 +663,9 @@ export default function Analytics() {
               </div>
 
               <div className="flex items-center gap-4 text-xs text-muted-foreground pt-2 border-t border-foreground/5">
-                <span>Recurring: <span className="text-rose-400">{formatCurrency(cashFlowForecast.recurringExpense, currency)}/mo</span></span>
-                <span>Variable: <span className="text-amber-400">{formatCurrency(cashFlowForecast.nonRecurringExpense, currency)}/mo</span></span>
-                <span>Net: <span className={cashFlowForecast.netMonthly >= 0 ? 'text-emerald-400' : 'text-rose-400'}>{formatCurrency(cashFlowForecast.netMonthly, currency)}/mo</span></span>
+                <span>Recurring: <span className="text-negative">{formatCurrency(cashFlowForecast.recurringExpense, currency)}/mo</span></span>
+                <span>Variable: <span className="text-warning">{formatCurrency(cashFlowForecast.nonRecurringExpense, currency)}/mo</span></span>
+                <span>Net: <span className={cashFlowForecast.netMonthly >= 0 ? 'text-positive' : 'text-negative'}>{formatCurrency(cashFlowForecast.netMonthly, currency)}/mo</span></span>
               </div>
             </div>
           </CardContent>
