@@ -24,7 +24,7 @@ export function ScenarioImpactChart({ result }: { result: ScenarioResult }) {
             {formatCurrency(result.projectedBalance)}
           </span>
         </div>
-        <div className="h-2 bg-white/5 rounded-full overflow-hidden">
+        <div className="h-2 bg-foreground/5 rounded-full overflow-hidden">
           <div
             className={`h-full rounded-full transition-all ${result.projectedBalance >= 0 ? 'bg-emerald-500' : 'bg-red-500'}`}
             style={{ width: `${Math.min(100, Math.abs(result.projectedBalance) / maxVal * 100)}%` }}

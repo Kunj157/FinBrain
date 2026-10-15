@@ -385,7 +385,7 @@ export default function Insights() {
               <div className="relative w-32 h-32 mb-4">
                 <svg className="w-32 h-32 -rotate-90" viewBox="0 0 120 120">
                   <circle cx="60" cy="60" r="52" fill="none" stroke="currentColor" strokeWidth="8"
-                    className="text-white/5" />
+                    className="text-foreground/5" />
                   <circle cx="60" cy="60" r="52" fill="none" strokeWidth="8" strokeLinecap="round"
                     strokeDasharray={`${(health.score / 100) * 327} 327`}
                     className={
@@ -413,7 +413,7 @@ export default function Insights() {
                     <span className="text-xs text-muted-foreground capitalize">{key}</span>
                     <span className="text-xs font-medium">{value}%</span>
                   </div>
-                  <div className="w-full h-1.5 bg-white/5 rounded-full overflow-hidden">
+                  <div className="w-full h-1.5 bg-foreground/5 rounded-full overflow-hidden">
                     <div
                       className={`h-full rounded-full transition-all duration-500 ${
                         value >= 70 ? 'bg-emerald-400' : value >= 40 ? 'bg-amber-400' : 'bg-rose-400'
@@ -510,7 +510,7 @@ export default function Insights() {
             ))}
             {isThinking && (
               <div className="flex justify-start">
-                <div className="rounded-xl px-4 py-3 bg-white/[0.04]">
+                <div className="rounded-xl px-4 py-3 bg-foreground/[0.04]">
                   <div className="flex items-center gap-2">
                     <Brain className="h-3 w-3 text-emerald-400 animate-pulse" />
                     <span className="text-xs text-muted-foreground">Thinking...</span>
@@ -528,7 +528,7 @@ export default function Insights() {
               onChange={(e) => setChatInput(e.target.value)}
               onKeyDown={handleKeyDown}
               placeholder="Ask about your spending, budgets, goals..."
-              className="flex-1 h-10 px-3 rounded-lg bg-white/[0.03] border border-white/[0.06] text-sm text-foreground placeholder:text-muted-foreground/50 focus:outline-none focus:ring-2 focus:ring-emerald-500/20"
+              className="flex-1 h-10 px-3 rounded-lg bg-foreground/[0.03] border border-foreground/[0.06] text-sm text-foreground placeholder:text-muted-foreground/50 focus:outline-none focus:ring-2 focus:ring-emerald-500/20"
               disabled={isThinking}
             />
             <Button

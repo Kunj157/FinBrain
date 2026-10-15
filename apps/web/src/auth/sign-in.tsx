@@ -35,7 +35,7 @@ function DevSignIn() {
           onChange={(e) => setEmail(e.target.value)}
           placeholder="you@example.com"
           required
-          className="w-full h-11 px-4 rounded-xl bg-white/[0.03] border border-white/[0.06] text-sm text-foreground placeholder:text-muted-foreground/50 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500/30 transition-all"
+          className="w-full h-11 px-4 rounded-xl bg-foreground/[0.03] border border-foreground/[0.06] text-sm text-foreground placeholder:text-muted-foreground/50 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500/30 transition-all"
         />
       </div>
       <div className="space-y-2">
@@ -43,7 +43,7 @@ function DevSignIn() {
         <input
           type="password"
           placeholder="Enter your password"
-          className="w-full h-11 px-4 rounded-xl bg-white/[0.03] border border-white/[0.06] text-sm text-foreground placeholder:text-muted-foreground/50 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500/30 transition-all"
+          className="w-full h-11 px-4 rounded-xl bg-foreground/[0.03] border border-foreground/[0.06] text-sm text-foreground placeholder:text-muted-foreground/50 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500/30 transition-all"
         />
       </div>
       <Button type="submit" className="w-full h-12 text-base" disabled={loading}>

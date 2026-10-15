@@ -135,20 +135,20 @@ export default function CreditScorePage() {
       )}
 
       {latest && (
-        <Card className="p-6 bg-gray-900/60 border-gray-800 text-center">
+        <Card className="p-6 bg-muted/60 border-border text-center">
           <div className="text-5xl font-bold mb-1" style={{ color: getRating(latest.score).color }}>
             {latest.score}
           </div>
           <div className="text-sm font-medium" style={{ color: getRating(latest.score).color }}>
             {getRating(latest.score).label}
           </div>
-          <p className="text-xs text-gray-500 mt-2">
+          <p className="text-xs text-muted-foreground mt-2">
             Last updated {new Date(latest.date).toLocaleDateString()}
           </p>
         </Card>
       )}
 
-      <Card className="p-6 bg-gray-900/60 border-gray-800">
+      <Card className="p-6 bg-muted/60 border-border">
         <h2 className="text-lg font-semibold text-white mb-4">Record Score</h2>
         <div className="flex gap-3">
           <Input
@@ -158,7 +158,7 @@ export default function CreditScorePage() {
             placeholder="Enter score (300-900)"
             min={300}
             max={900}
-            className="bg-gray-800 border-gray-700 text-white"
+            className="bg-muted border-border-strong text-white"
           />
           <Button onClick={addScore} disabled={saving || !newScore}>
             {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Plus className="h-4 w-4" />}
@@ -168,7 +168,7 @@ export default function CreditScorePage() {
       </Card>
 
       {scores.length > 1 && (
-        <Card className="p-6 bg-gray-900/60 border-gray-800">
+        <Card className="p-6 bg-muted/60 border-border">
           <h2 className="text-lg font-semibold text-white mb-4">Trend</h2>
           <div className="h-64">
             <Line data={chartData} options={chartOptions} />
@@ -176,14 +176,14 @@ export default function CreditScorePage() {
         </Card>
       )}
 
-      <Card className="p-6 bg-gray-900/60 border-gray-800">
+      <Card className="p-6 bg-muted/60 border-border">
         <h2 className="text-lg font-semibold text-white mb-4">Score History</h2>
         {scores.length === 0 ? (
-          <p className="text-sm text-gray-500">No scores recorded yet.</p>
+          <p className="text-sm text-muted-foreground">No scores recorded yet.</p>
         ) : (
           <div className="space-y-2">
             {scores.map((s) => (
-              <div key={s.id} className="flex items-center justify-between p-3 bg-gray-800/50 rounded-lg">
+              <div key={s.id} className="flex items-center justify-between p-3 bg-muted/50 rounded-lg">
                 <div className="flex items-center gap-3">
                   <div
                     className="w-3 h-3 rounded-full"
@@ -191,9 +191,9 @@ export default function CreditScorePage() {
                   />
                   <div>
                     <span className="text-white font-medium">{s.score}</span>
-                    <span className="text-xs text-gray-400 ml-2">{getRating(s.score).label}</span>
+                    <span className="text-xs text-muted-foreground ml-2">{getRating(s.score).label}</span>
                   </div>
-                  <span className="text-xs text-gray-500">
+                  <span className="text-xs text-muted-foreground">
                     {new Date(s.date).toLocaleDateString()}
                   </span>
                 </div>
@@ -206,19 +206,19 @@ export default function CreditScorePage() {
         )}
       </Card>
 
-      <Card className="p-6 bg-gray-900/60 border-gray-800">
+      <Card className="p-6 bg-muted/60 border-border">
         <div className="flex items-start gap-3">
-          <Info className="h-5 w-5 text-gray-400 mt-0.5" />
+          <Info className="h-5 w-5 text-muted-foreground mt-0.5" />
           <div>
             <h3 className="text-sm font-medium text-white mb-1">About Credit Score Ranges</h3>
-            <ul className="text-xs text-gray-400 space-y-1">
+            <ul className="text-xs text-muted-foreground space-y-1">
               <li><span className="text-emerald-400">750-900</span> Excellent</li>
               <li><span className="text-blue-400">700-749</span> Good</li>
               <li><span className="text-amber-400">650-699</span> Fair</li>
               <li><span className="text-orange-400">600-649</span> Poor</li>
               <li><span className="text-red-400">300-599</span> Bad</li>
             </ul>
-            <p className="text-xs text-gray-500 mt-2">
+            <p className="text-xs text-muted-foreground mt-2">
               Scores are manually entered. Connect to a credit monitoring service for automatic updates.
             </p>
           </div>

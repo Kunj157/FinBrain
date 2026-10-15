@@ -108,7 +108,7 @@ export function SortableWidget({ id, children, isEditing }: SortableWidgetProps)
         <button
           {...attributes}
           {...listeners}
-          className="absolute top-2 left-2 z-10 p-1 rounded-lg bg-white/10 hover:bg-white/20 transition-colors cursor-grab active:cursor-grabbing"
+          className="absolute top-2 left-2 z-10 p-1 rounded-lg bg-foreground/10 hover:bg-foreground/20 transition-colors cursor-grab active:cursor-grabbing"
         >
           <GripVertical className="h-4 w-4 text-muted-foreground" />
         </button>

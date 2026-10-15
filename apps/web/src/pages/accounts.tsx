@@ -191,9 +191,9 @@ export default function AccountsPage() {
       {showForm && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm" onClick={() => setShowForm(false)}>
           <div className="w-full max-w-md mx-4 glass rounded-xl" onClick={(e) => e.stopPropagation()}>
-            <div className="flex items-center justify-between p-5 border-b border-white/[0.06]">
+            <div className="flex items-center justify-between p-5 border-b border-foreground/[0.06]">
               <h2 className="text-lg font-semibold">Add Account</h2>
-              <button onClick={() => setShowForm(false)} className="p-1.5 rounded-lg hover:bg-white/[0.04]">
+              <button onClick={() => setShowForm(false)} className="p-1.5 rounded-lg hover:bg-foreground/[0.04]">
                 <X className="h-5 w-5" />
               </button>
             </div>
@@ -206,7 +206,7 @@ export default function AccountsPage() {
                   value={form.name}
                   onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))}
                   placeholder="e.g. Main Checking"
-                  className="w-full h-10 px-3 rounded-lg bg-white/[0.02] border border-white/[0.08] text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/20"
+                  className="w-full h-10 px-3 rounded-lg bg-foreground/[0.02] border border-foreground/[0.08] text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/20"
                 />
               </div>
               <div>
@@ -224,7 +224,7 @@ export default function AccountsPage() {
                   value={form.balance}
                   onChange={(e) => setForm((f) => ({ ...f, balance: parseFloat(e.target.value) || 0 }))}
                   placeholder="0.00"
-                  className="w-full h-10 px-3 rounded-lg bg-white/[0.02] border border-white/[0.08] text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/20"
+                  className="w-full h-10 px-3 rounded-lg bg-foreground/[0.02] border border-foreground/[0.08] text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/20"
                 />
               </div>
               <div>
@@ -234,7 +234,7 @@ export default function AccountsPage() {
                   value={form.institution}
                   onChange={(e) => setForm((f) => ({ ...f, institution: e.target.value }))}
                   placeholder="e.g. Chase"
-                  className="w-full h-10 px-3 rounded-lg bg-white/[0.02] border border-white/[0.08] text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/20"
+                  className="w-full h-10 px-3 rounded-lg bg-foreground/[0.02] border border-foreground/[0.08] text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/20"
                 />
               </div>
               <div className="flex gap-3 pt-2">

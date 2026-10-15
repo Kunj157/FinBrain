@@ -24,7 +24,7 @@ export function StatCard({ title, value, change, icon: Icon, variant = 'default'
   };
 
   const iconBg = {
-    default: 'bg-white/[0.04]',
+    default: 'bg-foreground/[0.04]',
     positive: 'bg-emerald-500/10',
     negative: 'bg-rose-500/10',
     warning: 'bg-amber-500/10',

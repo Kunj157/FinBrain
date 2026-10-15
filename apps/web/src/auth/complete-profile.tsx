@@ -127,7 +127,7 @@ export default function CompleteProfile() {
               placeholder="e.g. john_doe"
               required
               minLength={3}
-              className="w-full h-11 px-4 rounded-xl bg-white/[0.03] border border-white/[0.06] text-sm text-foreground placeholder:text-muted-foreground/50 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500/30 transition-all"
+              className="w-full h-11 px-4 rounded-xl bg-foreground/[0.03] border border-foreground/[0.06] text-sm text-foreground placeholder:text-muted-foreground/50 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500/30 transition-all"
             />
             {username && (
               <p className="text-xs text-muted-foreground">
@@ -148,7 +148,7 @@ export default function CompleteProfile() {
                 onChange={(e) => setPassword(e.target.value)}
                 placeholder="Create a strong password"
                 required
-                className="w-full h-11 px-4 pr-11 rounded-xl bg-white/[0.03] border border-white/[0.06] text-sm text-foreground placeholder:text-muted-foreground/50 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500/30 transition-all"
+                className="w-full h-11 px-4 pr-11 rounded-xl bg-foreground/[0.03] border border-foreground/[0.06] text-sm text-foreground placeholder:text-muted-foreground/50 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500/30 transition-all"
               />
               <button
                 type="button"
@@ -162,7 +162,7 @@ export default function CompleteProfile() {
             {/* Strength bar */}
             {password && (
               <div className="space-y-2 pt-1">
-                <div className="h-1.5 w-full rounded-full bg-white/[0.06] overflow-hidden">
+                <div className="h-1.5 w-full rounded-full bg-foreground/[0.06] overflow-hidden">
                   <div
                     className={`h-full rounded-full transition-all duration-300 ${strengthColors[strength.level]}`}
                     style={{ width: `${strength.score}%` }}

@@ -95,7 +95,7 @@ export function NetWorthTrend({ currency }: { currency: SharedCurrency }) {
             )}
           </div>
         </div>
-        <div className="flex gap-1 bg-white/[0.03] rounded-lg p-0.5">
+        <div className="flex gap-1 bg-foreground/[0.03] rounded-lg p-0.5">
           {PERIODS.map((p) => (
             <button
               key={p.months}

@@ -83,7 +83,7 @@ export function RulesSection() {
       </div>
 
       {rules.length === 0 ? (
-        <div className="text-center py-12 rounded-xl bg-white/[0.02] border border-white/[0.06]">
+        <div className="text-center py-12 rounded-xl bg-foreground/[0.02] border border-foreground/[0.06]">
           <p className="text-muted-foreground text-sm">No rules yet. Create one to auto-categorize transactions.</p>
         </div>
       ) : (
@@ -93,8 +93,8 @@ export function RulesSection() {
               key={rule.id}
               className={`flex items-center gap-4 p-4 rounded-xl border ${
                 rule.isActive
-                  ? 'bg-white/[0.02] border-white/[0.08]'
-                  : 'bg-white/[0.01] border-white/[0.04] opacity-50'
+                  ? 'bg-foreground/[0.02] border-foreground/[0.08]'
+                  : 'bg-foreground/[0.01] border-foreground/[0.04] opacity-50'
               }`}
             >
               <GripVertical className="h-4 w-4 text-muted-foreground flex-shrink-0" />
@@ -122,13 +122,13 @@ export function RulesSection() {
                   </span>
                 </div>
               </div>
-              <button onClick={() => handleToggle(rule)} className="p-1.5 rounded-lg hover:bg-white/[0.04]">
+              <button onClick={() => handleToggle(rule)} className="p-1.5 rounded-lg hover:bg-foreground/[0.04]">
                 {rule.isActive
                   ? <ToggleRight className="h-5 w-5 text-emerald-400" />
                   : <ToggleLeft className="h-5 w-5 text-muted-foreground" />
                 }
               </button>
-              <button onClick={() => handleDelete(rule.id)} className="p-1.5 rounded-lg hover:bg-white/[0.04] hover:text-rose-400">
+              <button onClick={() => handleDelete(rule.id)} className="p-1.5 rounded-lg hover:bg-foreground/[0.04] hover:text-rose-400">
                 <Trash2 className="h-4 w-4" />
               </button>
             </div>
@@ -139,9 +139,9 @@ export function RulesSection() {
       {showForm && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm" onClick={() => setShowForm(false)}>
           <div className="w-full max-w-md mx-4 glass rounded-xl" onClick={(e) => e.stopPropagation()}>
-            <div className="flex items-center justify-between p-5 border-b border-white/[0.06]">
+            <div className="flex items-center justify-between p-5 border-b border-foreground/[0.06]">
               <h2 className="text-lg font-semibold">Add Rule</h2>
-              <button onClick={() => setShowForm(false)} className="p-1.5 rounded-lg hover:bg-white/[0.04]">
+              <button onClick={() => setShowForm(false)} className="p-1.5 rounded-lg hover:bg-foreground/[0.04]">
                 <X className="h-5 w-5" />
               </button>
             </div>
@@ -153,7 +153,7 @@ export function RulesSection() {
                   value={form.merchantPattern}
                   onChange={(e) => setForm((f) => ({ ...f, merchantPattern: e.target.value }))}
                   placeholder="e.g. amazon, netflix, shell"
-                  className="w-full h-10 px-3 rounded-lg bg-white/[0.02] border border-white/[0.08] text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/20"
+                  className="w-full h-10 px-3 rounded-lg bg-foreground/[0.02] border border-foreground/[0.08] text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/20"
                 />
               </div>
               <div>
@@ -163,7 +163,7 @@ export function RulesSection() {
                   value={form.descriptionPattern}
                   onChange={(e) => setForm((f) => ({ ...f, descriptionPattern: e.target.value }))}
                   placeholder="e.g. monthly subscription"
-                  className="w-full h-10 px-3 rounded-lg bg-white/[0.02] border border-white/[0.08] text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/20"
+                  className="w-full h-10 px-3 rounded-lg bg-foreground/[0.02] border border-foreground/[0.08] text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/20"
                 />
               </div>
               <div>

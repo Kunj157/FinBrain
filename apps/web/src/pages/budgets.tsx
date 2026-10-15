@@ -174,16 +174,16 @@ export default function Budgets() {
         </Button>
       </div>
 
-      <div className="flex bg-gray-800/50 rounded-lg p-0.5 w-fit">
+      <div className="flex bg-muted/50 rounded-lg p-0.5 w-fit">
         <button
           onClick={() => setBudgetMode('category')}
-          className={`px-3 py-1.5 rounded-md text-xs font-medium transition-all flex items-center gap-1.5 ${budgetMode === 'category' ? 'bg-gray-700 text-white' : 'text-gray-400 hover:text-white'}`}
+          className={`px-3 py-1.5 rounded-md text-xs font-medium transition-all flex items-center gap-1.5 ${budgetMode === 'category' ? 'bg-border-strong text-white' : 'text-muted-foreground hover:text-white'}`}
         >
           <PiggyBank className="h-3.5 w-3.5" /> Category Budgets
         </button>
         <button
           onClick={() => setBudgetMode('flex')}
-          className={`px-3 py-1.5 rounded-md text-xs font-medium transition-all flex items-center gap-1.5 ${budgetMode === 'flex' ? 'bg-gray-700 text-white' : 'text-gray-400 hover:text-white'}`}
+          className={`px-3 py-1.5 rounded-md text-xs font-medium transition-all flex items-center gap-1.5 ${budgetMode === 'flex' ? 'bg-border-strong text-white' : 'text-muted-foreground hover:text-white'}`}
         >
           <Layers className="h-3.5 w-3.5" /> Flex Budgets
         </button>
@@ -221,7 +221,7 @@ export default function Budgets() {
               const items = flexPlan[bucket === 'non_monthly' ? 'nonMonthly' : bucket === 'flexible' ? 'flexible' : 'fixed'];
               if (items.length === 0) return null;
               return (
-                <Card key={bucket} className="border-white/[0.06]">
+                <Card key={bucket} className="border-foreground/[0.06]">
                   <CardHeader>
                     <CardTitle className="text-sm font-medium flex items-center gap-2">
                       <span>{BUCKET_ICONS[bucket]}</span>
@@ -242,7 +242,7 @@ export default function Budgets() {
                                 <span className="text-white font-medium">/ {formatCurrency(item.budget, currency)}</span>
                               </div>
                             </div>
-                            <div className="relative h-1.5 rounded-full bg-white/[0.06] overflow-hidden">
+                            <div className="relative h-1.5 rounded-full bg-foreground/[0.06] overflow-hidden">
                               <div
                                 className={`absolute inset-y-0 left-0 rounded-full transition-all ${
                                   pct >= 100 ? 'bg-rose-500' : pct >= 90 ? 'bg-amber-500' : 'bg-emerald-500'
@@ -261,7 +261,7 @@ export default function Budgets() {
             })}
 
             {flexPlan.suggestedCategories.length > 0 && (
-              <Card className="border-white/[0.06]">
+              <Card className="border-foreground/[0.06]">
                 <CardHeader>
                   <CardTitle className="text-sm font-medium">Suggested Bucket Assignments</CardTitle>
                   <p className="text-xs text-muted-foreground">
@@ -271,7 +271,7 @@ export default function Budgets() {
                 <CardContent>
                   <div className="space-y-2">
                     {flexPlan.suggestedCategories.map((sc) => (
-                      <div key={sc.categoryId} className="flex items-center justify-between p-2 bg-gray-800/50 rounded-lg">
+                      <div key={sc.categoryId} className="flex items-center justify-between p-2 bg-muted/50 rounded-lg">
                         <div className="flex items-center gap-2">
                           <span>{BUCKET_ICONS[sc.bucketType] || '📦'}</span>
                           <span className="text-sm text-white">{sc.categoryName}</span>
@@ -378,10 +378,10 @@ export default function Budgets() {
                     <div className="flex items-center justify-between">
                       <CardTitle className="text-sm font-medium">{b.category?.name || 'Unknown'}</CardTitle>
                       <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                        <button onClick={() => openEdit(b)} className="p-1.5 rounded-lg hover:bg-white/[0.04] text-muted-foreground hover:text-foreground transition-colors">
+                        <button onClick={() => openEdit(b)} className="p-1.5 rounded-lg hover:bg-foreground/[0.04] text-muted-foreground hover:text-foreground transition-colors">
                           <Pencil className="h-3.5 w-3.5" />
                         </button>
-                        <button onClick={() => handleDelete(b.id)} className="p-1.5 rounded-lg hover:bg-white/[0.04] text-muted-foreground hover:text-rose-400 transition-colors">
+                        <button onClick={() => handleDelete(b.id)} className="p-1.5 rounded-lg hover:bg-foreground/[0.04] text-muted-foreground hover:text-rose-400 transition-colors">
                           <Trash2 className="h-3.5 w-3.5" />
                         </button>
                       </div>
@@ -413,7 +413,7 @@ export default function Budgets() {
                           {formatCurrency(b.spent, b.currency as SharedCurrency)} spent
                         </span>
                       </div>
-                      <div className="relative h-2 rounded-full bg-white/[0.06] overflow-hidden">
+                      <div className="relative h-2 rounded-full bg-foreground/[0.06] overflow-hidden">
                         <div
                           className={`absolute inset-y-0 left-0 rounded-full transition-all duration-500 ${isOver ? 'bg-rose-500' : pct >= 90 ? 'bg-amber-500' : pct >= 75 ? 'bg-amber-400' : 'bg-emerald-500'}`}
                           style={{ width: `${pct}%` }}
@@ -421,7 +421,7 @@ export default function Budgets() {
                         {[75, 90].map((threshold) => (
                           <div
                             key={threshold}
-                            className="absolute top-0 bottom-0 w-px bg-white/20"
+                            className="absolute top-0 bottom-0 w-px bg-foreground/20"
                             style={{ left: `${threshold}%` }}
                           />
                         ))}
@@ -523,9 +523,9 @@ function BudgetForm({
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm" onClick={onClose} onKeyDown={(e) => { if (e.key === 'Escape') onClose(); }}>
       <div className="w-full max-w-md mx-4 glass rounded-xl" onClick={(e) => e.stopPropagation()}>
-        <div className="flex items-center justify-between p-5 border-b border-white/[0.06]">
+        <div className="flex items-center justify-between p-5 border-b border-foreground/[0.06]">
           <h2 className="text-lg font-semibold">{mode === 'create' ? 'Set Budget' : 'Edit Budget'}</h2>
-          <button onClick={onClose} className="p-1.5 rounded-lg hover:bg-white/[0.04]">
+          <button onClick={onClose} className="p-1.5 rounded-lg hover:bg-foreground/[0.04]">
             <X className="h-5 w-5" />
           </button>
         </div>
@@ -551,7 +551,7 @@ function BudgetForm({
                 value={form.amount}
                 onChange={(e) => setForm((f) => ({ ...f, amount: e.target.value }))}
                 placeholder="0.00"
-                className="w-full h-10 px-3 rounded-lg bg-white/[0.02] border border-white/[0.08] text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/20"
+                className="w-full h-10 px-3 rounded-lg bg-foreground/[0.02] border border-foreground/[0.08] text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/20"
               />
             </div>
             <div>
@@ -571,7 +571,7 @@ function BudgetForm({
               required
               value={form.startDate}
               onChange={(e) => setForm((f) => ({ ...f, startDate: e.target.value }))}
-              className="w-full h-10 px-3 rounded-lg bg-white/[0.02] border border-white/[0.08] text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/20"
+              className="w-full h-10 px-3 rounded-lg bg-foreground/[0.02] border border-foreground/[0.08] text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/20"
             />
           </div>
 

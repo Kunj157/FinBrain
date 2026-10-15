@@ -37,7 +37,7 @@ export function Dialog({ open, onClose, children, className }: DialogProps) {
     >
       <div
         className={cn(
-          'relative w-full max-w-lg rounded-xl border border-white/[0.08] bg-card shadow-2xl animate-in fade-in zoom-in-95 duration-200',
+          'relative w-full max-w-lg rounded-xl border border-foreground/[0.08] bg-card shadow-2xl animate-in fade-in zoom-in-95 duration-200',
           className,
         )}
       >
@@ -75,7 +75,7 @@ export function DialogClose({ onClose }: { onClose: () => void }) {
   return (
     <button
       onClick={onClose}
-      className="absolute top-4 right-4 p-1.5 rounded-lg text-muted-foreground hover:text-foreground hover:bg-white/[0.04] transition-colors"
+      className="absolute top-4 right-4 p-1.5 rounded-lg text-muted-foreground hover:text-foreground hover:bg-foreground/[0.04] transition-colors"
     >
       <X className="h-4 w-4" />
     </button>

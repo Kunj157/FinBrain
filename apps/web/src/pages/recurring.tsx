@@ -105,16 +105,16 @@ export default function Recurring() {
           </p>
         </div>
         <div className="flex items-center gap-2">
-          <div className="flex bg-gray-800/50 rounded-lg p-0.5">
+          <div className="flex bg-muted/50 rounded-lg p-0.5">
             <button
               onClick={() => setView('list')}
-              className={`px-3 py-1.5 rounded-md text-xs font-medium transition-all ${view === 'list' ? 'bg-gray-700 text-white' : 'text-gray-400 hover:text-white'}`}
+              className={`px-3 py-1.5 rounded-md text-xs font-medium transition-all ${view === 'list' ? 'bg-border-strong text-white' : 'text-muted-foreground hover:text-white'}`}
             >
               <List className="h-3.5 w-3.5 inline mr-1" /> List
             </button>
             <button
               onClick={() => setView('calendar')}
-              className={`px-3 py-1.5 rounded-md text-xs font-medium transition-all ${view === 'calendar' ? 'bg-gray-700 text-white' : 'text-gray-400 hover:text-white'}`}
+              className={`px-3 py-1.5 rounded-md text-xs font-medium transition-all ${view === 'calendar' ? 'bg-border-strong text-white' : 'text-muted-foreground hover:text-white'}`}
             >
               <Calendar className="h-3.5 w-3.5 inline mr-1" /> Calendar
             </button>
@@ -184,27 +184,27 @@ export default function Recurring() {
           </p>
         </div>
       ) : view === 'calendar' ? (
-        <Card className="border-white/[0.06]">
+        <Card className="border-foreground/[0.06]">
           <CardContent className="p-4">
             <div className="flex items-center justify-between mb-4">
-              <button onClick={prevMonth} className="p-1 hover:bg-white/[0.04] rounded">
+              <button onClick={prevMonth} className="p-1 hover:bg-foreground/[0.04] rounded">
                 <ChevronLeft className="h-5 w-5 text-muted-foreground" />
               </button>
               <h3 className="text-sm font-medium">
                 {MONTHS[calendarMonth]} {calendarYear}
               </h3>
-              <button onClick={nextMonth} className="p-1 hover:bg-white/[0.04] rounded">
+              <button onClick={nextMonth} className="p-1 hover:bg-foreground/[0.04] rounded">
                 <ChevronRight className="h-5 w-5 text-muted-foreground" />
               </button>
             </div>
-            <div className="grid grid-cols-7 gap-px bg-white/[0.04] rounded-lg overflow-hidden">
+            <div className="grid grid-cols-7 gap-px bg-foreground/[0.04] rounded-lg overflow-hidden">
               {DAYS.map(d => (
-                <div key={d} className="bg-gray-900/60 p-2 text-center">
+                <div key={d} className="bg-muted/60 p-2 text-center">
                   <span className="text-[10px] font-medium text-muted-foreground uppercase">{d}</span>
                 </div>
               ))}
               {Array.from({ length: firstDayOfWeek }).map((_, i) => (
-                <div key={`empty-${i}`} className="bg-gray-900/60 p-2 min-h-[80px]" />
+                <div key={`empty-${i}`} className="bg-muted/60 p-2 min-h-[80px]" />
               ))}
               {calendarDays.map(day => {
                 const dayPatterns = patternsByDate[day] || [];
@@ -212,7 +212,7 @@ export default function Recurring() {
                 return (
                   <div
                     key={day}
-                    className={`bg-gray-900/60 p-1.5 min-h-[80px] hover:bg-gray-800/60 transition-colors ${isToday ? 'ring-1 ring-emerald-500/30' : ''}`}
+                    className={`bg-muted/60 p-1.5 min-h-[80px] hover:bg-muted/60 transition-colors ${isToday ? 'ring-1 ring-emerald-500/30' : ''}`}
                   >
                     <span className={`text-xs font-medium ${isToday ? 'text-emerald-400' : 'text-muted-foreground'}`}>
                       {day}
@@ -367,7 +367,7 @@ function PatternCard({
         </div>
 
         {expanded && (
-          <div className="mt-4 pt-3 border-t border-white/[0.06] space-y-2">
+          <div className="mt-4 pt-3 border-t border-foreground/[0.06] space-y-2">
             <p className="text-xs font-medium text-muted-foreground">History</p>
             {pattern.transactions.map(t => (
               <div key={t.id} className="flex items-center justify-between text-xs">
@@ -375,7 +375,7 @@ function PatternCard({
                 <span className="font-medium">{formatCurrency(t.amount, currency)}</span>
               </div>
             ))}
-            <div className="flex items-center justify-between text-xs font-medium pt-1 border-t border-white/[0.04]">
+            <div className="flex items-center justify-between text-xs font-medium pt-1 border-t border-foreground/[0.04]">
               <span className="text-muted-foreground">Total spent</span>
               <span>{formatCurrency(pattern.totalSpent, currency)}</span>
             </div>

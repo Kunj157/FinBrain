@@ -144,7 +144,7 @@ export function WeeklyRecap() {
                           {formatCurrency(b.spent, currency)} / {formatCurrency(b.budget, currency)}
                         </span>
                       </div>
-                      <div className="w-full h-1.5 bg-white/5 rounded-full overflow-hidden">
+                      <div className="w-full h-1.5 bg-foreground/5 rounded-full overflow-hidden">
                         <div
                           className={`h-full rounded-full transition-all ${
                             b.utilization > 100 ? 'bg-rose-400' :
@@ -171,7 +171,7 @@ export function WeeklyRecap() {
                           <span className="text-xs truncate">{g.name}</span>
                           <span className="text-[10px] text-muted-foreground">{g.progressPercent}%</span>
                         </div>
-                        <div className="w-full h-1 bg-white/5 rounded-full overflow-hidden mt-1">
+                        <div className="w-full h-1 bg-foreground/5 rounded-full overflow-hidden mt-1">
                           <div
                             className="h-full rounded-full bg-emerald-400 transition-all"
                             style={{ width: `${Math.min(g.progressPercent, 100)}%` }}

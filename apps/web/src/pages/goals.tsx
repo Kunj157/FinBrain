@@ -362,7 +362,7 @@ export default function Goals() {
                       <span className="text-2xl font-bold">{formatCurrency(goal.currentAmount, currency as SharedCurrency)}</span>
                       <span className="text-sm text-muted-foreground">of {formatCurrency(goal.targetAmount, currency as SharedCurrency)}</span>
                     </div>
-                    <div className="relative h-2 bg-white/5 rounded-full overflow-hidden">
+                    <div className="relative h-2 bg-foreground/5 rounded-full overflow-hidden">
                       <div
                         className={`absolute inset-y-0 left-0 rounded-full transition-all duration-500 ${getProgressColor(goal.progress, goal.onTrack)}`}
                         style={{ width: `${Math.min(goal.progress, 100)}%` }}
@@ -413,7 +413,7 @@ export default function Goals() {
                   {isExpanded && goal.contributions.length > 0 && (
                     <div className="mt-3 space-y-1.5 max-h-40 overflow-y-auto">
                       {goal.contributions.map((c) => (
-                        <div key={c.id} className="flex items-center justify-between p-2 rounded-lg bg-white/[0.02] group">
+                        <div key={c.id} className="flex items-center justify-between p-2 rounded-lg bg-foreground/[0.02] group">
                           <div>
                             <p className="text-xs font-medium">+{formatCurrency(c.amount, currency as SharedCurrency)}</p>
                             <p className="text-[10px] text-muted-foreground">
@@ -475,7 +475,7 @@ export default function Goals() {
                   )}
 
                   {isExpanded && goal.progress < 100 && (
-                    <div className="mt-3 p-3 rounded-lg bg-white/[0.02] border border-white/5">
+                    <div className="mt-3 p-3 rounded-lg bg-foreground/[0.02] border border-foreground/5">
                       <p className="text-xs font-medium text-muted-foreground mb-2">What if I increase my contribution?</p>
                       <div className="flex items-center gap-2">
                         <span className="text-xs text-muted-foreground">$</span>
@@ -485,7 +485,7 @@ export default function Goals() {
                           onChange={(e) => setSimAmount({ ...simAmount, [goal.id]: e.target.value })}
                           placeholder="Monthly amount"
                           min="0"
-                          className="flex-1 h-7 px-2 rounded bg-white/5 border border-white/10 text-xs focus:outline-none focus:ring-1 focus:ring-emerald-500/50"
+                          className="flex-1 h-7 px-2 rounded bg-foreground/5 border border-foreground/10 text-xs focus:outline-none focus:ring-1 focus:ring-emerald-500/50"
                         />
                       </div>
                       {simAmount[goal.id] && parseFloat(simAmount[goal.id]) > 0 && (
@@ -537,7 +537,7 @@ export default function Goals() {
                       placeholder="0.00"
                       min="0.01"
                       step="0.01"
-                      className="w-full h-9 px-3 rounded-lg bg-white/5 border border-white/10 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/50"
+                      className="w-full h-9 px-3 rounded-lg bg-foreground/5 border border-foreground/10 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/50"
                     />
                   </div>
                   <div>
@@ -546,7 +546,7 @@ export default function Goals() {
                       type="date"
                       value={contributionData.date}
                       onChange={(e) => setContributionData({ ...contributionData, date: e.target.value })}
-                      className="w-full h-9 px-3 rounded-lg bg-white/5 border border-white/10 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/50"
+                      className="w-full h-9 px-3 rounded-lg bg-foreground/5 border border-foreground/10 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/50"
                     />
                   </div>
                   <div>
@@ -556,7 +556,7 @@ export default function Goals() {
                       value={contributionData.notes}
                       onChange={(e) => setContributionData({ ...contributionData, notes: e.target.value })}
                       placeholder="Optional note"
-                      className="w-full h-9 px-3 rounded-lg bg-white/5 border border-white/10 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/50"
+                      className="w-full h-9 px-3 rounded-lg bg-foreground/5 border border-foreground/10 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/50"
                     />
                   </div>
                   <div className="flex justify-end gap-2 pt-2">
@@ -576,7 +576,7 @@ export default function Goals() {
                       value={formData.name}
                       onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                       placeholder="e.g., Emergency Fund"
-                      className="w-full h-9 px-3 rounded-lg bg-white/5 border border-white/10 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/50"
+                      className="w-full h-9 px-3 rounded-lg bg-foreground/5 border border-foreground/10 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/50"
                     />
                   </div>
                   <div>
@@ -588,7 +588,7 @@ export default function Goals() {
                       placeholder="0.00"
                       min="1"
                       step="0.01"
-                      className="w-full h-9 px-3 rounded-lg bg-white/5 border border-white/10 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/50"
+                      className="w-full h-9 px-3 rounded-lg bg-foreground/5 border border-foreground/10 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/50"
                     />
                   </div>
                   <div>
@@ -596,7 +596,7 @@ export default function Goals() {
                     <select
                       value={formData.goalType}
                       onChange={(e) => setFormData({ ...formData, goalType: e.target.value })}
-                      className="w-full h-9 px-3 rounded-lg bg-white/5 border border-white/10 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/50"
+                      className="w-full h-9 px-3 rounded-lg bg-foreground/5 border border-foreground/10 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/50"
                     >
                       {GOAL_TYPES.map((t) => (
                         <option key={t.value} value={t.value}>{t.label}</option>
@@ -609,7 +609,7 @@ export default function Goals() {
                       type="date"
                       value={formData.deadline}
                       onChange={(e) => setFormData({ ...formData, deadline: e.target.value })}
-                      className="w-full h-9 px-3 rounded-lg bg-white/5 border border-white/10 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/50"
+                      className="w-full h-9 px-3 rounded-lg bg-foreground/5 border border-foreground/10 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/50"
                     />
                   </div>
                   <div>
@@ -622,7 +622,7 @@ export default function Goals() {
                           className={`flex h-9 w-9 items-center justify-center rounded-lg border transition-all ${
                             formData.icon === opt.value
                               ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-400'
-                              : 'bg-white/5 border-white/10 text-muted-foreground hover:border-white/20'
+                              : 'bg-foreground/5 border-foreground/10 text-muted-foreground hover:border-foreground/20'
                           }`}
                           title={opt.label}
                         >

@@ -51,7 +51,7 @@ export function Sidebar({ onNavigate }: { onNavigate?: () => void }) {
   return (
     <aside className="h-full w-[240px]">
       <div className="flex h-full flex-col glass-strong">
-        <div className="flex h-16 items-center gap-3 px-6 border-b border-white/[0.04]">
+        <div className="flex h-16 items-center gap-3 px-6 border-b border-foreground/[0.04]">
           <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-emerald-500/10 border border-emerald-500/20">
             <Brain className="h-5 w-5 text-emerald-400" />
           </div>
@@ -91,7 +91,7 @@ export function Sidebar({ onNavigate }: { onNavigate?: () => void }) {
           ))}
         </nav>
 
-        <div className="border-t border-white/[0.04] px-3 py-3">
+        <div className="border-t border-foreground/[0.04] px-3 py-3">
           {bottomItems.map((item) => (
             <NavLink
               key={item.path}

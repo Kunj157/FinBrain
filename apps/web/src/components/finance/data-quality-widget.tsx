@@ -89,7 +89,7 @@ export function DataQualityWidget() {
             <span className="text-xs text-muted-foreground">Categorized</span>
             <span className="text-xs font-medium">{Math.round(quality.categorizedPercent)}%</span>
           </div>
-          <div className="w-full h-1.5 bg-white/5 rounded-full overflow-hidden">
+          <div className="w-full h-1.5 bg-foreground/5 rounded-full overflow-hidden">
             <div
               className={`h-full rounded-full transition-all ${
                 quality.categorizedPercent >= 80 ? 'bg-emerald-400' :
