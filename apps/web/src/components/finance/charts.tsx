@@ -14,27 +14,14 @@ import {
 } from 'chart.js';
 import { Bar, Doughnut, Line } from 'react-chartjs-2';
 import type { Transaction } from '@finbrain/shared';
+import { areaFill, useChartTheme } from '@/lib/chart-theme';
 
 ChartJS.register(CategoryScale, LinearScale, BarElement, ArcElement, PointElement, LineElement, Title, Tooltip, Legend, Filler);
 
-const chartDefaults = {
-  responsive: true,
-  maintainAspectRatio: false,
-  plugins: {
-    legend: { display: false },
-    tooltip: {
-      backgroundColor: 'rgba(0,0,0,0.8)',
-      titleColor: '#e2e8f0',
-      bodyColor: '#e2e8f0',
-      borderColor: 'rgba(255,255,255,0.1)',
-      borderWidth: 1,
-      padding: 12,
-      cornerRadius: 8,
-    },
-  },
-};
+const base = { responsive: true, maintainAspectRatio: false } as const;
 
 export function IncomeExpenseChart({ transactions }: { transactions: Transaction[] }) {
+  const chart = useChartTheme();
   const data = useMemo(() => {
     const months: Record<string, { income: number; expense: number }> = {};
     // Use the most recent transaction date as reference
@@ -78,44 +65,50 @@ export function IncomeExpenseChart({ transactions }: { transactions: Transaction
         {
           label: 'Income',
           data: incomeData,
-          backgroundColor: 'rgba(16, 185, 129, 0.6)',
-          borderColor: '#10b981',
-          borderWidth: 1,
-          borderRadius: 4,
+          backgroundColor: chart.positive,
+          hoverBackgroundColor: chart.positive,
+          borderRadius: { topLeft: 4, topRight: 4 },
+          borderSkipped: 'bottom' as const,
+          barPercentage: 0.8,
+          categoryPercentage: 0.55,
         },
         {
           label: 'Expenses',
           data: expenseData,
-          backgroundColor: 'rgba(244, 63, 94, 0.6)',
-          borderColor: '#f43f5e',
-          borderWidth: 1,
-          borderRadius: 4,
+          backgroundColor: chart.negative,
+          hoverBackgroundColor: chart.negative,
+          borderRadius: { topLeft: 4, topRight: 4 },
+          borderSkipped: 'bottom' as const,
+          barPercentage: 0.8,
+          categoryPercentage: 0.55,
         },
       ],
     };
-  }, [transactions]);
+  }, [transactions, chart]);
 
   return (
     <Bar
       data={data}
       options={{
-        ...chartDefaults,
-        scales: {
-          x: {
-            grid: { display: false },
-            ticks: { color: '#64748b' },
+        ...base,
+        plugins: {
+          legend: {
+            display: true,
+            position: 'top',
+            align: 'end',
+            labels: { usePointStyle: true, pointStyle: 'circle', boxWidth: 6, boxHeight: 6, padding: 14, color: chart.ink },
           },
-          y: {
-            grid: { color: 'rgba(255,255,255,0.03)' },
-            ticks: { color: '#64748b' },
-          },
+          tooltip: chart.tooltip,
         },
+        interaction: { intersect: false, mode: 'index' },
+        scales: chart.axes,
       }}
     />
   );
 }
 
 export function CategoryChart({ transactions, categories }: { transactions: Transaction[]; categories: { id: string; name: string; color: string }[] }) {
+  const chart = useChartTheme();
   const data = useMemo(() => {
     const catMap = new Map(categories.map((c) => [c.id, c]));
     const spending: Record<string, number> = {};
@@ -132,12 +125,14 @@ export function CategoryChart({ transactions, categories }: { transactions: Tran
 
     const labels = sorted.map(([id]) => catMap.get(id)?.name || 'Other');
     const values = sorted.map(([, v]) => v);
-    const colors = sorted.map(([id]) => catMap.get(id)?.color || '#64748b');
+    // A category keeps the colour the user gave it, so it reads the same here
+    // as in every badge; uncoloured ones fall back to the palette in order.
+    const colors = sorted.map(([id], i) => catMap.get(id)?.color || chart.series[i % chart.series.length]);
 
     if (!labels.length) {
       return {
         labels: ['No data'],
-        datasets: [{ data: [1], backgroundColor: ['rgba(100, 116, 139, 0.2)'], borderColor: ['rgba(100, 116, 139, 0.3)'], borderWidth: 1 }],
+        datasets: [{ data: [1], backgroundColor: [chart.grid], borderColor: [chart.surface], borderWidth: 0 }],
       };
     }
 
@@ -146,39 +141,45 @@ export function CategoryChart({ transactions, categories }: { transactions: Tran
       datasets: [
         {
           data: values,
-          backgroundColor: colors.map((c) => `${c}cc`),
-          borderColor: colors,
+          backgroundColor: colors,
+          // A surface-coloured gap between slices instead of an outline.
+          borderColor: chart.surface,
           borderWidth: 2,
+          borderRadius: 4,
+          hoverOffset: 6,
         },
       ],
     };
-  }, [transactions, categories]);
+  }, [transactions, categories, chart]);
 
   return (
     <Doughnut
       data={data}
       options={{
-        ...chartDefaults,
+        ...base,
         plugins: {
-          ...chartDefaults.plugins,
+          tooltip: chart.tooltip,
           legend: {
             display: true,
             position: 'bottom',
             labels: {
-              color: '#64748b',
-              padding: 16,
+              color: chart.ink,
+              padding: 14,
+              boxWidth: 6,
+              boxHeight: 6,
               usePointStyle: true,
               pointStyle: 'circle',
             },
           },
         },
-        cutout: '70%',
+        cutout: '74%',
       }}
     />
   );
 }
 
 export function SpendingTrend({ transactions }: { transactions: Transaction[] }) {
+  const chart = useChartTheme();
   const data = useMemo(() => {
     const days: Record<string, number> = {};
     // Use the most recent transaction date as reference, not 'now'
@@ -218,33 +219,28 @@ export function SpendingTrend({ transactions }: { transactions: Transaction[] })
         {
           label: 'Daily Spending',
           data: values,
-          borderColor: '#10b981',
-          backgroundColor: 'rgba(16, 185, 129, 0.05)',
+          borderColor: chart.primary,
+          backgroundColor: areaFill('primary'),
           fill: true,
           tension: 0.4,
           pointRadius: 0,
-          pointHoverRadius: 4,
+          pointHoverRadius: 5,
+          pointHoverBackgroundColor: chart.primary,
+          pointHoverBorderColor: chart.surface,
+          pointHoverBorderWidth: 2,
           borderWidth: 2,
         },
       ],
     };
-  }, [transactions]);
+  }, [transactions, chart]);
 
   return (
     <Line
       data={data}
       options={{
-        ...chartDefaults,
-        scales: {
-          x: {
-            grid: { display: false },
-            ticks: { color: '#64748b', maxRotation: 0 },
-          },
-          y: {
-            grid: { color: 'rgba(255,255,255,0.03)' },
-            ticks: { color: '#64748b' },
-          },
-        },
+        ...base,
+        plugins: { legend: { display: false }, tooltip: chart.tooltip },
+        scales: chart.axes,
         interaction: { intersect: false, mode: 'index' },
       }}
     />
