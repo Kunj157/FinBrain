@@ -5,7 +5,8 @@
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="description" content="FinBrain — AI-Powered Personal Finance Dashboard" />
-    <meta name="theme-color" content="#0a0b0e" />
+    <meta name="theme-color" content="#09090b" media="(prefers-color-scheme: dark)" />
+    <meta name="theme-color" content="#fbfbfd" media="(prefers-color-scheme: light)" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
     <meta name="apple-mobile-web-app-title" content="FinBrain" />
@@ -13,8 +14,14 @@
     <link rel="manifest" href="/manifest.json" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet" />
+    <link href="https://fonts.googleapis.com/css2?family=Geist:wght@300..700&family=Geist+Mono:wght@400..600&display=swap" rel="stylesheet" />
     <title>FinBrain</title>
+    <script>
+      // Apply the saved theme before first paint so light mode never flashes dark.
+      try {
+        if (localStorage.getItem('finbrain-theme') === 'light') document.documentElement.classList.add('light');
+      } catch (e) {}
+    </script>
   </head>
   <body class="antialiased">
     <div id="root"></div>

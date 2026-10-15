@@ -15,9 +15,10 @@ function Root({ children }: { children: ReactNode }) {
       appearance={{
         baseTheme: dark,
         variables: {
-          colorPrimary: '#10b981',
-          colorText: '#e2e8f0',
-          colorBackground: '#0f172a',
+          // Mirrors the dark theme tokens in index.css.
+          colorPrimary: '#34d399',
+          colorText: '#f4f4f5',
+          colorBackground: '#111113',
           borderRadius: '0.75rem',
         },
       }}
