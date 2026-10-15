@@ -1,5 +1,6 @@
 import { useMemo } from 'react';
 import { ResponsiveSankey } from '@nivo/sankey';
+import { token, useChartTheme } from '@/lib/chart-theme';
 
 interface SankeyFlowProps {
   income: { name: string; amount: number }[];
@@ -8,6 +9,8 @@ interface SankeyFlowProps {
 }
 
 export function SankeyFlow({ income, expenses }: SankeyFlowProps) {
+  // Re-read the tokens when the theme changes.
+  const chart = useChartTheme();
   const data = useMemo(() => {
     if (income.length === 0 || expenses.length === 0) return null;
 
@@ -43,9 +46,9 @@ export function SankeyFlow({ income, expenses }: SankeyFlowProps) {
   for (const e of expenses) {
     nodeColors[e.name] = e.color;
   }
-  nodeColors['Total Income'] = '#34d399';
+  nodeColors['Total Income'] = chart.positive;
   for (const i of income) {
-    nodeColors[i.name] = '#6ee7b7';
+    nodeColors[i.name] = token('positive', 0.7);
   }
 
   return (
@@ -53,22 +56,29 @@ export function SankeyFlow({ income, expenses }: SankeyFlowProps) {
       <ResponsiveSankey
         data={data}
         margin={{ top: 10, right: 100, bottom: 10, left: 100 }}
-        colors={(node: { id: string }) => nodeColors[node.id] || '#64748b'}
+        colors={(node: { id: string }) => nodeColors[node.id] || chart.ink}
+        nodeThickness={14}
+        nodeSpacing={18}
+        nodeInnerPadding={2}
         nodeBorderWidth={0}
+        nodeBorderRadius={4}
         nodeOpacity={1}
-        linkOpacity={0.35}
-        linkHoverOpacity={0.6}
-        labelTextColor={{ from: 'color', modifiers: [['brighter', 1.5]] }}
+        linkOpacity={0.28}
+        linkHoverOpacity={0.55}
+        linkBlendMode="normal"
+        enableLinkGradient
+        labelTextColor={chart.ink}
         label={(node: { id: string }) => node.id}
         theme={{
-          text: { fill: '#94a3b8', fontSize: 11 },
+          text: { fill: chart.ink, fontSize: 11, fontFamily: 'Geist, Inter, system-ui, sans-serif' },
           tooltip: {
             container: {
-              background: '#1e293b',
-              border: '1px solid rgba(255,255,255,0.1)',
-              borderRadius: '8px',
-              color: '#e2e8f0',
+              background: token('popover', 0.96),
+              border: `1px solid ${token('border-strong')}`,
+              borderRadius: '10px',
+              color: token('foreground'),
               fontSize: '12px',
+              boxShadow: 'var(--shadow-float)',
             },
           },
         }}
