@@ -7,7 +7,6 @@ import {
   Clock,
   ChevronDown,
   ChevronUp,
-  Loader2,
   Repeat,
   List,
   ChevronLeft,
@@ -15,6 +14,12 @@ import {
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { PageHeader } from '@/components/ui/page-header';
+import { CardSkeleton } from '@/components/ui/skeleton';
+import { EmptyState } from '@/components/ui/empty-state';
+import { MetricTile } from '@/components/finance/metric-tile';
+import { ActiveHighlight } from '@/components/motion/animated-background';
+import { InView } from '@/components/motion/in-view';
 import { useAuth } from '@/hooks/use-auth';
 import api from '@/lib/api';
 import { formatCurrency } from '@/lib/utils';
@@ -96,115 +101,75 @@ export default function Recurring() {
   }
 
   return (
-    <div className="space-y-6 animate-fade-in">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-semibold tracking-tight">Recurring Transactions</h1>
-          <p className="text-sm text-muted-foreground mt-1">
-            Detected bills and subscriptions from your transaction history
-          </p>
-        </div>
-        <div className="flex items-center gap-2">
-          <div className="flex bg-muted/50 rounded-lg p-0.5">
-            <button
-              onClick={() => setView('list')}
-              className={`px-3 py-1.5 rounded-md text-xs font-medium transition-all ${view === 'list' ? 'bg-border-strong text-white' : 'text-muted-foreground hover:text-white'}`}
-            >
-              <List className="h-3.5 w-3.5 inline mr-1" /> List
-            </button>
-            <button
-              onClick={() => setView('calendar')}
-              className={`px-3 py-1.5 rounded-md text-xs font-medium transition-all ${view === 'calendar' ? 'bg-border-strong text-white' : 'text-muted-foreground hover:text-white'}`}
-            >
-              <Calendar className="h-3.5 w-3.5 inline mr-1" /> Calendar
-            </button>
+    <div className="space-y-6">
+      <PageHeader
+        icon={Repeat}
+        title="Recurring Transactions"
+        description="Detected bills and subscriptions from your transaction history"
+        actions={<>
+          <div className="flex rounded-lg border bg-surface-sunken/60 p-0.5" role="group" aria-label="View">
+            {([['list', List, 'List'], ['calendar', Calendar, 'Calendar']] as const).map(([key, Icon, label]) => (
+              <button
+                key={key}
+                onClick={() => setView(key)}
+                aria-pressed={view === key}
+                className={`relative isolate flex items-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-medium transition-colors ${view === key ? 'text-foreground' : 'text-muted-foreground hover:text-foreground'}`}
+              >
+                {view === key && <ActiveHighlight layoutId="recurring-view" className="rounded-md border bg-card shadow-raised" />}
+                <Icon className="h-3.5 w-3.5" aria-hidden /> {label}
+              </button>
+            ))}
           </div>
           <Button variant="outline" size="sm" onClick={fetchData} className="gap-2">
             <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
             Refresh
           </Button>
-        </div>
-      </div>
+        </>}
+      />
 
       {summary && (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-xs text-muted-foreground flex items-center gap-1.5">
-                <DollarSign className="h-3.5 w-3.5" /> Monthly Cost
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <p className="text-2xl font-semibold">{formatCurrency(summary.totalMonthlyCost, currency)}</p>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-xs text-muted-foreground flex items-center gap-1.5">
-                <Repeat className="h-3.5 w-3.5" /> Active Recurring
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <p className="text-2xl font-semibold">{summary.activeCount}</p>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-xs text-muted-foreground flex items-center gap-1.5">
-                <Calendar className="h-3.5 w-3.5" /> Due This Month
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <p className="text-2xl font-semibold">{summary.upcomingThisMonth}</p>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-xs text-muted-foreground flex items-center gap-1.5">
-                <TrendingUp className="h-3.5 w-3.5" /> Total Transactions
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <p className="text-2xl font-semibold">{summary.totalTransactions}</p>
-            </CardContent>
-          </Card>
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+          <MetricTile icon={DollarSign} label="Monthly Cost" value={summary.totalMonthlyCost} format={(n) => formatCurrency(n, currency)} tone="warning" />
+          <MetricTile icon={Repeat} label="Active Recurring" value={summary.activeCount} tone="primary" />
+          <MetricTile icon={Calendar} label="Due This Month" value={summary.upcomingThisMonth} tone="info" />
+          <MetricTile icon={TrendingUp} label="Total Transactions" value={summary.totalTransactions} tone="accent" />
         </div>
       )}
 
       {loading ? (
-        <div className="py-16 text-center">
-          <Loader2 className="h-10 w-10 text-muted-foreground/30 mx-auto animate-spin" />
+        <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3" aria-busy="true" aria-label="Loading recurring transactions">
+          {Array.from({ length: 6 }, (_, i) => <CardSkeleton key={i} lines={2} />)}
         </div>
       ) : patterns.length === 0 ? (
-        <div className="py-16 text-center">
-          <Repeat className="h-10 w-10 text-muted-foreground/30 mx-auto" />
-          <p className="text-sm text-muted-foreground mt-3">No recurring transactions detected</p>
-          <p className="text-xs text-muted-foreground/60 mt-1">
-            Import more transactions to detect recurring patterns
-          </p>
-        </div>
+        <Card>
+          <EmptyState
+            icon={Repeat}
+            title="No recurring transactions detected"
+            description="Import more transactions to detect recurring patterns"
+          />
+        </Card>
       ) : view === 'calendar' ? (
-        <Card className="border-foreground/[0.06]">
-          <CardContent className="p-4">
+        <Card className="p-0">
+          <CardContent className="p-5">
             <div className="flex items-center justify-between mb-4">
-              <button onClick={prevMonth} className="p-1 hover:bg-foreground/[0.04] rounded">
+              <button onClick={prevMonth} aria-label="Previous month" className="rounded-lg p-1.5 transition-colors hover:bg-foreground/[0.05]">
                 <ChevronLeft className="h-5 w-5 text-muted-foreground" />
               </button>
-              <h3 className="text-sm font-medium">
+              <h3 className="text-sm font-semibold tracking-tight">
                 {MONTHS[calendarMonth]} {calendarYear}
               </h3>
-              <button onClick={nextMonth} className="p-1 hover:bg-foreground/[0.04] rounded">
+              <button onClick={nextMonth} aria-label="Next month" className="rounded-lg p-1.5 transition-colors hover:bg-foreground/[0.05]">
                 <ChevronRight className="h-5 w-5 text-muted-foreground" />
               </button>
             </div>
-            <div className="grid grid-cols-7 gap-px bg-foreground/[0.04] rounded-lg overflow-hidden">
+            <div className="grid grid-cols-7 gap-px overflow-hidden rounded-xl border bg-border">
               {DAYS.map(d => (
-                <div key={d} className="bg-muted/60 p-2 text-center">
+                <div key={d} className="bg-surface-sunken p-2 text-center">
                   <span className="text-[10px] font-medium text-muted-foreground uppercase">{d}</span>
                 </div>
               ))}
               {Array.from({ length: firstDayOfWeek }).map((_, i) => (
-                <div key={`empty-${i}`} className="bg-muted/60 p-2 min-h-[80px]" />
+                <div key={`empty-${i}`} className="min-h-[84px] bg-surface-sunken/60 p-2" />
               ))}
               {calendarDays.map(day => {
                 const dayPatterns = patternsByDate[day] || [];
@@ -212,9 +177,9 @@ export default function Recurring() {
                 return (
                   <div
                     key={day}
-                    className={`bg-muted/60 p-1.5 min-h-[80px] hover:bg-muted/60 transition-colors ${isToday ? 'ring-1 ring-primary/30' : ''}`}
+                    className={`relative min-h-[84px] bg-card p-1.5 transition-colors hover:bg-foreground/[0.025] ${isToday ? 'bg-primary/[0.06] ring-1 ring-inset ring-primary/40' : ''}`}
                   >
-                    <span className={`text-xs font-medium ${isToday ? 'text-primary' : 'text-muted-foreground'}`}>
+                    <span className={`inline-flex h-5 min-w-5 items-center justify-center rounded-full px-1 text-xs font-medium tabular-nums ${isToday ? 'bg-primary text-primary-foreground' : 'text-muted-foreground'}`}>
                       {day}
                     </span>
                     <div className="mt-1 space-y-0.5">
@@ -247,15 +212,16 @@ export default function Recurring() {
               <h2 className="text-sm font-medium text-muted-foreground mb-3 flex items-center gap-2">
                 <Clock className="h-4 w-4" /> Upcoming ({upcomingPatterns.length})
               </h2>
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                {upcomingPatterns.map(p => (
-                  <PatternCard
-                    key={p.id}
-                    pattern={p}
-                    currency={currency}
-                    expanded={expandedId === p.id}
-                    onToggle={() => setExpandedId(expandedId === p.id ? null : p.id)}
-                  />
+              <div className="grid grid-cols-1 items-start gap-4 md:grid-cols-2 lg:grid-cols-3">
+                {upcomingPatterns.map((p, i) => (
+                  <InView key={p.id} index={i}>
+                    <PatternCard
+                      pattern={p}
+                      currency={currency}
+                      expanded={expandedId === p.id}
+                      onToggle={() => setExpandedId(expandedId === p.id ? null : p.id)}
+                    />
+                  </InView>
                 ))}
               </div>
             </div>
@@ -315,6 +281,10 @@ function PatternCard({
     <Card
       className={`group card-hover cursor-pointer ${isPast ? 'opacity-60' : ''} ${isDueSoon ? 'border-warning/30' : ''}`}
       onClick={onToggle}
+      role="button"
+      tabIndex={0}
+      aria-expanded={expanded}
+      onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onToggle(); } }}
     >
       <CardHeader className="pb-2">
         <div className="flex items-start justify-between">
@@ -344,7 +314,7 @@ function PatternCard({
 
       <CardContent>
         <div className="flex items-baseline justify-between">
-          <span className="text-xl font-semibold">{formatCurrency(pattern.avgAmount, currency)}</span>
+          <span className="text-xl font-semibold tabular-nums tracking-tight">{formatCurrency(pattern.avgAmount, currency)}</span>
           <span className="text-xs text-muted-foreground">
             {pattern.transactionCount}x
           </span>
@@ -367,7 +337,7 @@ function PatternCard({
         </div>
 
         {expanded && (
-          <div className="mt-4 pt-3 border-t border-foreground/[0.06] space-y-2">
+          <div className="mt-4 space-y-2 border-t pt-3">
             <p className="text-xs font-medium text-muted-foreground">History</p>
             {pattern.transactions.map(t => (
               <div key={t.id} className="flex items-center justify-between text-xs">
