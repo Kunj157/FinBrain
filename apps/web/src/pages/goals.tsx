@@ -7,6 +7,17 @@ import {
 import { ExplainViewButton } from '@/components/finance/explain-view-button';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { PageHeader } from '@/components/ui/page-header';
+import { EmptyState } from '@/components/ui/empty-state';
+import { CardSkeleton } from '@/components/ui/skeleton';
+import { AnimatedNumber } from '@/components/motion/animated-number';
+import { InView } from '@/components/motion/in-view';
+import { TiltCard } from '@/components/motion/tilt-card';
+import { Scene3D } from '@/components/three/scene';
+import { GoalRingsPoster } from '@/components/three/goal-rings-poster';
+import { goalRings, overallProgress } from '@/components/three/goal-rings-model';
+import { areaFill, useChartTheme } from '@/lib/chart-theme';
+import { cn } from '@/lib/utils';
 import { useAuth } from '@/hooks/use-auth';
 import api from '@/lib/api';
 import { formatCurrency } from '@/lib/utils';
@@ -84,12 +95,14 @@ function getGoalIcon(iconName: string) {
 }
 
 function getProgressColor(progress: number, onTrack: boolean): string {
-  if (progress >= 100) return 'bg-primary';
-  if (!onTrack) return 'bg-warning';
-  if (progress >= 60) return 'bg-primary';
-  if (progress >= 30) return 'bg-primary';
-  return 'bg-primary';
+  if (progress >= 100) return 'from-positive to-positive';
+  if (!onTrack) return 'from-warning/70 to-warning';
+  return 'from-primary/60 to-primary';
 }
+
+/** Token-styled form field shared by the goal and contribution forms. */
+const fieldClass =
+  'h-10 w-full rounded-lg border border-input bg-surface-sunken/60 px-3 text-sm transition-[border-color,box-shadow] placeholder:text-muted-foreground/70 hover:border-border-strong focus-visible:border-primary/60 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-ring/15';
 
 export default function Goals() {
   const { user } = useAuth();
@@ -137,6 +150,10 @@ export default function Goals() {
   const totalTarget = useMemo(() => goals.reduce((s, g) => s + g.targetAmount, 0), [goals]);
   const completedGoals = useMemo(() => goals.filter((g) => g.progress >= 100).length, [goals]);
   const onTrackGoals = useMemo(() => goals.filter((g) => g.progress < 100 && g.onTrack).length, [goals]);
+  const rings = useMemo(() => goalRings(goals), [goals]);
+  const overall = useMemo(() => overallProgress(goals), [goals]);
+  const chart = useChartTheme();
+  const money = useCallback((n: number) => formatCurrency(n, currency), [currency]);
 
   const openCreate = () => {
     setEditingGoal(null);
@@ -243,115 +260,135 @@ export default function Goals() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <div>
-            <h1 className="text-2xl font-bold tracking-tight">Goals</h1>
-            <p className="text-sm text-muted-foreground">Track your savings goals and milestones</p>
-          </div>
-          <ExplainViewButton viewName="Goals" />
-        </div>
-        <Button onClick={openCreate} size="sm">
-          <Plus className="h-4 w-4 mr-2" />
-          New Goal
-        </Button>
-      </div>
+      <PageHeader
+        icon={Target}
+        title="Goals"
+        description="Track your savings goals and milestones"
+        actions={
+          <>
+            <ExplainViewButton viewName="Goals" />
+            <Button onClick={openCreate}>
+              <Plus className="h-4 w-4" />
+              New Goal
+            </Button>
+          </>
+        }
+      />
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <Card>
-          <CardContent className="p-4">
-            <div className="flex items-center gap-3">
-              <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10">
-                <Coins className="h-5 w-5 text-primary" />
+      {goals.length > 0 && (
+        <InView>
+          <Card className="overflow-hidden p-0">
+            <div className="grid items-center md:grid-cols-[minmax(0,1fr)_minmax(0,1.1fr)]">
+              <div className="relative h-[300px] md:h-[340px]">
+                <div aria-hidden className="absolute inset-0 bg-[radial-gradient(55%_55%_at_50%_50%,hsl(var(--primary)/0.12),transparent_70%)]" />
+                <Scene3D
+                  load={() => import('@/components/three/goal-rings-scene')}
+                  poster={<GoalRingsPoster rings={rings} />}
+                  props={{ rings }}
+                  className="h-full w-full"
+                />
+                <div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center">
+                  <span className="text-3xl font-semibold tracking-tight tabular-nums">
+                    <AnimatedNumber value={overall} from={0} format={(n) => `${n.toFixed(0)}%`} />
+                  </span>
+                  <span className="text-[11px] uppercase tracking-[0.14em] text-muted-foreground">funded</span>
+                </div>
               </div>
-              <div>
-                <p className="text-xs text-muted-foreground">Total Saved</p>
-                <p className="text-lg font-bold">{formatCurrency(totalSaved, currency)}</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="p-4">
-            <div className="flex items-center gap-3">
-              <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-info/10">
-                <Target className="h-5 w-5 text-info" />
-              </div>
-              <div>
-                <p className="text-xs text-muted-foreground">Total Target</p>
-                <p className="text-lg font-bold">{formatCurrency(totalTarget, currency)}</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="p-4">
-            <div className="flex items-center gap-3">
-              <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10">
-                <Check className="h-5 w-5 text-primary" />
-              </div>
-              <div>
-                <p className="text-xs text-muted-foreground">Completed</p>
-                <p className="text-lg font-bold">{completedGoals}</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="p-4">
-            <div className="flex items-center gap-3">
-              <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-warning/10">
-                <TrendingUp className="h-5 w-5 text-warning" />
-              </div>
-              <div>
-                <p className="text-xs text-muted-foreground">On Track</p>
-                <p className="text-lg font-bold">{onTrackGoals}</p>
+              <div className="space-y-5 p-6 md:pl-2">
+                <div>
+                  <p className="stat-label">Saved toward goals</p>
+                  <p className="mt-1.5 text-4xl font-semibold tracking-tight tabular-nums">
+                    <AnimatedNumber value={totalSaved} from={0} format={money} />
+                  </p>
+                  <p className="mt-1 text-sm text-muted-foreground">
+                    of {formatCurrency(totalTarget, currency)} across {goals.length} {goals.length === 1 ? 'goal' : 'goals'}
+                  </p>
+                </div>
+                <ul className="space-y-2.5">
+                  {rings.map((ring) => (
+                    <li key={ring.id} className="flex items-center gap-3 text-sm">
+                      <span className="h-2.5 w-2.5 shrink-0 rounded-full" style={{ backgroundColor: ring.color }} />
+                      <span className="min-w-0 flex-1 truncate">{ring.name}</span>
+                      <span className="tabular-nums text-muted-foreground">{Math.round(ring.progress * 100)}%</span>
+                    </li>
+                  ))}
+                </ul>
               </div>
             </div>
-          </CardContent>
-        </Card>
+          </Card>
+        </InView>
+      )}
+
+      <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
+        {[
+          { label: 'Total Saved', value: totalSaved, icon: Coins, tone: 'bg-primary/10 text-primary ring-primary/20', isMoney: true },
+          { label: 'Total Target', value: totalTarget, icon: Target, tone: 'bg-info/10 text-info ring-info/20', isMoney: true },
+          { label: 'Completed', value: completedGoals, icon: Check, tone: 'bg-positive/10 text-positive ring-positive/20', isMoney: false },
+          { label: 'On Track', value: onTrackGoals, icon: TrendingUp, tone: 'bg-warning/10 text-warning ring-warning/20', isMoney: false },
+        ].map((stat) => (
+          <div key={stat.label} className="stat-card flex items-center gap-3 p-4">
+            <div className={cn('flex h-10 w-10 shrink-0 items-center justify-center rounded-xl ring-1 ring-inset', stat.tone)}>
+              <stat.icon className="h-5 w-5" aria-hidden />
+            </div>
+            <div className="min-w-0">
+              <p className="text-xs text-muted-foreground">{stat.label}</p>
+              <p className="truncate text-lg font-semibold tabular-nums">
+                {stat.isMoney ? <AnimatedNumber value={stat.value} from={0} format={money} /> : stat.value}
+              </p>
+            </div>
+          </div>
+        ))}
       </div>
 
       {loading ? (
-        <div className="flex items-center justify-center py-20">
-          <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+        <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+          <CardSkeleton className="h-56" />
+          <CardSkeleton className="h-56" />
         </div>
       ) : goals.length === 0 ? (
         <Card>
-          <CardContent className="flex flex-col items-center justify-center py-20">
-            <Target className="h-12 w-12 text-muted-foreground/30" />
-            <p className="mt-4 text-sm font-medium text-muted-foreground">No goals yet</p>
-            <p className="text-xs text-muted-foreground mt-1">Create your first savings goal to get started</p>
-            <Button onClick={openCreate} size="sm" className="mt-4">
-              <Plus className="h-4 w-4 mr-2" />
-              New Goal
-            </Button>
-          </CardContent>
+          <EmptyState
+            icon={Target}
+            title="No goals yet"
+            description="Create your first savings goal to get started"
+            action={
+              <Button onClick={openCreate}>
+                <Plus className="h-4 w-4" />
+                New Goal
+              </Button>
+            }
+          />
         </Card>
       ) : (
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-          {goals.map((goal) => {
+        <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+          {goals.map((goal, index) => {
             const GoalIcon = getGoalIcon(goal.icon);
             const isExpanded = expandedGoal === goal.id;
+            const ringColor = rings.find((ring) => ring.id === goal.id)?.color;
 
             return (
-              <Card key={goal.id} className="card-hover">
-                <CardContent className="p-5">
+              <InView key={goal.id} index={index}>
+              <TiltCard max={3} className="rounded-xl">
+              <Card className="group">
+                {ringColor && (
+                  <span aria-hidden className="absolute inset-x-6 top-0 h-px" style={{ background: `linear-gradient(90deg, ${ringColor}, transparent)` }} />
+                )}
+                <CardContent className="p-0">
                   <div className="flex items-start justify-between mb-3">
                     <div className="flex items-center gap-3">
-                      <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10">
-                        <GoalIcon className="h-5 w-5 text-primary" />
+                      <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-primary/10 ring-1 ring-inset ring-primary/20">
+                        <GoalIcon className="h-5 w-5 text-primary" aria-hidden />
                       </div>
                       <div>
                         <h3 className="font-semibold">{goal.name}</h3>
                         <p className="text-xs text-muted-foreground capitalize">{goal.goalType.replace(/([A-Z])/g, ' $1')}</p>
                       </div>
                     </div>
-                    <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                      <Button variant="ghost" size="sm" onClick={() => openEdit(goal)} className="h-7 w-7 p-0">
+                    <div className="flex items-center gap-1 opacity-0 transition-opacity focus-within:opacity-100 group-hover:opacity-100">
+                      <Button variant="ghost" size="sm" onClick={() => openEdit(goal)} className="h-7 w-7 p-0" aria-label={`Edit ${goal.name}`}>
                         <Pencil className="h-3.5 w-3.5" />
                       </Button>
-                      <Button variant="ghost" size="sm" onClick={() => handleDelete(goal.id)} disabled={deleting === goal.id} className="h-7 w-7 p-0 text-negative hover:text-negative">
+                      <Button variant="ghost" size="sm" onClick={() => handleDelete(goal.id)} disabled={deleting === goal.id} className="h-7 w-7 p-0 text-negative hover:text-negative" aria-label={`Delete ${goal.name}`}>
                         {deleting === goal.id ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Trash2 className="h-3.5 w-3.5" />}
                       </Button>
                     </div>
@@ -359,19 +396,26 @@ export default function Goals() {
 
                   <div className="mb-3">
                     <div className="flex items-baseline justify-between mb-1.5">
-                      <span className="text-2xl font-bold">{formatCurrency(goal.currentAmount, currency as SharedCurrency)}</span>
+                      <span className="text-2xl font-semibold tracking-tight tabular-nums">{formatCurrency(goal.currentAmount, currency as SharedCurrency)}</span>
                       <span className="text-sm text-muted-foreground">of {formatCurrency(goal.targetAmount, currency as SharedCurrency)}</span>
                     </div>
-                    <div className="relative h-2 bg-foreground/5 rounded-full overflow-hidden">
+                    <div
+                      className="relative h-2 overflow-hidden rounded-full bg-foreground/[0.06]"
+                      role="progressbar"
+                      aria-label={`${goal.name} progress`}
+                      aria-valuenow={Math.round(Math.min(goal.progress, 100))}
+                      aria-valuemin={0}
+                      aria-valuemax={100}
+                    >
                       <div
-                        className={`absolute inset-y-0 left-0 rounded-full transition-all duration-500 ${getProgressColor(goal.progress, goal.onTrack)}`}
+                        className={`absolute inset-y-0 left-0 rounded-full bg-gradient-to-r transition-[width] duration-700 ease-out ${getProgressColor(goal.progress, goal.onTrack)}`}
                         style={{ width: `${Math.min(goal.progress, 100)}%` }}
                       />
                     </div>
                     <div className="flex items-center justify-between mt-1.5">
-                      <span className="text-xs text-muted-foreground">{goal.progress.toFixed(1)}%</span>
+                      <span className="text-xs tabular-nums text-muted-foreground">{goal.progress.toFixed(1)}%</span>
                       {goal.deadline && (
-                        <span className={`text-xs ${goal.onTrack ? 'text-primary' : 'text-warning'}`}>
+                        <span className={`text-xs ${goal.onTrack ? 'text-positive' : 'text-warning'}`}>
                           {goal.daysLeft !== null ? (
                             goal.daysLeft > 0 ? `${goal.daysLeft} days left` : 'Deadline passed'
                           ) : 'No deadline'}
@@ -388,9 +432,9 @@ export default function Goals() {
                   )}
 
                   {goal.progress >= 100 && (
-                    <div className="flex items-center gap-2 p-2 rounded-lg bg-primary/5 border border-primary/10 mb-3">
-                      <Check className="h-3.5 w-3.5 text-primary flex-shrink-0" />
-                      <span className="text-xs text-primary">Goal achieved!</span>
+                    <div className="flex items-center gap-2 p-2 rounded-lg bg-positive/5 border border-positive/15 mb-3">
+                      <Check className="h-3.5 w-3.5 text-positive flex-shrink-0" />
+                      <span className="text-xs text-positive">Goal achieved!</span>
                     </div>
                   )}
 
@@ -452,11 +496,13 @@ export default function Goals() {
                                 return cumulative;
                               });
                             })(),
-                            borderColor: '#10b981',
-                            backgroundColor: 'rgba(16,185,129,0.1)',
+                            borderColor: chart.primary,
+                            backgroundColor: areaFill('primary'),
                             fill: true,
                             tension: 0.4,
                             pointRadius: 3,
+                            pointBackgroundColor: chart.primary,
+                            pointBorderColor: chart.surface,
                             pointHoverRadius: 5,
                             borderWidth: 2,
                           }],
@@ -464,7 +510,7 @@ export default function Goals() {
                         options={{
                           responsive: true,
                           maintainAspectRatio: false,
-                          plugins: { legend: { display: false }, tooltip: { backgroundColor: 'rgba(0,0,0,0.8)', titleColor: '#e2e8f0', bodyColor: '#e2e8f0', borderColor: 'rgba(255,255,255,0.1)', borderWidth: 1, padding: 8, cornerRadius: 6 } },
+                          plugins: { legend: { display: false }, tooltip: chart.tooltip },
                           scales: {
                             x: { display: false },
                             y: { display: false },
@@ -485,7 +531,8 @@ export default function Goals() {
                           onChange={(e) => setSimAmount({ ...simAmount, [goal.id]: e.target.value })}
                           placeholder="Monthly amount"
                           min="0"
-                          className="flex-1 h-7 px-2 rounded bg-foreground/5 border border-foreground/10 text-xs focus:outline-none focus:ring-1 focus:ring-primary/50"
+                          aria-label="Monthly amount"
+                          className="h-8 flex-1 rounded-md border border-input bg-surface-sunken/60 px-2 text-xs focus-visible:border-primary/60 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-ring/15"
                         />
                       </div>
                       {simAmount[goal.id] && parseFloat(simAmount[goal.id]) > 0 && (
@@ -509,14 +556,16 @@ export default function Goals() {
                   )}
                 </CardContent>
               </Card>
+              </TiltCard>
+              </InView>
             );
           })}
         </div>
       )}
 
       {showForm && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm" onClick={() => setShowForm(false)}>
-          <Card className="w-full max-w-md mx-4" onClick={(e) => e.stopPropagation()}>
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-background/60 backdrop-blur-md animate-in fade-in-0" onClick={() => setShowForm(false)}>
+          <Card role="dialog" aria-modal="true" className="mx-4 w-full max-w-md rounded-2xl shadow-float animate-in fade-in-0 zoom-in-95" onClick={(e) => e.stopPropagation()}>
             <CardHeader className="flex flex-row items-center justify-between pb-4">
               <CardTitle className="text-lg">
                 {formMode === 'contribute' ? `Add Funds to ${contributeGoal?.name}` : formMode === 'edit' ? 'Edit Goal' : 'New Goal'}
@@ -537,7 +586,7 @@ export default function Goals() {
                       placeholder="0.00"
                       min="0.01"
                       step="0.01"
-                      className="w-full h-9 px-3 rounded-lg bg-foreground/5 border border-foreground/10 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
+                      className={fieldClass}
                     />
                   </div>
                   <div>
@@ -546,7 +595,7 @@ export default function Goals() {
                       type="date"
                       value={contributionData.date}
                       onChange={(e) => setContributionData({ ...contributionData, date: e.target.value })}
-                      className="w-full h-9 px-3 rounded-lg bg-foreground/5 border border-foreground/10 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
+                      className={fieldClass}
                     />
                   </div>
                   <div>
@@ -556,7 +605,7 @@ export default function Goals() {
                       value={contributionData.notes}
                       onChange={(e) => setContributionData({ ...contributionData, notes: e.target.value })}
                       placeholder="Optional note"
-                      className="w-full h-9 px-3 rounded-lg bg-foreground/5 border border-foreground/10 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
+                      className={fieldClass}
                     />
                   </div>
                   <div className="flex justify-end gap-2 pt-2">
@@ -576,7 +625,7 @@ export default function Goals() {
                       value={formData.name}
                       onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                       placeholder="e.g., Emergency Fund"
-                      className="w-full h-9 px-3 rounded-lg bg-foreground/5 border border-foreground/10 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
+                      className={fieldClass}
                     />
                   </div>
                   <div>
@@ -588,7 +637,7 @@ export default function Goals() {
                       placeholder="0.00"
                       min="1"
                       step="0.01"
-                      className="w-full h-9 px-3 rounded-lg bg-foreground/5 border border-foreground/10 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
+                      className={fieldClass}
                     />
                   </div>
                   <div>
@@ -596,7 +645,7 @@ export default function Goals() {
                     <select
                       value={formData.goalType}
                       onChange={(e) => setFormData({ ...formData, goalType: e.target.value })}
-                      className="w-full h-9 px-3 rounded-lg bg-foreground/5 border border-foreground/10 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
+                      className={fieldClass}
                     >
                       {GOAL_TYPES.map((t) => (
                         <option key={t.value} value={t.value}>{t.label}</option>
@@ -609,7 +658,7 @@ export default function Goals() {
                       type="date"
                       value={formData.deadline}
                       onChange={(e) => setFormData({ ...formData, deadline: e.target.value })}
-                      className="w-full h-9 px-3 rounded-lg bg-foreground/5 border border-foreground/10 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
+                      className={fieldClass}
                     />
                   </div>
                   <div>
