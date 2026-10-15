@@ -5,6 +5,7 @@ import { AuthProvider } from '@/auth/auth-provider';
 import { ThemeProvider } from '@/hooks/use-theme';
 import { ProtectedRoute } from '@/auth/protected-route';
 import { AppLayout } from '@/components/layout/app-layout';
+import { MotionProvider } from '@/components/motion/motion-provider';
 
 import SignIn from '@/auth/sign-in';
 import SignUp from '@/auth/sign-up';
@@ -32,6 +33,7 @@ export default function App() {
     <QueryClientProvider client={queryClient}>
       <BrowserRouter>
         <ThemeProvider>
+        <MotionProvider>
         <AuthProvider>
           <Routes>
             <Route path="/" element={<HomePage />} />
@@ -67,6 +69,7 @@ export default function App() {
             </Route>
           </Routes>
         </AuthProvider>
+        </MotionProvider>
         </ThemeProvider>
       </BrowserRouter>
     </QueryClientProvider>
