@@ -72,7 +72,7 @@ const bottomItems: NavItem[] = [
   { icon: HelpCircle, label: 'Help', path: '/help' },
 ];
 
-function SidebarLink({ item, onNavigate }: { item: NavItem; onNavigate?: () => void }) {
+function SidebarLink({ item, onNavigate, edge = true }: { item: NavItem; onNavigate?: () => void; edge?: boolean }) {
   return (
     <NavLink
       to={item.path}
@@ -84,7 +84,11 @@ function SidebarLink({ item, onNavigate }: { item: NavItem; onNavigate?: () => v
           {isActive && (
             <ActiveHighlight
               layoutId="sidebar-active"
-              className="rounded-lg border border-border bg-foreground/[0.06] shadow-edge before:absolute before:inset-y-2 before:-left-3 before:w-[3px] before:rounded-r-full before:bg-primary before:content-['']"
+              className={cn(
+                'rounded-lg border border-border bg-foreground/[0.06] shadow-edge',
+                // The brand edge bar sits in the nav gutter, so only single-column links get it.
+                edge && "before:absolute before:inset-y-2 before:-left-3 before:w-[3px] before:rounded-r-full before:bg-primary before:content-['']",
+              )}
             />
           )}
           <item.icon
@@ -132,7 +136,7 @@ export function Sidebar({ onNavigate }: { onNavigate?: () => void }) {
 
         <div className="grid grid-cols-2 gap-1 border-t px-3 py-2">
           {bottomItems.map((item) => (
-            <SidebarLink key={item.path} item={item} onNavigate={onNavigate} />
+            <SidebarLink key={item.path} item={item} onNavigate={onNavigate} edge={false} />
           ))}
         </div>
 
