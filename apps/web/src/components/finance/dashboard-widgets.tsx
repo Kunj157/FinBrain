@@ -21,6 +21,7 @@ const STORAGE_KEY = 'finbrain-dashboard-layout';
 
 export type WidgetId =
   | 'stat-cards'
+  | 'spending-mix'
   | 'quick-actions'
   | 'income-expense'
   | 'category-breakdown'
@@ -40,6 +41,7 @@ export interface WidgetConfig {
 
 export const AVAILABLE_WIDGETS: WidgetConfig[] = [
   { id: 'stat-cards', title: 'Stat Cards', defaultOrder: 0, colSpan: 3 },
+  { id: 'spending-mix', title: 'Spending Mix', defaultOrder: 1.5, colSpan: 3 },
   { id: 'quick-actions', title: 'Quick Actions', defaultOrder: 1, colSpan: 3 },
   { id: 'income-expense', title: 'Income vs Expenses', defaultOrder: 2, colSpan: 2 },
   { id: 'category-breakdown', title: 'Category Breakdown', defaultOrder: 3, colSpan: 1 },
@@ -62,7 +64,9 @@ export function loadDashboardLayout(): WidgetId[] {
       const parsed = JSON.parse(saved) as WidgetId[];
       // Validate all IDs exist
       if (parsed.every((id) => AVAILABLE_WIDGETS.some((w) => w.id === id))) {
-        return parsed;
+        // Widgets added since the layout was saved go on the end, so a saved
+        // layout keeps its order and still shows everything.
+        return [...parsed, ...getDefaultLayout().filter((id) => !parsed.includes(id))];
       }
     }
   } catch {
