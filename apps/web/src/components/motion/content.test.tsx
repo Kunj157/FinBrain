@@ -1,10 +1,19 @@
-import { render, screen } from '@testing-library/react';
-import { describe, expect, it } from 'vitest';
+import { act, render, screen } from '@testing-library/react';
+import { afterEach, describe, expect, it } from 'vitest';
 import { ActiveHighlight } from './animated-background';
 import { InView } from './in-view';
 import { MotionProvider } from './motion-provider';
 import { TextShimmer } from './text-shimmer';
 import { TransitionPanel } from './transition-panel';
+
+// MotionProvider loads its animation features asynchronously and then sets
+// state. Let that settle inside each test, or it lands after jsdom is torn
+// down and fails the run with "window is not defined".
+afterEach(async () => {
+  await act(async () => {
+    await import('./features');
+  });
+});
 
 describe('motion content primitives', () => {
   it('renders text and panels as real content inside the provider', () => {

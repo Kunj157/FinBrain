@@ -29,3 +29,19 @@ if (!window.PointerEvent) {
   }
   window.PointerEvent = PointerEventShim as unknown as typeof PointerEvent;
 }
+
+// jsdom has no IntersectionObserver; in-view reveals only need it to exist.
+if (typeof window.IntersectionObserver === 'undefined') {
+  class IntersectionObserverShim {
+    observe() {}
+    unobserve() {}
+    disconnect() {}
+    takeRecords() {
+      return [];
+    }
+  }
+  window.IntersectionObserver = IntersectionObserverShim as unknown as typeof IntersectionObserver;
+}
+
+// jsdom has no WebGL; report "unsupported" quietly instead of logging an error.
+HTMLCanvasElement.prototype.getContext = (() => null) as typeof HTMLCanvasElement.prototype.getContext;
