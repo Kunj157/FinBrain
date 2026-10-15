@@ -91,7 +91,7 @@ export default function Onboarding() {
                 onClick={() => { setSelected(opt.id); setStep(opt.id); }}
                 className="w-full flex items-center gap-4 glass rounded-xl p-5 card-hover text-left group"
               >
-                <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-white/[0.04] group-hover:bg-emerald-500/10 transition-colors">
+                <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-foreground/[0.04] group-hover:bg-emerald-500/10 transition-colors">
                   <opt.icon className="h-6 w-6 text-muted-foreground group-hover:text-emerald-400 transition-colors" />
                 </div>
                 <div className="flex-1">

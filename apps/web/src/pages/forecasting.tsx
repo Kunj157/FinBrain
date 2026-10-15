@@ -198,7 +198,7 @@ export default function Forecasting() {
           <p className="text-sm text-muted-foreground">Predict future income, expenses, and cash flow</p>
         </div>
         <div className="flex items-center gap-2">
-          <div className="flex gap-1 p-1 rounded-lg bg-white/5">
+          <div className="flex gap-1 p-1 rounded-lg bg-foreground/5">
             {([['forecast', 'Cash Flow'], ['scenarios', 'Scenarios'], ['net-worth', 'Net Worth']] as [TabKey, string][]).map(([key, label]) => (
               <Button key={key} variant={activeTab === key ? 'default' : 'ghost'} size="sm" onClick={() => setActiveTab(key)} className="h-7 text-xs">
                 {label}
@@ -286,7 +286,7 @@ export default function Forecasting() {
           common laptop sizes, which pushed the last model tab off-screen and
           gave the whole page a horizontal scrollbar. */}
       <div className="flex flex-wrap items-center gap-4">
-        <div className="flex flex-wrap gap-1 p-1 rounded-lg bg-white/5">
+        <div className="flex flex-wrap gap-1 p-1 rounded-lg bg-foreground/5">
           {METRIC_OPTIONS.map((opt) => (
             <Button
               key={opt.key}
@@ -299,7 +299,7 @@ export default function Forecasting() {
             </Button>
           ))}
         </div>
-        <div className="flex flex-wrap gap-1 p-1 rounded-lg bg-white/5">
+        <div className="flex flex-wrap gap-1 p-1 rounded-lg bg-foreground/5">
           {MODEL_OPTIONS.map((opt) => (
             <Button
               key={opt.key}
@@ -385,14 +385,14 @@ export default function Forecasting() {
                 )}
               </div>
 
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 pt-2 border-t border-white/5">
-                <div className="p-3 rounded-lg bg-white/[0.02]">
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 pt-2 border-t border-foreground/5">
+                <div className="p-3 rounded-lg bg-foreground/[0.02]">
                   <p className="text-[10px] text-muted-foreground uppercase tracking-wider">Last Month</p>
                   <p className="text-sm font-medium mt-0.5">
                     {formatCurrency(currentForecast.historical.values[currentForecast.historical.values.length - 1] || 0, currency)}
                   </p>
                 </div>
-                <div className="p-3 rounded-lg bg-white/[0.02]">
+                <div className="p-3 rounded-lg bg-foreground/[0.02]">
                   <p className="text-[10px] text-muted-foreground uppercase tracking-wider">Forecast (Next)</p>
                   <p className="text-sm font-medium mt-0.5">
                     {modelData && modelData.forecast.length > 0
@@ -400,7 +400,7 @@ export default function Forecasting() {
                       : '—'}
                   </p>
                 </div>
-                <div className="p-3 rounded-lg bg-white/[0.02]">
+                <div className="p-3 rounded-lg bg-foreground/[0.02]">
                   <p className="text-[10px] text-muted-foreground uppercase tracking-wider">3-Month Avg</p>
                   <p className="text-sm font-medium mt-0.5">
                     {formatCurrency(
@@ -409,7 +409,7 @@ export default function Forecasting() {
                     )}
                   </p>
                 </div>
-                <div className="p-3 rounded-lg bg-white/[0.02]">
+                <div className="p-3 rounded-lg bg-foreground/[0.02]">
                   <p className="text-[10px] text-muted-foreground uppercase tracking-wider">6-Month Avg</p>
                   <p className="text-sm font-medium mt-0.5">
                     {formatCurrency(
@@ -432,7 +432,7 @@ export default function Forecasting() {
           <div className="overflow-x-auto">
             <table className="w-full text-xs">
               <thead>
-                <tr className="border-b border-white/5">
+                <tr className="border-b border-foreground/5">
                   <th className="text-left py-2 pr-4 text-muted-foreground font-medium">Model</th>
                   <th className="text-right py-2 px-4 text-muted-foreground font-medium">Next Month</th>
                   <th className="text-right py-2 px-4 text-muted-foreground font-medium">3-Month</th>
@@ -451,7 +451,7 @@ export default function Forecasting() {
                   const trend = next - last;
 
                   return (
-                    <tr key={key} className="border-b border-white/[0.02]">
+                    <tr key={key} className="border-b border-foreground/[0.02]">
                       <td className="py-2.5 pr-4 font-medium">{MODEL_OPTIONS.find((m) => m.key === key)?.label || key}</td>
                       <td className={`py-2.5 px-4 text-right ${next >= 0 ? 'text-emerald-400' : 'text-rose-400'}`}>
                         {forecast.length > 0 ? formatCurrency(next, currency) : <span className="text-muted-foreground">—</span>}
@@ -507,21 +507,21 @@ export default function Forecasting() {
                 <div className="overflow-x-auto">
                   <table className="w-full text-xs">
                     <thead>
-                      <tr className="border-b border-white/5">
+                      <tr className="border-b border-foreground/5">
                         <th className="text-left py-2 pr-4 text-muted-foreground">Metric</th>
                         {compareData.map((s) => <th key={s.id} className="text-right py-2 px-4 text-muted-foreground">{s.name}</th>)}
                       </tr>
                     </thead>
                     <tbody>
                       {['projectedBalance', 'monthlyNetFlow', 'emergencyFundImpact', 'savingsRateChange'].map((key) => (
-                        <tr key={key} className="border-b border-white/[0.02]">
+                        <tr key={key} className="border-b border-foreground/[0.02]">
                           <td className="py-2 pr-4 font-medium capitalize">{key.replace(/([A-Z])/g, ' $1')}</td>
                           {compareData.map((s) => (
                             <td key={s.id} className="py-2 px-4 text-right">{formatCurrency((s.result[key] as number) || 0, currency)}</td>
                           ))}
                         </tr>
                       ))}
-                      <tr className="border-b border-white/[0.02]">
+                      <tr className="border-b border-foreground/[0.02]">
                         <td className="py-2 pr-4 font-medium">Goal Delays</td>
                         {compareData.map((s) => (
                           <td key={s.id} className="py-2 px-4 text-right">
@@ -567,7 +567,7 @@ export default function Forecasting() {
                             type="checkbox"
                             checked={compareIds.includes(s.id)}
                             onChange={(e) => setCompareIds(e.target.checked ? [...compareIds, s.id] : compareIds.filter((id) => id !== s.id))}
-                            className="rounded border-white/20"
+                            className="rounded border-foreground/20"
                           />
                           <button onClick={() => handleDeleteScenario(s.id)} className="text-red-400 hover:text-red-300 p-0.5"><X className="h-3 w-3" /></button>
                         </div>
@@ -604,11 +604,11 @@ export default function Forecasting() {
                 <CardContent className="space-y-4">
                   <div>
                     <label className="text-xs font-medium text-muted-foreground mb-1 block">Name</label>
-                    <input value={scenarioForm.name} onChange={(e) => setScenarioForm({ ...scenarioForm, name: e.target.value })} placeholder="e.g., Buy a house" className="w-full h-9 px-3 rounded-lg bg-white/5 border border-white/10 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/50" />
+                    <input value={scenarioForm.name} onChange={(e) => setScenarioForm({ ...scenarioForm, name: e.target.value })} placeholder="e.g., Buy a house" className="w-full h-9 px-3 rounded-lg bg-foreground/5 border border-foreground/10 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/50" />
                   </div>
                   <div>
                     <label className="text-xs font-medium text-muted-foreground mb-1 block">Type</label>
-                    <select value={scenarioForm.scenarioType} onChange={(e) => setScenarioForm({ ...scenarioForm, scenarioType: e.target.value })} className="w-full h-9 px-3 rounded-lg bg-white/5 border border-white/10 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/50">
+                    <select value={scenarioForm.scenarioType} onChange={(e) => setScenarioForm({ ...scenarioForm, scenarioType: e.target.value })} className="w-full h-9 px-3 rounded-lg bg-foreground/5 border border-foreground/10 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/50">
                       <option value="purchase">Purchase</option>
                       <option value="income_change">Income Change</option>
                       <option value="expense_change">Expense Change</option>
@@ -621,7 +621,7 @@ export default function Forecasting() {
                   </div>
                   <div>
                     <label className="text-xs font-medium text-muted-foreground mb-1 block">Parameters (JSON)</label>
-                    <textarea value={scenarioForm.input} onChange={(e) => setScenarioForm({ ...scenarioForm, input: e.target.value })} rows={3} placeholder='{"amount": 1200}' className="w-full px-3 rounded-lg bg-white/5 border border-white/10 text-sm font-mono focus:outline-none focus:ring-2 focus:ring-emerald-500/50" />
+                    <textarea value={scenarioForm.input} onChange={(e) => setScenarioForm({ ...scenarioForm, input: e.target.value })} rows={3} placeholder='{"amount": 1200}' className="w-full px-3 rounded-lg bg-foreground/5 border border-foreground/10 text-sm font-mono focus:outline-none focus:ring-2 focus:ring-emerald-500/50" />
                     <p className="text-[10px] text-muted-foreground mt-1">
                       {scenarioForm.scenarioType === 'home_purchase' && 'Use: {"downPayment": 50000, "monthlyMortgage": 1500}'}
                       {scenarioForm.scenarioType === 'rent_increase' && 'Use: {"increasePercent": 15}'}

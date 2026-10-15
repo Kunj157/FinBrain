@@ -56,7 +56,7 @@ export default function HomePage() {
   return (
     <div className="min-h-screen bg-background">
       {/* Navbar */}
-      <nav className="sticky top-0 z-50 border-b border-white/[0.04] bg-background/80 backdrop-blur-xl">
+      <nav className="sticky top-0 z-50 border-b border-foreground/[0.04] bg-background/80 backdrop-blur-xl">
         <div className="mx-auto flex h-16 max-w-6xl items-center justify-between px-6">
           <div className="flex items-center gap-3">
             <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-emerald-500/10 border border-emerald-500/20">
@@ -116,7 +116,7 @@ export default function HomePage() {
               </Button>
             </a>
             <a href="#features">
-              <Button variant="outline" size="lg" className="h-12 px-8 text-base border-white/[0.08] hover:bg-white/[0.03]">
+              <Button variant="outline" size="lg" className="h-12 px-8 text-base border-foreground/[0.08] hover:bg-foreground/[0.03]">
                 See Features
               </Button>
             </a>
@@ -128,8 +128,8 @@ export default function HomePage() {
 
       {/* Dashboard Mockup */}
       <section className="relative mx-auto max-w-6xl px-6 pb-20">
-        <div className="relative rounded-2xl border border-white/[0.06] bg-card/50 p-1 shadow-2xl shadow-emerald-500/5">
-          <div className="rounded-xl border border-white/[0.04] bg-background/80 p-6">
+        <div className="relative rounded-2xl border border-foreground/[0.06] bg-card/50 p-1 shadow-2xl shadow-emerald-500/5">
+          <div className="rounded-xl border border-foreground/[0.04] bg-background/80 p-6">
             <div className="flex items-center gap-2 mb-6">
               <div className="h-3 w-3 rounded-full bg-red-500/60" />
               <div className="h-3 w-3 rounded-full bg-yellow-500/60" />
@@ -143,14 +143,14 @@ export default function HomePage() {
                 { label: 'Expenses', value: '$5,891', change: '-3.1%' },
                 { label: 'Savings', value: '$2,349', change: '+22.7%' },
               ].map((item) => (
-                <div key={item.label} className="rounded-lg border border-white/[0.04] bg-white/[0.02] p-4">
+                <div key={item.label} className="rounded-lg border border-foreground/[0.04] bg-foreground/[0.02] p-4">
                   <p className="text-[10px] uppercase tracking-wider text-muted-foreground">{item.label}</p>
                   <p className="text-xl font-semibold mt-1">{item.value}</p>
                   <p className="text-xs text-emerald-400 mt-0.5">{item.change}</p>
                 </div>
               ))}
             </div>
-            <div className="mt-4 h-32 rounded-lg border border-white/[0.04] bg-white/[0.01] flex items-center justify-center">
+            <div className="mt-4 h-32 rounded-lg border border-foreground/[0.04] bg-foreground/[0.01] flex items-center justify-center">
               <div className="flex items-center gap-2 text-muted-foreground/30">
                 <BarChart3 className="h-5 w-5" />
                 <span className="text-xs">Income vs Expenses Chart</span>
@@ -161,7 +161,7 @@ export default function HomePage() {
       </section>
 
       {/* Stats */}
-      <section className="border-y border-white/[0.04] bg-white/[0.01]">
+      <section className="border-y border-foreground/[0.04] bg-foreground/[0.01]">
         <div className="mx-auto max-w-6xl px-6 py-16">
           <div className="grid grid-cols-2 md:grid-cols-4 gap-8">
             {stats.map((stat) => (
@@ -195,14 +195,14 @@ export default function HomePage() {
               }`}
             >
               <div className="flex-1 space-y-4">
-                <div className={`inline-flex h-12 w-12 items-center justify-center rounded-xl bg-gradient-to-br ${feature.gradient} border border-white/[0.06]`}>
+                <div className={`inline-flex h-12 w-12 items-center justify-center rounded-xl bg-gradient-to-br ${feature.gradient} border border-foreground/[0.06]`}>
                   <feature.icon className={`h-6 w-6 ${feature.iconColor}`} />
                 </div>
                 <h3 className="text-2xl font-semibold tracking-tight">{feature.title}</h3>
                 <p className="text-muted-foreground leading-relaxed">{feature.description}</p>
               </div>
               <div className="flex-1 w-full">
-                <div className="rounded-xl border border-white/[0.06] bg-card/50 p-6 h-48 flex items-center justify-center">
+                <div className="rounded-xl border border-foreground/[0.06] bg-card/50 p-6 h-48 flex items-center justify-center">
                   <div className="flex items-center gap-3 text-muted-foreground/30">
                     <feature.icon className="h-8 w-8" />
                     <span className="text-sm">{feature.title}</span>
@@ -215,7 +215,7 @@ export default function HomePage() {
       </section>
 
       {/* How It Works */}
-      <section id="how-it-works" className="border-t border-white/[0.04] bg-white/[0.01]">
+      <section id="how-it-works" className="border-t border-foreground/[0.04] bg-foreground/[0.01]">
         <div className="mx-auto max-w-6xl px-6 py-20 md:py-28">
           <div className="text-center mb-16">
             <h2 className="text-3xl md:text-4xl font-bold tracking-tight">
@@ -267,7 +267,7 @@ export default function HomePage() {
       </section>
 
       {/* Footer */}
-      <footer className="border-t border-white/[0.04]">
+      <footer className="border-t border-foreground/[0.04]">
         <div className="mx-auto max-w-6xl px-6 py-12">
           <div className="flex flex-col md:flex-row items-center justify-between gap-8">
             <div className="flex items-center gap-3">
@@ -296,7 +296,7 @@ export default function HomePage() {
             </div>
           </div>
 
-          <div className="mt-8 pt-8 border-t border-white/[0.04] flex flex-col md:flex-row items-center justify-between gap-4">
+          <div className="mt-8 pt-8 border-t border-foreground/[0.04] flex flex-col md:flex-row items-center justify-between gap-4">
             <p className="text-xs text-muted-foreground">© {new Date().getFullYear()} FinBrain. All rights reserved.</p>
             <div className="flex items-center gap-4 text-xs text-muted-foreground">
               <a href="#" className="hover:text-foreground transition-colors">Privacy Policy</a>

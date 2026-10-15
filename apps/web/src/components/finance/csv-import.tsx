@@ -110,7 +110,7 @@ export function CsvImport({ onComplete }: StatementImportProps) {
           className={`cursor-pointer rounded-xl border-2 border-dashed p-10 text-center transition-all ${
             dragOver
               ? 'border-emerald-500/50 bg-emerald-500/5'
-              : 'border-white/[0.08] hover:border-white/[0.15] bg-white/[0.02]'
+              : 'border-foreground/[0.08] hover:border-foreground/[0.15] bg-foreground/[0.02]'
           }`}
         >
           <input
@@ -178,7 +178,7 @@ export function CsvImport({ onComplete }: StatementImportProps) {
                       type="checkbox"
                       checked={skipDuplicates}
                       onChange={(e) => setSkipDuplicates(e.target.checked)}
-                      className="rounded border-white/[0.08] bg-white/[0.02]"
+                      className="rounded border-foreground/[0.08] bg-foreground/[0.02]"
                     />
                     Skip duplicates during import
                   </label>
@@ -190,7 +190,7 @@ export function CsvImport({ onComplete }: StatementImportProps) {
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
-                <tr className="border-b border-white/[0.06]">
+                <tr className="border-b border-foreground/[0.06]">
                   <th className="text-left py-2 px-3 text-muted-foreground font-medium">Date</th>
                   <th className="text-left py-2 px-3 text-muted-foreground font-medium">Merchant</th>
                   <th className="text-left py-2 px-3 text-muted-foreground font-medium">Description</th>
@@ -200,7 +200,7 @@ export function CsvImport({ onComplete }: StatementImportProps) {
               </thead>
               <tbody>
                 {(skipDuplicates ? filteredPreview! : preview!).map((row, i) => (
-                  <tr key={i} className="border-b border-white/[0.03]">
+                  <tr key={i} className="border-b border-foreground/[0.03]">
                     <td className="py-2 px-3">{row.date}</td>
                     <td className="py-2 px-3">{row.merchant || '-'}</td>
                     <td className="py-2 px-3 text-muted-foreground">{row.description}</td>
@@ -211,7 +211,7 @@ export function CsvImport({ onComplete }: StatementImportProps) {
                     </td>
                     <td className="py-2 px-3">
                       <span className={`rounded-full px-2 py-0.5 text-xs ${
-                        row.categoryId ? 'bg-emerald-500/10 text-emerald-400' : 'bg-white/[0.04] text-muted-foreground'
+                        row.categoryId ? 'bg-emerald-500/10 text-emerald-400' : 'bg-foreground/[0.04] text-muted-foreground'
                       }`}>
                         {row.category}{row.categoryId ? ' ✓' : ''}
                       </span>
@@ -222,7 +222,7 @@ export function CsvImport({ onComplete }: StatementImportProps) {
             </table>
           </div>
 
-          <div className="flex items-center justify-between mt-4 pt-4 border-t border-white/[0.06]">
+          <div className="flex items-center justify-between mt-4 pt-4 border-t border-foreground/[0.06]">
             <p className="text-xs text-muted-foreground">
               {skipDuplicates && duplicates.size > 0 && filteredPreview && preview
                 ? `Importing ${filteredPreview.length} of ${preview.length} transactions (${duplicates.size} skipped)`

@@ -160,7 +160,7 @@ export default function SettingsPage() {
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
-          <div className="flex items-center gap-3 pb-4 border-b border-white/[0.04]">
+          <div className="flex items-center gap-3 pb-4 border-b border-foreground/[0.04]">
             <div className="flex h-12 w-12 items-center justify-center rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-lg font-semibold">
               {user?.name?.charAt(0) || '?'}
             </div>
@@ -234,14 +234,14 @@ export default function SettingsPage() {
         </CardHeader>
         <CardContent className="space-y-3">
           {NOTIF_TYPES.map((nt) => (
-            <div key={nt.key} className="flex items-center justify-between p-3 rounded-lg bg-white/[0.02] border border-white/[0.06]">
+            <div key={nt.key} className="flex items-center justify-between p-3 rounded-lg bg-foreground/[0.02] border border-foreground/[0.06]">
               <div>
                 <p className="text-sm font-medium">{nt.label}</p>
                 <p className="text-xs text-muted-foreground">{nt.desc}</p>
               </div>
               <button
                 onClick={() => updateNotifPref(nt.key, !notifPrefs[nt.key])}
-                className={`relative w-10 h-5 rounded-full transition-colors ${notifPrefs[nt.key] ? 'bg-emerald-500' : 'bg-gray-600'}`}
+                className={`relative w-10 h-5 rounded-full transition-colors ${notifPrefs[nt.key] ? 'bg-emerald-500' : 'bg-muted-foreground'}`}
               >
                 <span
                   className={`absolute top-0.5 left-0.5 w-4 h-4 rounded-full bg-white transition-transform ${notifPrefs[nt.key] ? 'translate-x-5' : ''}`}
@@ -278,7 +278,7 @@ export default function SettingsPage() {
             const Icon = dt.icon;
             const isExporting = exportingKey === dt.key;
             return (
-              <div key={dt.key} className="flex items-center justify-between p-3 rounded-lg bg-white/[0.02] border border-white/[0.06]">
+              <div key={dt.key} className="flex items-center justify-between p-3 rounded-lg bg-foreground/[0.02] border border-foreground/[0.06]">
                 <div className="flex items-center gap-3">
                   <Icon className="h-4 w-4 text-muted-foreground" />
                   <span className="text-sm">{dt.label}</span>
@@ -328,9 +328,9 @@ export default function SettingsPage() {
               type="email"
               placeholder="your@email.com"
               defaultValue={user?.email || ''}
-              className="flex-1 h-10 px-3 rounded-lg bg-white/[0.03] border border-white/[0.06] text-sm text-foreground placeholder:text-muted-foreground/50 focus:outline-none focus:ring-2 focus:ring-emerald-500/20"
+              className="flex-1 h-10 px-3 rounded-lg bg-foreground/[0.03] border border-foreground/[0.06] text-sm text-foreground placeholder:text-muted-foreground/50 focus:outline-none focus:ring-2 focus:ring-emerald-500/20"
             />
-            <select className="h-10 px-3 rounded-lg bg-white/[0.03] border border-white/[0.06] text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-emerald-500/20">
+            <select className="h-10 px-3 rounded-lg bg-foreground/[0.03] border border-foreground/[0.06] text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-emerald-500/20">
               <option value="monthly">Monthly</option>
               <option value="quarterly">Quarterly</option>
               <option value="annual">Annual</option>
@@ -402,7 +402,7 @@ export default function SettingsPage() {
               value={confirmEmail}
               onChange={(e) => setConfirmEmail(e.target.value)}
               placeholder="your@email.com"
-              className="w-full h-10 px-3 rounded-lg bg-white/[0.03] border border-white/[0.06] text-sm text-foreground placeholder:text-muted-foreground/50 focus:outline-none focus:ring-2 focus:ring-red-500/20 focus:border-red-500/30 transition-all"
+              className="w-full h-10 px-3 rounded-lg bg-foreground/[0.03] border border-foreground/[0.06] text-sm text-foreground placeholder:text-muted-foreground/50 focus:outline-none focus:ring-2 focus:ring-red-500/20 focus:border-red-500/30 transition-all"
             />
           </div>
           {deleteError && (

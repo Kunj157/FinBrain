@@ -60,7 +60,7 @@ const ASSET_TYPE_COLORS: Record<string, string> = {
   bond: 'bg-amber-500',
   mutual_fund: 'bg-purple-500',
   crypto: 'bg-rose-500',
-  other: 'bg-gray-500',
+  other: 'bg-muted-foreground',
 };
 
 export default function Investments() {
@@ -236,7 +236,7 @@ export default function Investments() {
                     {summary.allocation.map((a) => (
                       <div
                         key={a.type}
-                        className={`h-2 rounded-full ${ASSET_TYPE_COLORS[a.type] || 'bg-gray-500'}`}
+                        className={`h-2 rounded-full ${ASSET_TYPE_COLORS[a.type] || 'bg-muted-foreground'}`}
                         style={{ width: `${Math.max(a.percentage, 4)}%` }}
                         title={`${a.type}: ${a.percentage}%`}
                       />
@@ -245,7 +245,7 @@ export default function Investments() {
                   <div className="flex flex-wrap gap-2 mt-2">
                     {summary.allocation.map((a) => (
                       <span key={a.type} className="text-[10px] text-muted-foreground flex items-center gap-1">
-                        <span className={`w-1.5 h-1.5 rounded-full ${ASSET_TYPE_COLORS[a.type] || 'bg-gray-500'}`} />
+                        <span className={`w-1.5 h-1.5 rounded-full ${ASSET_TYPE_COLORS[a.type] || 'bg-muted-foreground'}`} />
                         {a.type} {a.percentage}%
                       </span>
                     ))}
@@ -290,9 +290,9 @@ export default function Investments() {
                   const glPct = cost > 0 ? (gl / cost) * 100 : 0;
 
                   return (
-                    <div key={h.id} className="flex items-center justify-between rounded-lg p-3 hover:bg-white/[0.02] transition-colors">
+                    <div key={h.id} className="flex items-center justify-between rounded-lg p-3 hover:bg-foreground/[0.02] transition-colors">
                       <div className="flex items-center gap-3">
-                        <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-white/[0.04]">
+                        <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-foreground/[0.04]">
                           <span className="text-xs font-bold">{h.symbol.slice(0, 3)}</span>
                         </div>
                         <div>
@@ -375,7 +375,7 @@ export default function Investments() {
             <CardHeader className="pb-2"><CardTitle className="text-sm font-medium flex items-center gap-2"><TrendingUp className="h-4 w-4 text-emerald-400" /> Top Gainers</CardTitle></CardHeader>
             <CardContent>
               {topMovers.gainers.map((g) => (
-                <div key={g.symbol} className="flex items-center justify-between py-2 border-b border-white/[0.02] last:border-0">
+                <div key={g.symbol} className="flex items-center justify-between py-2 border-b border-foreground/[0.02] last:border-0">
                   <div>
                     <p className="text-sm font-medium">{g.symbol}</p>
                     <p className="text-xs text-muted-foreground">{g.name}</p>
@@ -392,7 +392,7 @@ export default function Investments() {
             <CardHeader className="pb-2"><CardTitle className="text-sm font-medium flex items-center gap-2"><TrendingDown className="h-4 w-4 text-rose-400" /> Top Losers</CardTitle></CardHeader>
             <CardContent>
               {topMovers.losers.map((l) => (
-                <div key={l.symbol} className="flex items-center justify-between py-2 border-b border-white/[0.02] last:border-0">
+                <div key={l.symbol} className="flex items-center justify-between py-2 border-b border-foreground/[0.02] last:border-0">
                   <div>
                     <p className="text-sm font-medium">{l.symbol}</p>
                     <p className="text-xs text-muted-foreground">{l.name}</p>
@@ -411,9 +411,9 @@ export default function Investments() {
       {showNewPortfolio && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm" onClick={() => setShowNewPortfolio(false)}>
           <div className="w-full max-w-md mx-4 glass rounded-xl" onClick={(e) => e.stopPropagation()}>
-            <div className="flex items-center justify-between p-5 border-b border-white/[0.06]">
+            <div className="flex items-center justify-between p-5 border-b border-foreground/[0.06]">
               <h2 className="text-lg font-semibold">New Portfolio</h2>
-              <button onClick={() => setShowNewPortfolio(false)} className="p-1.5 rounded-lg hover:bg-white/[0.04]">
+              <button onClick={() => setShowNewPortfolio(false)} className="p-1.5 rounded-lg hover:bg-foreground/[0.04]">
                 <X className="h-5 w-5" />
               </button>
             </div>
@@ -425,7 +425,7 @@ export default function Investments() {
                   value={newPortfolioName}
                   onChange={(e) => setNewPortfolioName(e.target.value)}
                   placeholder="e.g., My Investments"
-                  className="w-full h-10 px-3 rounded-lg bg-white/[0.03] border border-white/[0.06] text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/20"
+                  className="w-full h-10 px-3 rounded-lg bg-foreground/[0.03] border border-foreground/[0.06] text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/20"
                   autoFocus
                 />
               </div>
@@ -441,9 +441,9 @@ export default function Investments() {
       {showAddHolding && selectedPortfolio && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm" onClick={() => setShowAddHolding(false)}>
           <div className="w-full max-w-md mx-4 glass rounded-xl" onClick={(e) => e.stopPropagation()}>
-            <div className="flex items-center justify-between p-5 border-b border-white/[0.06]">
+            <div className="flex items-center justify-between p-5 border-b border-foreground/[0.06]">
               <h2 className="text-lg font-semibold">Add Holding</h2>
-              <button onClick={() => setShowAddHolding(false)} className="p-1.5 rounded-lg hover:bg-white/[0.04]">
+              <button onClick={() => setShowAddHolding(false)} className="p-1.5 rounded-lg hover:bg-foreground/[0.04]">
                 <X className="h-5 w-5" />
               </button>
             </div>
@@ -456,7 +456,7 @@ export default function Investments() {
                     value={newHolding.symbol}
                     onChange={(e) => setNewHolding({ ...newHolding, symbol: e.target.value.toUpperCase() })}
                     placeholder="AAPL"
-                    className="w-full h-10 px-3 rounded-lg bg-white/[0.03] border border-white/[0.06] text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/20"
+                    className="w-full h-10 px-3 rounded-lg bg-foreground/[0.03] border border-foreground/[0.06] text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/20"
                   />
                 </div>
                 <div>
@@ -466,7 +466,7 @@ export default function Investments() {
                     value={newHolding.name}
                     onChange={(e) => setNewHolding({ ...newHolding, name: e.target.value })}
                     placeholder="Apple Inc."
-                    className="w-full h-10 px-3 rounded-lg bg-white/[0.03] border border-white/[0.06] text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/20"
+                    className="w-full h-10 px-3 rounded-lg bg-foreground/[0.03] border border-foreground/[0.06] text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/20"
                   />
                 </div>
               </div>
@@ -478,7 +478,7 @@ export default function Investments() {
                     value={newHolding.quantity}
                     onChange={(e) => setNewHolding({ ...newHolding, quantity: e.target.value })}
                     placeholder="10"
-                    className="w-full h-10 px-3 rounded-lg bg-white/[0.03] border border-white/[0.06] text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/20"
+                    className="w-full h-10 px-3 rounded-lg bg-foreground/[0.03] border border-foreground/[0.06] text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/20"
                   />
                 </div>
                 <div>
@@ -488,7 +488,7 @@ export default function Investments() {
                     value={newHolding.avgCostBasis}
                     onChange={(e) => setNewHolding({ ...newHolding, avgCostBasis: e.target.value })}
                     placeholder="150.00"
-                    className="w-full h-10 px-3 rounded-lg bg-white/[0.03] border border-white/[0.06] text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/20"
+                    className="w-full h-10 px-3 rounded-lg bg-foreground/[0.03] border border-foreground/[0.06] text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/20"
                   />
                 </div>
                 <div>
@@ -498,7 +498,7 @@ export default function Investments() {
                     value={newHolding.currentPrice}
                     onChange={(e) => setNewHolding({ ...newHolding, currentPrice: e.target.value })}
                     placeholder="175.00"
-                    className="w-full h-10 px-3 rounded-lg bg-white/[0.03] border border-white/[0.06] text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/20"
+                    className="w-full h-10 px-3 rounded-lg bg-foreground/[0.03] border border-foreground/[0.06] text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/20"
                   />
                 </div>
               </div>
@@ -507,7 +507,7 @@ export default function Investments() {
                 <select
                   value={newHolding.assetType}
                   onChange={(e) => setNewHolding({ ...newHolding, assetType: e.target.value })}
-                  className="w-full h-10 px-3 rounded-lg bg-white/[0.03] border border-white/[0.06] text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/20"
+                  className="w-full h-10 px-3 rounded-lg bg-foreground/[0.03] border border-foreground/[0.06] text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/20"
                 >
                   <option value="stock">Stock</option>
                   <option value="etf">ETF</option>

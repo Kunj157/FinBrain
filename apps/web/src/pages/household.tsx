@@ -142,7 +142,7 @@ export default function HouseholdPage() {
           <Users className="h-7 w-7 text-emerald-400" />
           <h1 className="text-2xl font-bold text-white">Household</h1>
         </div>
-        <p className="text-gray-400">Share budgets, goals, and financial tracking with a partner.</p>
+        <p className="text-muted-foreground">Share budgets, goals, and financial tracking with a partner.</p>
 
         {msg && (
           <div className={`p-3 rounded-lg text-sm ${msg.type === 'success' ? 'bg-emerald-500/10 text-emerald-400' : 'bg-rose-500/10 text-rose-400'}`}>
@@ -150,15 +150,15 @@ export default function HouseholdPage() {
           </div>
         )}
 
-        <Card className="p-6 space-y-6 bg-gray-900/60 border-gray-800">
+        <Card className="p-6 space-y-6 bg-muted/60 border-border">
           <h2 className="text-lg font-semibold text-white">Create a Household</h2>
-          <p className="text-sm text-gray-400">You'll be the owner and can invite one partner to join.</p>
+          <p className="text-sm text-muted-foreground">You'll be the owner and can invite one partner to join.</p>
           <div className="flex gap-3">
             <Input
               value={newName}
               onChange={(e) => setNewName(e.target.value)}
               placeholder="e.g. Our Household"
-              className="bg-gray-800 border-gray-700 text-white"
+              className="bg-muted border-border-strong text-white"
             />
             <Button onClick={createHousehold} disabled={creating || !newName.trim()}>
               {creating ? <Loader2 className="h-4 w-4 animate-spin" /> : <Users className="h-4 w-4" />}
@@ -167,15 +167,15 @@ export default function HouseholdPage() {
           </div>
         </Card>
 
-        <Card className="p-6 space-y-6 bg-gray-900/60 border-gray-800">
+        <Card className="p-6 space-y-6 bg-muted/60 border-border">
           <h2 className="text-lg font-semibold text-white">Join a Household</h2>
-          <p className="text-sm text-gray-400">Enter the invite token shared by the household owner.</p>
+          <p className="text-sm text-muted-foreground">Enter the invite token shared by the household owner.</p>
           <div className="flex gap-3">
             <Input
               value={joinToken}
               onChange={(e) => setJoinToken(e.target.value)}
               placeholder="Paste invite token"
-              className="bg-gray-800 border-gray-700 text-white"
+              className="bg-muted border-border-strong text-white"
             />
             <Button onClick={joinHousehold} disabled={joining || !joinToken.trim()}>
               {joining ? <Loader2 className="h-4 w-4 animate-spin" /> : <UserPlus className="h-4 w-4" />}
@@ -196,7 +196,7 @@ export default function HouseholdPage() {
           <Users className="h-7 w-7 text-emerald-400" />
           <div>
             <h1 className="text-2xl font-bold text-white">{household.name}</h1>
-            <p className="text-sm text-gray-400">
+            <p className="text-sm text-muted-foreground">
               {household.members.length} member{household.members.length !== 1 ? 's' : ''}
             </p>
           </div>
@@ -213,22 +213,22 @@ export default function HouseholdPage() {
         </div>
       )}
 
-      <Card className="p-6 bg-gray-900/60 border-gray-800">
+      <Card className="p-6 bg-muted/60 border-border">
         <h2 className="text-lg font-semibold text-white mb-4">Members</h2>
         <div className="space-y-3">
           {household.members.map((m) => (
-            <div key={m.id} className="flex items-center justify-between p-3 bg-gray-800/50 rounded-lg">
+            <div key={m.id} className="flex items-center justify-between p-3 bg-muted/50 rounded-lg">
               <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-full bg-gray-700 flex items-center justify-center">
+                <div className="w-10 h-10 rounded-full bg-border-strong flex items-center justify-center">
                   {m.user.avatarUrl ? (
                     <img src={m.user.avatarUrl} alt="" className="w-10 h-10 rounded-full" />
                   ) : (
-                    <User className="h-5 w-5 text-gray-400" />
+                    <User className="h-5 w-5 text-muted-foreground" />
                   )}
                 </div>
                 <div>
                   <p className="text-white font-medium">{m.user.name}</p>
-                  <p className="text-xs text-gray-400">{m.user.email}</p>
+                  <p className="text-xs text-muted-foreground">{m.user.email}</p>
                 </div>
               </div>
               <div className="flex items-center gap-2">
@@ -249,20 +249,20 @@ export default function HouseholdPage() {
       </Card>
 
       {isOwner && (
-        <Card className="p-6 bg-gray-900/60 border-gray-800">
+        <Card className="p-6 bg-muted/60 border-border">
           <h2 className="text-lg font-semibold text-white mb-4">Invite Partner</h2>
-          <p className="text-sm text-gray-400 mb-4">
+          <p className="text-sm text-muted-foreground mb-4">
             Your household supports 2 members. Send an invite to your partner.
           </p>
           {inviteToken ? (
             <div className="space-y-3">
-              <div className="flex items-center gap-2 p-3 bg-gray-800 rounded-lg">
+              <div className="flex items-center gap-2 p-3 bg-muted rounded-lg">
                 <code className="flex-1 text-sm text-emerald-400 break-all">{inviteToken}</code>
                 <Button variant="ghost" size="sm" onClick={copyToken}>
-                  {copied ? <Check className="h-4 w-4 text-emerald-400" /> : <Copy className="h-4 w-4 text-gray-400" />}
+                  {copied ? <Check className="h-4 w-4 text-emerald-400" /> : <Copy className="h-4 w-4 text-muted-foreground" />}
                 </Button>
               </div>
-              <p className="text-xs text-gray-500">
+              <p className="text-xs text-muted-foreground">
                 Share this token with your partner. It expires in 7 days.
               </p>
               <Button variant="outline" size="sm" onClick={() => { setInviteToken(''); setCopied(false); }}>
@@ -275,7 +275,7 @@ export default function HouseholdPage() {
                 value={inviteEmail}
                 onChange={(e) => setInviteEmail(e.target.value)}
                 placeholder="Partner's email address"
-                className="bg-gray-800 border-gray-700 text-white"
+                className="bg-muted border-border-strong text-white"
               />
               <Button onClick={inviteMember} disabled={inviting || !inviteEmail.trim()}>
                 {inviting ? <Loader2 className="h-4 w-4 animate-spin" /> : <UserPlus className="h-4 w-4" />}

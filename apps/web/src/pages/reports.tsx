@@ -351,7 +351,7 @@ export default function Reports() {
       </div>
 
       <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
-        <div className="flex gap-1 p-1 rounded-lg bg-white/5">
+        <div className="flex gap-1 p-1 rounded-lg bg-foreground/5">
           {REPORT_TYPES.map((rt) => (
             <Button
               key={rt.value}
@@ -479,7 +479,7 @@ export default function Reports() {
                       <span className="text-[10px] text-muted-foreground w-8 text-right">{cat.percentage.toFixed(0)}%</span>
                     </div>
                   </div>
-                  <div className="h-1.5 bg-white/5 rounded-full overflow-hidden">
+                  <div className="h-1.5 bg-foreground/5 rounded-full overflow-hidden">
                     <div className="h-full rounded-full transition-all" style={{ width: `${cat.percentage}%`, backgroundColor: cat.color }} />
                   </div>
                 </div>
@@ -496,7 +496,7 @@ export default function Reports() {
               {report.topMerchants.length === 0 ? (
                 <p className="text-xs text-muted-foreground text-center py-8">No merchant data this period</p>
               ) : report.topMerchants.map((m, i) => (
-                <div key={m.name} className="flex items-center gap-3 p-2.5 rounded-lg bg-white/[0.02]">
+                <div key={m.name} className="flex items-center gap-3 p-2.5 rounded-lg bg-foreground/[0.02]">
                   <span className="text-xs text-muted-foreground font-mono w-5">{i + 1}</span>
                   <div className="flex-1 min-w-0">
                     <p className="text-xs font-medium truncate">{m.name}</p>
@@ -538,19 +538,19 @@ export default function Reports() {
         </CardHeader>
         <CardContent>
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-            <div className="p-3 rounded-lg bg-white/[0.02]">
+            <div className="p-3 rounded-lg bg-foreground/[0.02]">
               <p className="text-[10px] text-muted-foreground uppercase tracking-wider">Period</p>
               <p className="text-sm font-medium mt-0.5">
                 {start.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })} – {end.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
               </p>
             </div>
-            <div className="p-3 rounded-lg bg-white/[0.02]">
+            <div className="p-3 rounded-lg bg-foreground/[0.02]">
               <p className="text-[10px] text-muted-foreground uppercase tracking-wider">Savings Rate</p>
               <p className={`text-sm font-medium mt-0.5 ${report.savingsRate >= 20 ? 'text-emerald-400' : report.savingsRate >= 0 ? 'text-amber-400' : 'text-rose-400'}`}>
                 {report.savingsRate.toFixed(1)}%
               </p>
             </div>
-            <div className="p-3 rounded-lg bg-white/[0.02]">
+            <div className="p-3 rounded-lg bg-foreground/[0.02]">
               <p className="text-[10px] text-muted-foreground uppercase tracking-wider">Avg Transaction</p>
               <p className="text-sm font-medium mt-0.5">
                 {periodTransactions.length > 0
@@ -558,7 +558,7 @@ export default function Reports() {
                   : formatCurrency(0, currency)}
               </p>
             </div>
-            <div className="p-3 rounded-lg bg-white/[0.02]">
+            <div className="p-3 rounded-lg bg-foreground/[0.02]">
               <p className="text-[10px] text-muted-foreground uppercase tracking-wider">Categories Used</p>
               <p className="text-sm font-medium mt-0.5">{report.categoryBreakdown.length}</p>
             </div>
@@ -607,7 +607,7 @@ export default function Reports() {
             return (
               <div className="space-y-3">
                 <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-3">
-                  <div className="p-2.5 rounded-lg bg-white/[0.02]">
+                  <div className="p-2.5 rounded-lg bg-foreground/[0.02]">
                     <p className="text-[10px] text-muted-foreground">Total Expenses</p>
                     <p className="text-sm font-medium">{formatCurrency(totalExpenses, currency)}</p>
                   </div>
@@ -615,11 +615,11 @@ export default function Reports() {
                     <p className="text-[10px] text-muted-foreground">Deductible</p>
                     <p className="text-sm font-medium text-emerald-400">{formatCurrency(totalDeductible, currency)}</p>
                   </div>
-                  <div className="p-2.5 rounded-lg bg-white/[0.02]">
+                  <div className="p-2.5 rounded-lg bg-foreground/[0.02]">
                     <p className="text-[10px] text-muted-foreground">Transactions</p>
                     <p className="text-sm font-medium">{taxTxns.length}</p>
                   </div>
-                  <div className="p-2.5 rounded-lg bg-white/[0.02]">
+                  <div className="p-2.5 rounded-lg bg-foreground/[0.02]">
                     <p className="text-[10px] text-muted-foreground">Categories</p>
                     <p className="text-sm font-medium">{byCategory.length}</p>
                   </div>
@@ -628,10 +628,10 @@ export default function Reports() {
                   Mark categories as tax deductible by clicking the checkbox:
                 </p>
                 {byCategory.map((c) => (
-                  <div key={c.id} className="flex items-center justify-between p-2 rounded-lg bg-white/[0.02] hover:bg-white/[0.04] transition-colors">
+                  <div key={c.id} className="flex items-center justify-between p-2 rounded-lg bg-foreground/[0.02] hover:bg-foreground/[0.04] transition-colors">
                     <div className="flex items-center gap-2">
                       <button onClick={() => toggleDeductible(c.id)} className="flex-shrink-0">
-                        <div className={`w-4 h-4 rounded border ${c.deductible ? 'bg-emerald-500 border-emerald-500' : 'border-gray-600'} flex items-center justify-center`}>
+                        <div className={`w-4 h-4 rounded border ${c.deductible ? 'bg-emerald-500 border-emerald-500' : 'border-border-strong'} flex items-center justify-center`}>
                           {c.deductible && (
                             <svg className="w-3 h-3 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />

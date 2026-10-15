@@ -123,7 +123,7 @@ export function SearchModal({ open, onClose }: { open: boolean; onClose: () => v
         onClick={(e) => e.stopPropagation()}
         onKeyDown={handleKeyDown}
       >
-        <div className="flex items-center gap-3 px-4 py-3 border-b border-white/[0.06]">
+        <div className="flex items-center gap-3 px-4 py-3 border-b border-foreground/[0.06]">
           <Search className="h-4 w-4 text-muted-foreground flex-shrink-0" />
           <input
             ref={inputRef}
@@ -134,7 +134,7 @@ export function SearchModal({ open, onClose }: { open: boolean; onClose: () => v
             className="flex-1 bg-transparent text-sm outline-none placeholder:text-muted-foreground/50"
           />
           {loading && <Loader2 className="h-4 w-4 text-muted-foreground animate-spin" />}
-          <button onClick={onClose} className="p-1 rounded hover:bg-white/[0.06] text-muted-foreground">
+          <button onClick={onClose} className="p-1 rounded hover:bg-foreground/[0.06] text-muted-foreground">
             <X className="h-4 w-4" />
           </button>
         </div>
@@ -169,7 +169,7 @@ export function SearchModal({ open, onClose }: { open: boolean; onClose: () => v
                         data-index={idx}
                         onClick={() => { navigate(item.navigateTo); onClose(); }}
                         className={`w-full px-4 py-2.5 flex items-center gap-3 text-left transition-colors ${
-                          idx === selectedIndex ? 'bg-white/[0.06]' : 'hover:bg-white/[0.03]'
+                          idx === selectedIndex ? 'bg-foreground/[0.06]' : 'hover:bg-foreground/[0.03]'
                         }`}
                       >
                         {item.color ? (

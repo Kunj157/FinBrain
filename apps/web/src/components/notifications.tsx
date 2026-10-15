@@ -89,7 +89,7 @@ export function NotificationBell() {
     <div className="relative" ref={dropdownRef}>
       <button
         onClick={() => setIsOpen(!isOpen)}
-        className="relative p-2 rounded-lg hover:bg-white/[0.04] transition-colors"
+        className="relative p-2 rounded-lg hover:bg-foreground/[0.04] transition-colors"
       >
         <Bell className="h-5 w-5 text-muted-foreground" />
         {unreadCount > 0 && (
@@ -100,8 +100,8 @@ export function NotificationBell() {
       </button>
 
       {isOpen && (
-        <div className="absolute right-0 top-full mt-2 w-80 glass rounded-xl border border-white/[0.06] shadow-xl z-50">
-          <div className="flex items-center justify-between p-3 border-b border-white/[0.04]">
+        <div className="absolute right-0 top-full mt-2 w-80 glass rounded-xl border border-foreground/[0.06] shadow-xl z-50">
+          <div className="flex items-center justify-between p-3 border-b border-foreground/[0.04]">
             <h3 className="text-sm font-medium">Notifications</h3>
             {unreadCount > 0 && (
               <Button
@@ -127,7 +127,7 @@ export function NotificationBell() {
               notifications.map((n) => (
                 <div
                   key={n.id}
-                  className={`flex gap-3 p-3 border-b border-white/[0.02] hover:bg-white/[0.02] transition-colors ${
+                  className={`flex gap-3 p-3 border-b border-foreground/[0.02] hover:bg-foreground/[0.02] transition-colors ${
                     !n.read ? 'bg-emerald-500/[0.02]' : ''
                   }`}
                 >
@@ -148,7 +148,7 @@ export function NotificationBell() {
                     {!n.read && (
                       <button
                         onClick={() => handleMarkRead(n.id)}
-                        className="p-1 rounded hover:bg-white/[0.04] text-muted-foreground hover:text-emerald-400 transition-colors"
+                        className="p-1 rounded hover:bg-foreground/[0.04] text-muted-foreground hover:text-emerald-400 transition-colors"
                         title="Mark as read"
                       >
                         <Check className="h-3 w-3" />
@@ -156,7 +156,7 @@ export function NotificationBell() {
                     )}
                     <button
                       onClick={() => handleDelete(n.id)}
-                      className="p-1 rounded hover:bg-white/[0.04] text-muted-foreground hover:text-rose-400 transition-colors"
+                      className="p-1 rounded hover:bg-foreground/[0.04] text-muted-foreground hover:text-rose-400 transition-colors"
                       title="Delete"
                     >
                       <Trash2 className="h-3 w-3" />

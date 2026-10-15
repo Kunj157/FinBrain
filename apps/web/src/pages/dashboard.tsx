@@ -168,8 +168,8 @@ export default function Dashboard() {
           <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
             {[{ label: 'Create Budget', icon: PiggyBank, variant: 'warning' as const }, { label: 'Add Goal', icon: Target, variant: 'default' as const }].map((action) => (
               <button key={action.label} onClick={() => { if (action.label === 'Create Budget') navigate('/budgets'); else if (action.label === 'Add Goal') navigate('/goals'); }}
-                className="flex items-center gap-3 rounded-xl border border-white/[0.06] bg-white/[0.02] p-4 hover:bg-white/[0.04] hover:border-white/[0.1] transition-all duration-200 group cursor-pointer">
-                <div className={`flex h-10 w-10 items-center justify-center rounded-lg ${action.variant === 'warning' ? 'bg-amber-500/10 text-amber-400' : 'bg-white/[0.04] text-foreground'}`}>
+                className="flex items-center gap-3 rounded-xl border border-foreground/[0.06] bg-foreground/[0.02] p-4 hover:bg-foreground/[0.04] hover:border-foreground/[0.1] transition-all duration-200 group cursor-pointer">
+                <div className={`flex h-10 w-10 items-center justify-center rounded-lg ${action.variant === 'warning' ? 'bg-amber-500/10 text-amber-400' : 'bg-foreground/[0.04] text-foreground'}`}>
                   <action.icon className="h-5 w-5" />
                 </div>
                 <span className="text-sm font-medium">{action.label}</span>
@@ -208,7 +208,7 @@ export default function Dashboard() {
               ) : (
                 <div className="space-y-1 max-h-[320px] overflow-y-auto pr-1">
                   {allTransactions.slice(0, 5).map((tx) => (
-                    <div key={tx.id} className="flex items-center justify-between rounded-lg p-3 hover:bg-white/[0.02] transition-colors cursor-pointer">
+                    <div key={tx.id} className="flex items-center justify-between rounded-lg p-3 hover:bg-foreground/[0.02] transition-colors cursor-pointer">
                       <div className="flex items-center gap-3">
                         <div className={`flex h-9 w-9 items-center justify-center rounded-lg ${tx.type === 'income' ? 'bg-emerald-500/10' : 'bg-rose-500/10'}`}>
                           <ArrowRightLeft className={`h-4 w-4 ${tx.type === 'income' ? 'text-emerald-400' : 'text-rose-400'}`} />
@@ -290,7 +290,7 @@ export default function Dashboard() {
               )}
               <div className="flex gap-2">
                 <input type="text" value={chatInput} onChange={(e) => setChatInput(e.target.value)} onKeyDown={handleChatKeyDown}
-                  placeholder="Ask anything..." className="flex-1 h-10 px-3 rounded-lg bg-white/[0.03] border border-white/[0.06] text-sm text-foreground placeholder:text-muted-foreground/50 focus:outline-none focus:ring-2 focus:ring-emerald-500/20" disabled={isChatLoading} />
+                  placeholder="Ask anything..." className="flex-1 h-10 px-3 rounded-lg bg-foreground/[0.03] border border-foreground/[0.06] text-sm text-foreground placeholder:text-muted-foreground/50 focus:outline-none focus:ring-2 focus:ring-emerald-500/20" disabled={isChatLoading} />
                 <Button size="sm" onClick={handleChatSend} disabled={!chatInput.trim() || isChatLoading}>
                   {isChatLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
                 </Button>
@@ -320,7 +320,7 @@ export default function Dashboard() {
         <div className="space-y-3 max-w-xs mx-auto">
           <PlaidLinkButton userId={user?.id || 'anon'} onSuccess={fetchData} />
           <button onClick={() => setOnboardingAction('import-csv')}
-            className="w-full flex items-center justify-center gap-3 rounded-xl border border-white/[0.08] bg-white/[0.02] hover:bg-white/[0.04] hover:border-white/[0.12] px-6 py-3 text-sm font-medium text-muted-foreground transition-all duration-200">
+            className="w-full flex items-center justify-center gap-3 rounded-xl border border-foreground/[0.08] bg-foreground/[0.02] hover:bg-foreground/[0.04] hover:border-foreground/[0.12] px-6 py-3 text-sm font-medium text-muted-foreground transition-all duration-200">
             <Upload className="h-4 w-4" />Upload a statement instead
           </button>
         </div>
@@ -371,9 +371,9 @@ export default function Dashboard() {
       {onboardingAction === 'import-csv' && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm" onClick={() => setOnboardingAction(null)}>
           <div className="w-full max-w-lg mx-4 glass rounded-2xl max-h-[90vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
-            <div className="flex items-center justify-between p-6 border-b border-white/[0.06]">
+            <div className="flex items-center justify-between p-6 border-b border-foreground/[0.06]">
               <div><h2 className="text-lg font-semibold">Upload Statement</h2><p className="text-xs text-muted-foreground mt-1">Import a CSV or PDF bank statement</p></div>
-              <button onClick={() => setOnboardingAction(null)} className="p-2 rounded-lg hover:bg-white/[0.04] transition-colors"><X className="h-5 w-5 text-muted-foreground" /></button>
+              <button onClick={() => setOnboardingAction(null)} className="p-2 rounded-lg hover:bg-foreground/[0.04] transition-colors"><X className="h-5 w-5 text-muted-foreground" /></button>
             </div>
             <div className="p-6"><CsvImport onComplete={() => { setOnboardingAction(null); fetchData(); }} /></div>
           </div>
