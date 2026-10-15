@@ -20,13 +20,13 @@ export function ScenarioImpactChart({ result }: { result: ScenarioResult }) {
       <div className="space-y-2">
         <div className="flex items-center justify-between text-sm">
           <span className="text-muted-foreground">12-Month Projected Balance</span>
-          <span className={`font-medium ${result.projectedBalance >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>
+          <span className={`font-medium ${result.projectedBalance >= 0 ? 'text-positive' : 'text-negative'}`}>
             {formatCurrency(result.projectedBalance)}
           </span>
         </div>
         <div className="h-2 bg-foreground/5 rounded-full overflow-hidden">
           <div
-            className={`h-full rounded-full transition-all ${result.projectedBalance >= 0 ? 'bg-emerald-500' : 'bg-red-500'}`}
+            className={`h-full rounded-full transition-all ${result.projectedBalance >= 0 ? 'bg-positive' : 'bg-negative'}`}
             style={{ width: `${Math.min(100, Math.abs(result.projectedBalance) / maxVal * 100)}%` }}
           />
         </div>
@@ -35,13 +35,13 @@ export function ScenarioImpactChart({ result }: { result: ScenarioResult }) {
       <div className="grid grid-cols-2 gap-4 text-sm">
         <div>
           <p className="text-muted-foreground">Monthly Net Flow</p>
-          <p className={`font-medium ${result.monthlyNetFlow >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>
+          <p className={`font-medium ${result.monthlyNetFlow >= 0 ? 'text-positive' : 'text-negative'}`}>
             {formatCurrency(result.monthlyNetFlow)}
           </p>
         </div>
         <div>
           <p className="text-muted-foreground">Emergency Fund</p>
-          <p className={`font-medium ${result.emergencyFundImpact >= 3 ? 'text-emerald-400' : 'text-yellow-400'}`}>
+          <p className={`font-medium ${result.emergencyFundImpact >= 3 ? 'text-primary' : 'text-warning'}`}>
             {result.emergencyFundImpact} months
           </p>
         </div>
@@ -59,7 +59,7 @@ export function ScenarioImpactChart({ result }: { result: ScenarioResult }) {
           {result.goalDelays.map((g, i) => (
             <div key={i} className="flex justify-between text-xs">
               <span className="text-muted-foreground">{g.name}</span>
-              <span className="text-yellow-400">+{g.delayDays} days</span>
+              <span className="text-warning">+{g.delayDays} days</span>
             </div>
           ))}
         </div>

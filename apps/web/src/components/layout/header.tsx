@@ -27,7 +27,7 @@ export function Header({ onSearchOpen, onMenuToggle }: { onSearchOpen: () => voi
           className="relative flex-1 max-w-md cursor-text"
         >
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-          <div className="w-full h-10 pl-10 pr-4 rounded-lg bg-foreground/[0.03] border border-foreground/[0.06] text-sm text-muted-foreground/50 flex items-center focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500/30 transition-all">
+          <div className="w-full h-10 pl-10 pr-4 rounded-lg bg-foreground/[0.03] border border-foreground/[0.06] text-sm text-muted-foreground/50 flex items-center focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary/30 transition-all">
             Search...
           </div>
           <div className="absolute right-3 top-1/2 -translate-y-1/2 hidden sm:block">

@@ -38,7 +38,7 @@ export function MarkdownMessage({ content }: { content: string }) {
               // window reference, and never leak the referrer.
               target="_blank"
               rel="noopener noreferrer nofollow"
-              className="text-emerald-400 underline underline-offset-2 hover:text-emerald-300"
+              className="text-primary underline underline-offset-2 hover:text-primary"
             >
               {children}
             </a>

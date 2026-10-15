@@ -101,12 +101,12 @@ export function RulesSection() {
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2 text-sm flex-wrap">
                   {rule.merchantPattern && (
-                    <span className="px-2 py-0.5 rounded-md bg-emerald-500/10 text-emerald-400 text-xs font-mono">
+                    <span className="px-2 py-0.5 rounded-md bg-primary/10 text-primary text-xs font-mono">
                       merchant: {rule.merchantPattern}
                     </span>
                   )}
                   {rule.descriptionPattern && (
-                    <span className="px-2 py-0.5 rounded-md bg-blue-500/10 text-blue-400 text-xs font-mono">
+                    <span className="px-2 py-0.5 rounded-md bg-info/10 text-info text-xs font-mono">
                       desc: {rule.descriptionPattern}
                     </span>
                   )}
@@ -124,11 +124,11 @@ export function RulesSection() {
               </div>
               <button onClick={() => handleToggle(rule)} className="p-1.5 rounded-lg hover:bg-foreground/[0.04]">
                 {rule.isActive
-                  ? <ToggleRight className="h-5 w-5 text-emerald-400" />
+                  ? <ToggleRight className="h-5 w-5 text-primary" />
                   : <ToggleLeft className="h-5 w-5 text-muted-foreground" />
                 }
               </button>
-              <button onClick={() => handleDelete(rule.id)} className="p-1.5 rounded-lg hover:bg-foreground/[0.04] hover:text-rose-400">
+              <button onClick={() => handleDelete(rule.id)} className="p-1.5 rounded-lg hover:bg-foreground/[0.04] hover:text-negative">
                 <Trash2 className="h-4 w-4" />
               </button>
             </div>
@@ -153,7 +153,7 @@ export function RulesSection() {
                   value={form.merchantPattern}
                   onChange={(e) => setForm((f) => ({ ...f, merchantPattern: e.target.value }))}
                   placeholder="e.g. amazon, netflix, shell"
-                  className="w-full h-10 px-3 rounded-lg bg-foreground/[0.02] border border-foreground/[0.08] text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/20"
+                  className="w-full h-10 px-3 rounded-lg bg-foreground/[0.02] border border-foreground/[0.08] text-sm focus:outline-none focus:ring-2 focus:ring-primary/20"
                 />
               </div>
               <div>
@@ -163,7 +163,7 @@ export function RulesSection() {
                   value={form.descriptionPattern}
                   onChange={(e) => setForm((f) => ({ ...f, descriptionPattern: e.target.value }))}
                   placeholder="e.g. monthly subscription"
-                  className="w-full h-10 px-3 rounded-lg bg-foreground/[0.02] border border-foreground/[0.08] text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/20"
+                  className="w-full h-10 px-3 rounded-lg bg-foreground/[0.02] border border-foreground/[0.08] text-sm focus:outline-none focus:ring-2 focus:ring-primary/20"
                 />
               </div>
               <div>

@@ -22,9 +22,9 @@ export function ActionList({ actions }: { actions: Action[] }) {
           <div
             key={i}
             onClick={action.onClick}
-            className={`flex items-start gap-2 text-sm ${action.onClick ? 'cursor-pointer hover:text-emerald-400' : ''}`}
+            className={`flex items-start gap-2 text-sm ${action.onClick ? 'cursor-pointer hover:text-primary' : ''}`}
           >
-            <Icon className="h-3.5 w-3.5 mt-0.5 text-emerald-400 flex-shrink-0" />
+            <Icon className="h-3.5 w-3.5 mt-0.5 text-primary flex-shrink-0" />
             <span>{action.text}</span>
           </div>
         );
