@@ -1,7 +1,11 @@
 import { useState, useEffect } from 'react';
-import { Plus, X, Check, Loader2, GripVertical, ToggleLeft, ToggleRight, Trash2 } from 'lucide-react';
+import { Plus, Check, GripVertical, ToggleLeft, ToggleRight, Trash2, Wand2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Select } from '@/components/ui/select';
+import { Input } from '@/components/ui/input';
+import { Skeleton } from '@/components/ui/skeleton';
+import { EmptyState } from '@/components/ui/empty-state';
+import { Dialog, DialogClose, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import api from '@/lib/api';
 import type { CategorizationRule, Category } from '@finbrain/shared';
 
@@ -62,8 +66,10 @@ export function RulesSection() {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center py-16">
-        <Loader2 className="h-6 w-6 text-muted-foreground animate-spin" />
+      <div className="space-y-2" aria-busy="true" aria-label="Loading rules">
+        <Skeleton className="h-4 w-24" />
+        <Skeleton className="h-14 rounded-xl" />
+        <Skeleton className="h-14 rounded-xl" />
       </div>
     );
   }
@@ -83,30 +89,33 @@ export function RulesSection() {
       </div>
 
       {rules.length === 0 ? (
-        <div className="text-center py-12 rounded-xl bg-foreground/[0.02] border border-foreground/[0.06]">
-          <p className="text-muted-foreground text-sm">No rules yet. Create one to auto-categorize transactions.</p>
-        </div>
+        <EmptyState
+          icon={Wand2}
+          title="No rules yet"
+          description="Create one to auto-categorize transactions."
+          className="rounded-xl border border-dashed py-10"
+        />
       ) : (
         <div className="space-y-2">
           {rules.map((rule) => (
             <div
               key={rule.id}
-              className={`flex items-center gap-4 p-4 rounded-xl border ${
+              className={`flex items-center gap-4 rounded-xl border p-3.5 transition-colors ${
                 rule.isActive
-                  ? 'bg-foreground/[0.02] border-foreground/[0.08]'
-                  : 'bg-foreground/[0.01] border-foreground/[0.04] opacity-50'
+                  ? 'bg-surface-sunken/40 hover:border-border-strong'
+                  : 'border-border/60 bg-transparent opacity-55'
               }`}
             >
               <GripVertical className="h-4 w-4 text-muted-foreground flex-shrink-0" />
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2 text-sm flex-wrap">
                   {rule.merchantPattern && (
-                    <span className="px-2 py-0.5 rounded-md bg-primary/10 text-primary text-xs font-mono">
+                    <span className="rounded-md border border-primary/20 bg-primary/10 px-2 py-0.5 font-mono text-xs text-primary">
                       merchant: {rule.merchantPattern}
                     </span>
                   )}
                   {rule.descriptionPattern && (
-                    <span className="px-2 py-0.5 rounded-md bg-info/10 text-info text-xs font-mono">
+                    <span className="rounded-md border border-info/20 bg-info/10 px-2 py-0.5 font-mono text-xs text-info">
                       desc: {rule.descriptionPattern}
                     </span>
                   )}
@@ -122,13 +131,22 @@ export function RulesSection() {
                   </span>
                 </div>
               </div>
-              <button onClick={() => handleToggle(rule)} className="p-1.5 rounded-lg hover:bg-foreground/[0.04]">
+              <button
+                onClick={() => handleToggle(rule)}
+                aria-label={rule.isActive ? 'Pause rule' : 'Activate rule'}
+                aria-pressed={rule.isActive}
+                className="rounded-lg p-1.5 transition-colors hover:bg-foreground/[0.05]"
+              >
                 {rule.isActive
                   ? <ToggleRight className="h-5 w-5 text-primary" />
                   : <ToggleLeft className="h-5 w-5 text-muted-foreground" />
                 }
               </button>
-              <button onClick={() => handleDelete(rule.id)} className="p-1.5 rounded-lg hover:bg-foreground/[0.04] hover:text-negative">
+              <button
+                onClick={() => handleDelete(rule.id)}
+                aria-label="Delete rule"
+                className="rounded-lg p-1.5 text-muted-foreground transition-colors hover:bg-negative/10 hover:text-negative"
+              >
                 <Trash2 className="h-4 w-4" />
               </button>
             </div>
@@ -136,60 +154,55 @@ export function RulesSection() {
         </div>
       )}
 
-      {showForm && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm" onClick={() => setShowForm(false)}>
-          <div className="w-full max-w-md mx-4 glass rounded-xl" onClick={(e) => e.stopPropagation()}>
-            <div className="flex items-center justify-between p-5 border-b border-foreground/[0.06]">
-              <h2 className="text-lg font-semibold">Add Rule</h2>
-              <button onClick={() => setShowForm(false)} className="p-1.5 rounded-lg hover:bg-foreground/[0.04]">
-                <X className="h-5 w-5" />
-              </button>
-            </div>
-            <div className="p-5 space-y-4">
-              <div>
-                <label className="text-xs text-muted-foreground block mb-1">Merchant Pattern</label>
-                <input
-                  type="text"
-                  value={form.merchantPattern}
-                  onChange={(e) => setForm((f) => ({ ...f, merchantPattern: e.target.value }))}
-                  placeholder="e.g. amazon, netflix, shell"
-                  className="w-full h-10 px-3 rounded-lg bg-foreground/[0.02] border border-foreground/[0.08] text-sm focus:outline-none focus:ring-2 focus:ring-primary/20"
-                />
-              </div>
-              <div>
-                <label className="text-xs text-muted-foreground block mb-1">Description Pattern</label>
-                <input
-                  type="text"
-                  value={form.descriptionPattern}
-                  onChange={(e) => setForm((f) => ({ ...f, descriptionPattern: e.target.value }))}
-                  placeholder="e.g. monthly subscription"
-                  className="w-full h-10 px-3 rounded-lg bg-foreground/[0.02] border border-foreground/[0.08] text-sm focus:outline-none focus:ring-2 focus:ring-primary/20"
-                />
-              </div>
-              <div>
-                <label className="text-xs text-muted-foreground block mb-1">Category *</label>
-                <Select
-                  value={form.categoryId}
-                  onValueChange={(value) => setForm((f) => ({ ...f, categoryId: value }))}
-                  options={categories.map((c) => ({ value: c.id, label: c.name }))}
-                />
-              </div>
-              <div className="flex gap-3 pt-2">
-                <Button type="button" variant="outline" className="flex-1" onClick={() => setShowForm(false)}>Cancel</Button>
-                <Button
-                  type="button"
-                  className="flex-1 gap-2"
-                  onClick={handleSave}
-                  disabled={(!form.merchantPattern && !form.descriptionPattern) || !form.categoryId}
-                >
-                  <Check className="h-4 w-4" />
-                  Add Rule
-                </Button>
-              </div>
-            </div>
+      <Dialog open={showForm} onClose={() => setShowForm(false)} className="max-w-md">
+        <DialogClose onClose={() => setShowForm(false)} />
+        <DialogHeader className="p-5 pb-0">
+          <DialogTitle>Add Rule</DialogTitle>
+          <DialogDescription>Matching transactions get this category automatically.</DialogDescription>
+        </DialogHeader>
+        <div className="space-y-4 p-5">
+          <div>
+            <label htmlFor="rule-merchant" className="mb-1.5 block text-xs font-medium text-muted-foreground">Merchant Pattern</label>
+            <Input
+              id="rule-merchant"
+              type="text"
+              value={form.merchantPattern}
+              onChange={(e) => setForm((f) => ({ ...f, merchantPattern: e.target.value }))}
+              placeholder="e.g. amazon, netflix, shell"
+            />
+          </div>
+          <div>
+            <label htmlFor="rule-description" className="mb-1.5 block text-xs font-medium text-muted-foreground">Description Pattern</label>
+            <Input
+              id="rule-description"
+              type="text"
+              value={form.descriptionPattern}
+              onChange={(e) => setForm((f) => ({ ...f, descriptionPattern: e.target.value }))}
+              placeholder="e.g. monthly subscription"
+            />
+          </div>
+          <div>
+            <label className="mb-1.5 block text-xs font-medium text-muted-foreground">Category *</label>
+            <Select
+              value={form.categoryId}
+              onValueChange={(value) => setForm((f) => ({ ...f, categoryId: value }))}
+              options={categories.map((c) => ({ value: c.id, label: c.name }))}
+            />
+          </div>
+          <div className="flex gap-3 pt-2">
+            <Button type="button" variant="outline" className="flex-1" onClick={() => setShowForm(false)}>Cancel</Button>
+            <Button
+              type="button"
+              className="flex-1 gap-2"
+              onClick={handleSave}
+              disabled={(!form.merchantPattern && !form.descriptionPattern) || !form.categoryId}
+            >
+              <Check className="h-4 w-4" />
+              Add Rule
+            </Button>
           </div>
         </div>
-      )}
+      </Dialog>
     </div>
   );
 }
