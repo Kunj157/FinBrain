@@ -1,9 +1,12 @@
+import { AnimatePresence, m } from 'motion/react';
 import { Search, Sun, Moon, LogOut, Menu } from 'lucide-react';
 import { Avatar } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/hooks/use-auth';
 import { useTheme } from '@/hooks/use-theme';
 import { NotificationBell } from '@/components/notifications';
+
+const isMac = typeof navigator !== 'undefined' && /Mac|iPhone|iPad/.test(navigator.platform);
 
 export function Header({ onSearchOpen, onMenuToggle }: { onSearchOpen: () => void; onMenuToggle: () => void }) {
   const { user, signOut } = useAuth();
@@ -16,45 +19,73 @@ export function Header({ onSearchOpen, onMenuToggle }: { onSearchOpen: () => voi
     .toUpperCase() || '?';
 
   return (
-    <header className="sticky top-0 z-30 flex h-14 md:h-16 items-center justify-between border-b border-foreground/[0.04] bg-background/60 backdrop-blur-xl px-4 md:px-6">
-      <div className="flex items-center gap-3 flex-1">
-        <Button variant="ghost" size="icon" className="md:hidden flex-shrink-0" onClick={onMenuToggle}>
+    <header className="sticky top-0 z-30 flex h-14 items-center justify-between gap-3 border-b border-border/60 bg-background/70 px-4 backdrop-blur-xl backdrop-saturate-150 md:h-16 md:px-6">
+      <div className="flex flex-1 items-center gap-3">
+        <Button
+          variant="ghost"
+          size="icon"
+          className="flex-shrink-0 md:hidden"
+          onClick={onMenuToggle}
+          aria-label="Open navigation"
+        >
           <Menu className="h-5 w-5" />
         </Button>
 
         <button
+          type="button"
           onClick={onSearchOpen}
-          className="relative flex-1 max-w-md cursor-text"
+          aria-label="Search"
+          aria-keyshortcuts="Meta+K Control+K"
+          className="group flex h-9 w-full max-w-md items-center gap-2.5 rounded-lg border border-border bg-foreground/[0.02] px-3 text-sm text-muted-foreground shadow-edge transition-colors hover:border-border-strong hover:bg-foreground/[0.04] hover:text-foreground"
         >
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-          <div className="w-full h-10 pl-10 pr-4 rounded-lg bg-foreground/[0.03] border border-foreground/[0.06] text-sm text-muted-foreground/50 flex items-center focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary/30 transition-all">
-            Search...
-          </div>
-          <div className="absolute right-3 top-1/2 -translate-y-1/2 hidden sm:block">
-            <kbd className="inline-flex h-5 items-center gap-1 rounded border border-foreground/[0.06] bg-foreground/[0.03] px-1.5 text-[10px] text-muted-foreground">
-              ⌘K
-            </kbd>
-          </div>
+          <Search className="h-4 w-4 shrink-0" aria-hidden />
+          <span className="flex-1 truncate text-left">Search transactions, accounts, goals…</span>
+          <kbd className="hidden h-5 items-center gap-0.5 rounded border border-border bg-background px-1.5 font-mono text-[10px] font-medium text-muted-foreground sm:inline-flex">
+            {isMac ? '⌘' : 'Ctrl'} K
+          </kbd>
         </button>
       </div>
 
-      <div className="flex items-center gap-1 md:gap-2">
+      <div className="flex items-center gap-1">
         <NotificationBell />
 
-        <Button variant="ghost" size="icon" onClick={toggle}>
-          {isDark ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
+        <Button
+          variant="ghost"
+          size="icon"
+          onClick={toggle}
+          aria-label={isDark ? 'Switch to light theme' : 'Switch to dark theme'}
+          className="relative overflow-hidden"
+        >
+          <AnimatePresence mode="popLayout" initial={false}>
+            <m.span
+              key={theme}
+              initial={{ y: 14, rotate: -90, opacity: 0 }}
+              animate={{ y: 0, rotate: 0, opacity: 1 }}
+              exit={{ y: -14, rotate: 90, opacity: 0 }}
+              className="flex"
+            >
+              {isDark ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
+            </m.span>
+          </AnimatePresence>
         </Button>
 
-        <Button variant="ghost" size="icon" onClick={signOut} title="Sign out" className="hidden sm:flex">
+        <Button
+          variant="ghost"
+          size="icon"
+          onClick={signOut}
+          title="Sign out"
+          aria-label="Sign out"
+          className="hidden sm:flex"
+        >
           <LogOut className="h-4 w-4" />
         </Button>
 
-        <div className="flex items-center gap-2 md:gap-3 ml-1 md:ml-2 pl-2 md:pl-3 border-l border-foreground/[0.06]">
-          <div className="text-right hidden sm:block">
-            <p className="text-xs font-medium">
+        <div className="ml-1 flex items-center gap-2.5 border-l pl-3 md:ml-2">
+          <div className="hidden text-right sm:block">
+            <p className="text-xs font-medium leading-tight">
               {user?.username ? `@${user.username}` : user?.name || 'User'}
             </p>
-            <p className="text-[10px] text-muted-foreground">Free Plan</p>
+            <p className="text-[10px] text-muted-foreground">Free plan</p>
           </div>
           <Avatar fallback={initials} size="sm" />
         </div>
