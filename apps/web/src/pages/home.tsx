@@ -2,6 +2,8 @@ import { Brain, ArrowRight, TrendingUp, PiggyBank, Repeat, Zap, BarChart3, Githu
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/hooks/use-auth';
 import { Navigate } from 'react-router-dom';
+import { Scene3D } from '@/components/three/scene';
+import { HeroPoster } from '@/components/three/hero-poster';
 
 const features = [
   {
@@ -89,40 +91,44 @@ export default function HomePage() {
 
       {/* Hero */}
       <section className="relative overflow-hidden">
-        <div className="absolute inset-0 bg-gradient-to-br from-primary/5 via-transparent to-accent/5 pointer-events-none" />
-        <div className="absolute top-1/4 left-1/2 -translate-x-1/2 -translate-y-1/2 h-[500px] w-[800px] rounded-full bg-primary/5 blur-3xl pointer-events-none" />
+        <div aria-hidden className="app-backdrop !absolute" />
+        <div className="relative mx-auto grid max-w-6xl items-center gap-8 px-6 pb-16 pt-16 md:pt-24 lg:grid-cols-[1.05fr_1fr]">
+          <div className="text-center lg:text-left">
+            <div className="mb-7 inline-flex items-center gap-2 rounded-full border border-primary/20 bg-primary/5 px-3.5 py-1.5">
+              <Zap className="h-3.5 w-3.5 text-primary" aria-hidden />
+              <span className="text-xs font-medium text-primary">AI-Powered Finance Tracking</span>
+            </div>
 
-        <div className="relative mx-auto max-w-6xl px-6 pt-24 pb-20 md:pt-32 md:pb-28 text-center">
-          <div className="inline-flex items-center gap-2 rounded-full border border-primary/20 bg-primary/5 px-4 py-1.5 mb-8">
-            <Zap className="h-3.5 w-3.5 text-primary" />
-            <span className="text-xs font-medium text-primary">AI-Powered Finance Tracking</span>
+            <h1 className="text-4xl font-semibold leading-[1.05] tracking-tight md:text-6xl">
+              Your money,{' '}
+              <span className="text-gradient">beautifully organized.</span>
+            </h1>
+
+            <p className="mx-auto mt-6 max-w-xl text-lg leading-relaxed text-muted-foreground lg:mx-0">
+              Track spending, budgets, and net worth — all in one place. FinBrain uses AI to
+              automatically categorize transactions and give you insights that actually matter.
+            </p>
+
+            <div className="mt-9 flex flex-col items-center gap-3 sm:flex-row lg:justify-start sm:justify-center">
+              <a href="/sign-up">
+                <Button size="lg">
+                  Get Started — It's Free
+                  <ArrowRight className="h-5 w-5" />
+                </Button>
+              </a>
+              <a href="#features">
+                <Button variant="outline" size="lg">See Features</Button>
+              </a>
+            </div>
+
+            <p className="mt-4 text-xs text-muted-foreground">No credit card required. Set up in 2 minutes.</p>
           </div>
 
-          <h1 className="text-4xl md:text-6xl font-bold tracking-tight leading-tight">
-            Your money,{' '}
-            <span className="text-gradient">beautifully organized.</span>
-          </h1>
-
-          <p className="mx-auto mt-6 max-w-2xl text-lg text-muted-foreground leading-relaxed">
-            Track spending, budgets, and net worth — all in one place. FinBrain uses AI to
-            automatically categorize transactions and give you insights that actually matter.
-          </p>
-
-          <div className="mt-10 flex flex-col sm:flex-row items-center justify-center gap-4">
-            <a href="/sign-up">
-              <Button size="lg" className="bg-primary hover:bg-primary text-white h-12 px-8 text-base">
-                Get Started — It's Free
-                <ArrowRight className="ml-2 h-5 w-5" />
-              </Button>
-            </a>
-            <a href="#features">
-              <Button variant="outline" size="lg" className="h-12 px-8 text-base border-foreground/[0.08] hover:bg-foreground/[0.03]">
-                See Features
-              </Button>
-            </a>
-          </div>
-
-          <p className="mt-4 text-xs text-muted-foreground">No credit card required. Set up in 2 minutes.</p>
+          <Scene3D
+            load={() => import('@/components/three/hero-scene')}
+            poster={<HeroPoster />}
+            className="h-[340px] w-full md:h-[440px]"
+          />
         </div>
       </section>
 
