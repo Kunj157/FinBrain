@@ -1,0 +1,26 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>FinBrain · AI-powered personal finance</title>
+    <meta name="description" content="FinBrain categorizes every transaction, keeps budgets honest, forecasts where you are heading and answers money questions from your own numbers. Open source." />
+    <meta property="og:title" content="FinBrain · AI-powered personal finance" />
+    <meta property="og:description" content="An open-source personal finance co-pilot with AI categorization, budgets, forecasts and an advisor." />
+    <meta property="og:type" content="website" />
+    <meta name="theme-color" content="#09090b" />
+    <link rel="icon" type="image/svg+xml" href="./favicon.svg" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Geist:wght@300..700&family=Geist+Mono:wght@400..600&display=swap" rel="stylesheet" />
+    <script>
+      try {
+        if (localStorage.getItem('finbrain-theme') === 'light') document.documentElement.classList.add('light');
+      } catch (e) {}
+    </script>
+  </head>
+  <body class="antialiased">
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>
