@@ -1,8 +1,9 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Brain, Loader2 } from 'lucide-react';
+import { Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/hooks/use-auth';
+import { AuthShell, authInput } from '@/components/auth/auth-shell';
 
 function DevSignUp() {
   const navigate = useNavigate();
@@ -28,56 +29,60 @@ function DevSignUp() {
   };
 
   return (
-    <form onSubmit={handleSubmit} className="glass rounded-2xl p-8 space-y-6">
+    <form onSubmit={handleSubmit} className="space-y-5">
       <div className="grid grid-cols-2 gap-4">
         <div className="space-y-2">
-          <label className="text-sm font-medium text-foreground">First Name</label>
+          <label htmlFor="signup-first" className="text-sm font-medium text-foreground">First Name</label>
           <input
+          id="signup-first"
             required
             value={firstName}
             onChange={(e) => setFirstName(e.target.value)}
             placeholder="John"
-            className="w-full h-11 px-4 rounded-xl bg-foreground/[0.03] border border-foreground/[0.06] text-sm text-foreground placeholder:text-muted-foreground/50 focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary/30 transition-all"
+            className={authInput}
           />
         </div>
         <div className="space-y-2">
-          <label className="text-sm font-medium text-foreground">Last Name</label>
+          <label htmlFor="signup-last" className="text-sm font-medium text-foreground">Last Name</label>
           <input
+          id="signup-last"
             required
             value={lastName}
             onChange={(e) => setLastName(e.target.value)}
             placeholder="Doe"
-            className="w-full h-11 px-4 rounded-xl bg-foreground/[0.03] border border-foreground/[0.06] text-sm text-foreground placeholder:text-muted-foreground/50 focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary/30 transition-all"
+            className={authInput}
           />
         </div>
       </div>
       <div className="space-y-2">
-        <label className="text-sm font-medium text-foreground">Email</label>
+        <label htmlFor="signup-email" className="text-sm font-medium text-foreground">Email</label>
         <input
+          id="signup-email"
           type="email"
           required
           value={email}
           onChange={(e) => setEmail(e.target.value)}
           placeholder="you@example.com"
-          className="w-full h-11 px-4 rounded-xl bg-foreground/[0.03] border border-foreground/[0.06] text-sm text-foreground placeholder:text-muted-foreground/50 focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary/30 transition-all"
+          className={authInput}
         />
       </div>
       <div className="space-y-2">
-        <label className="text-sm font-medium text-foreground">Password</label>
+        <label htmlFor="signup-password" className="text-sm font-medium text-foreground">Password</label>
         <input
+          id="signup-password"
           type="password"
           required
           placeholder="Create a strong password"
-          className="w-full h-11 px-4 rounded-xl bg-foreground/[0.03] border border-foreground/[0.06] text-sm text-foreground placeholder:text-muted-foreground/50 focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary/30 transition-all"
+          className={authInput}
         />
       </div>
-      <Button type="submit" className="w-full h-12 text-base" disabled={loading}>
+      <Button type="submit" size="lg" className="w-full" disabled={loading}>
         {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
         {loading ? 'Creating account...' : 'Create Account'}
       </Button>
       <div className="text-center text-sm text-muted-foreground">
         Already have an account?{' '}
-        <a href="/sign-in" className="text-primary hover:text-primary transition-colors">
+        <a href="/sign-in" className="font-medium text-primary underline-offset-4 hover:underline">
           Sign in
         </a>
       </div>
@@ -118,24 +123,8 @@ export default function SignUp() {
   const hasClerkKey = !!import.meta.env.VITE_CLERK_PUBLISHABLE_KEY;
 
   return (
-    <div className="flex min-h-screen flex-col items-center justify-center bg-background">
-      <div className="absolute inset-0 bg-gradient-to-br from-primary/5 via-transparent to-accent/5 pointer-events-none" />
-      <div className="relative w-full max-w-md space-y-8 px-4">
-        <div className="text-center">
-          <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-2xl bg-primary/10 border border-primary/20 mb-6">
-            <Brain className="h-8 w-8 text-primary" />
-          </div>
-          <h1 className="text-3xl font-bold tracking-tight">
-            <span className="text-gradient">Fin</span>
-            <span className="text-foreground">Brain</span>
-          </h1>
-          <p className="text-muted-foreground mt-2 text-sm">
-            Start your AI-powered financial journey
-          </p>
-        </div>
-
-        {hasClerkKey ? <ClerkSignUpPage /> : <DevSignUp />}
-      </div>
-    </div>
+    <AuthShell title="Create your account" subtitle="Start your AI-powered financial journey in two minutes.">
+      {hasClerkKey ? <ClerkSignUpPage /> : <DevSignUp />}
+    </AuthShell>
   );
 }
