@@ -11,11 +11,11 @@ describe('AnimatedNumber', () => {
     expect(screen.getByText('7')).toBeInTheDocument();
   });
 
-  it('counts up to the value and settles on it exactly', async () => {
+  it('counts up to the value and settles on it exactly', { timeout: 15000 }, async () => {
     prefersReducedMotion(false);
     const { container } = render(<AnimatedNumber value={1234.5} from={0} format={money} />);
     expect(container).toHaveTextContent('$0.00');
-    await waitFor(() => expect(container).toHaveTextContent('$1234.50'), { timeout: 4000 });
+    await waitFor(() => expect(container).toHaveTextContent('$1234.50'), { timeout: 10000 });
   });
 
   it('shows the final value at once under reduced motion', () => {

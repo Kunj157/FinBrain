@@ -1,6 +1,8 @@
 import { useEffect, useRef, type ReactNode } from 'react';
 import { X } from 'lucide-react';
+import { AnimatePresence, m } from 'motion/react';
 import { cn } from '@/lib/utils';
+import { duration, spring } from '@/lib/motion';
 
 interface DialogProps {
   open: boolean;
@@ -25,25 +27,36 @@ export function Dialog({ open, onClose, children, className }: DialogProps) {
     };
   }, [open, onClose]);
 
-  if (!open) return null;
-
   return (
-    <div
-      ref={overlayRef}
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4"
-      onClick={(e) => {
-        if (e.target === overlayRef.current) onClose();
-      }}
-    >
-      <div
-        className={cn(
-          'relative w-full max-w-lg rounded-xl border border-foreground/[0.08] bg-card shadow-2xl animate-in fade-in zoom-in-95 duration-200',
-          className,
-        )}
-      >
-        {children}
-      </div>
-    </div>
+    <AnimatePresence>
+      {open && (
+        <m.div
+          ref={overlayRef}
+          className="fixed inset-0 z-50 flex items-center justify-center bg-background/60 p-4 backdrop-blur-md"
+          onClick={(e) => {
+            if (e.target === overlayRef.current) onClose();
+          }}
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0, transition: { duration: duration.fast } }}
+        >
+          <m.div
+            role="dialog"
+            aria-modal="true"
+            className={cn(
+              'relative w-full max-w-lg rounded-2xl border bg-popover shadow-float [background-image:var(--sheen)]',
+              className,
+            )}
+            initial={{ opacity: 0, scale: 0.95, y: 8, filter: 'blur(4px)' }}
+            animate={{ opacity: 1, scale: 1, y: 0, filter: 'blur(0px)' }}
+            exit={{ opacity: 0, scale: 0.97, y: 4, transition: { duration: duration.fast } }}
+            transition={spring.smooth}
+          >
+            {children}
+          </m.div>
+        </m.div>
+      )}
+    </AnimatePresence>
   );
 }
 
@@ -75,6 +88,7 @@ export function DialogClose({ onClose }: { onClose: () => void }) {
   return (
     <button
       onClick={onClose}
+      aria-label="Close"
       className="absolute top-4 right-4 p-1.5 rounded-lg text-muted-foreground hover:text-foreground hover:bg-foreground/[0.04] transition-colors"
     >
       <X className="h-4 w-4" />
