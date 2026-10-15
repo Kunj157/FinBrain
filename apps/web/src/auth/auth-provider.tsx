@@ -36,7 +36,7 @@ function ClerkLazyProvider({ children }: AuthProviderProps) {
     return (
       <div className="flex h-screen items-center justify-center bg-background">
         <div className="text-center space-y-4">
-          <div className="h-8 w-8 animate-spin rounded-full border-2 border-emerald-500/30 border-t-emerald-400 mx-auto" />
+          <div className="h-8 w-8 animate-spin rounded-full border-2 border-primary/30 border-t-emerald-400 mx-auto" />
           <p className="text-sm text-muted-foreground">Loading...</p>
         </div>
       </div>

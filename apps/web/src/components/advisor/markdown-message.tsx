@@ -38,23 +38,23 @@ export function MarkdownMessage({ content }: { content: string }) {
               // window reference, and never leak the referrer.
               target="_blank"
               rel="noopener noreferrer nofollow"
-              className="text-emerald-400 underline underline-offset-2 hover:text-emerald-300"
+              className="text-primary underline underline-offset-2 hover:text-primary"
             >
               {children}
             </a>
           ),
 
           code: ({ children }) => (
-            <code className="rounded bg-white/[0.06] px-1 py-0.5 font-mono text-[0.85em]">
+            <code className="rounded bg-foreground/[0.06] px-1 py-0.5 font-mono text-[0.85em]">
               {children}
             </code>
           ),
           pre: ({ children }) => (
-            <pre className="overflow-x-auto rounded-lg bg-white/[0.04] p-3 text-xs">{children}</pre>
+            <pre className="overflow-x-auto rounded-lg bg-foreground/[0.04] p-3 text-xs">{children}</pre>
           ),
 
           blockquote: ({ children }) => (
-            <blockquote className="border-l-2 border-white/20 pl-3 text-muted-foreground">
+            <blockquote className="border-l-2 border-foreground/20 pl-3 text-muted-foreground">
               {children}
             </blockquote>
           ),
@@ -63,21 +63,21 @@ export function MarkdownMessage({ content }: { content: string }) {
           // they are the one element that can exceed the bubble — so the table
           // scrolls inside its own container rather than widening the page.
           table: ({ children }) => (
-            <div className="overflow-x-auto rounded-lg border border-white/[0.08]">
+            <div className="overflow-x-auto rounded-lg border border-foreground/[0.08]">
               <table className="w-full border-collapse text-xs">{children}</table>
             </div>
           ),
-          thead: ({ children }) => <thead className="bg-white/[0.04]">{children}</thead>,
+          thead: ({ children }) => <thead className="bg-foreground/[0.04]">{children}</thead>,
           th: ({ children }) => (
-            <th className="border-b border-white/[0.08] px-3 py-2 text-left font-medium whitespace-nowrap">
+            <th className="border-b border-foreground/[0.08] px-3 py-2 text-left font-medium whitespace-nowrap">
               {children}
             </th>
           ),
           td: ({ children }) => (
-            <td className="border-b border-white/[0.04] px-3 py-2 align-top">{children}</td>
+            <td className="border-b border-foreground/[0.04] px-3 py-2 align-top">{children}</td>
           ),
 
-          hr: () => <hr className="border-white/[0.08]" />,
+          hr: () => <hr className="border-foreground/[0.08]" />,
         }}
       >
         {content}

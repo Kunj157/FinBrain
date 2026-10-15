@@ -80,7 +80,7 @@ export default function ReceiptsPage() {
           className={`cursor-pointer rounded-xl border-2 border-dashed p-14 text-center transition-all ${
             dragOver
               ? 'border-emerald-500/50 bg-emerald-500/5'
-              : 'border-white/[0.08] hover:border-white/[0.15] bg-white/[0.02]'
+              : 'border-foreground/[0.08] hover:border-foreground/[0.15] bg-foreground/[0.02]'
           }`}
         >
           <input
@@ -127,14 +127,14 @@ export default function ReceiptsPage() {
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="grid gap-3 grid-cols-1 sm:grid-cols-3">
-                <div className="rounded-xl bg-white/[0.02] border border-white/[0.06] p-4">
+                <div className="rounded-xl bg-foreground/[0.02] border border-foreground/[0.06] p-4">
                   <div className="flex items-center gap-2 text-sm text-muted-foreground mb-1">
                     <Store className="h-4 w-4" />
                     Merchant
                   </div>
                   <p className="text-sm font-medium">{result.merchant || 'Not detected'}</p>
                 </div>
-                <div className="rounded-xl bg-white/[0.02] border border-white/[0.06] p-4">
+                <div className="rounded-xl bg-foreground/[0.02] border border-foreground/[0.06] p-4">
                   <div className="flex items-center gap-2 text-sm text-muted-foreground mb-1">
                     <DollarSign className="h-4 w-4" />
                     Amount
@@ -143,7 +143,7 @@ export default function ReceiptsPage() {
                     {result.amount ? formatCurrency(result.amount, currency) : 'Not detected'}
                   </p>
                 </div>
-                <div className="rounded-xl bg-white/[0.02] border border-white/[0.06] p-4">
+                <div className="rounded-xl bg-foreground/[0.02] border border-foreground/[0.06] p-4">
                   <div className="flex items-center gap-2 text-sm text-muted-foreground mb-1">
                     <CalendarDays className="h-4 w-4" />
                     Date
@@ -155,7 +155,7 @@ export default function ReceiptsPage() {
               {result.text && (
                 <div>
                   <p className="text-xs text-muted-foreground uppercase tracking-wider font-medium mb-2">Raw OCR Text</p>
-                  <pre className="text-xs text-muted-foreground bg-white/[0.02] rounded-lg p-3 border border-white/[0.06] whitespace-pre-wrap max-h-40 overflow-y-auto">
+                  <pre className="text-xs text-muted-foreground bg-foreground/[0.02] rounded-lg p-3 border border-foreground/[0.06] whitespace-pre-wrap max-h-40 overflow-y-auto">
                     {result.text}
                   </pre>
                 </div>
@@ -172,7 +172,7 @@ export default function ReceiptsPage() {
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="flex items-center gap-3 rounded-xl bg-white/[0.02] border border-white/[0.06] p-4">
+                <div className="flex items-center gap-3 rounded-xl bg-foreground/[0.02] border border-foreground/[0.06] p-4">
                   <ReceiptIcon className="h-8 w-8 text-emerald-400" />
                   <div className="flex-1">
                     <p className="text-sm font-medium">{result.merchant || 'Unknown merchant'}</p>

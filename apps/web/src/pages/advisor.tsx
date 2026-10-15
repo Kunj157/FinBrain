@@ -66,7 +66,7 @@ const decisionColors: Record<string, string> = {
   reasonable: 'text-blue-400 bg-blue-500/10 border-blue-500/20',
   caution: 'text-yellow-400 bg-yellow-500/10 border-yellow-500/20',
   not_recommended: 'text-red-400 bg-red-500/10 border-red-500/20',
-  insufficient_data: 'text-gray-400 bg-gray-500/10 border-gray-500/20',
+  insufficient_data: 'text-muted-foreground bg-muted-foreground/10 border-border-strong/20',
 };
 
 const decisionIcons: Record<string, typeof CheckCircle2> = {
@@ -269,7 +269,7 @@ export default function AdvisorPage() {
                 className={`w-full text-left p-2 rounded-lg text-sm transition-colors ${
                   activeConvId === c.id
                     ? 'bg-emerald-500/10 text-emerald-400'
-                    : 'hover:bg-white/5 text-muted-foreground'
+                    : 'hover:bg-foreground/5 text-muted-foreground'
                 }`}
               >
                 <p className="truncate">{c.title || 'New conversation'}</p>
@@ -356,7 +356,7 @@ export default function AdvisorPage() {
                     <button
                       key={i}
                       onClick={() => handleSend(q)}
-                      className="w-full text-left p-2 rounded-lg text-xs text-muted-foreground hover:bg-white/5 hover:text-foreground transition-colors"
+                      className="w-full text-left p-2 rounded-lg text-xs text-muted-foreground hover:bg-foreground/5 hover:text-foreground transition-colors"
                     >
                       {q}
                     </button>
@@ -382,7 +382,7 @@ export default function AdvisorPage() {
                       <button
                         key={i}
                         onClick={() => handleSend(q)}
-                        className="p-3 rounded-xl text-sm text-left glass hover:bg-white/5 transition-colors"
+                        className="p-3 rounded-xl text-sm text-left glass hover:bg-foreground/5 transition-colors"
                       >
                         {q}
                       </button>
@@ -494,7 +494,7 @@ export default function AdvisorPage() {
                 onChange={(e) => setChatInput(e.target.value)}
                 onKeyDown={handleKeyDown}
                 placeholder="Ask about your finances..."
-                className="flex-1 bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-emerald-500/50 placeholder:text-muted-foreground"
+                className="flex-1 bg-foreground/5 border border-foreground/10 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-emerald-500/50 placeholder:text-muted-foreground"
                 disabled={isLoading}
               />
               <Button
@@ -517,7 +517,7 @@ function AffordabilityCard({ decision }: { decision: AffordabilityDecision }) {
   const DecisionIcon = decisionIcons[decision.decision] || AlertTriangle;
 
   return (
-    <div className="mt-3 p-3 rounded-xl bg-black/20 border border-white/5">
+    <div className="mt-3 p-3 rounded-xl bg-black/20 border border-foreground/5">
       <div className="flex items-center justify-between mb-2">
         <div className="flex items-center gap-2">
           <DecisionIcon className="h-4 w-4" />

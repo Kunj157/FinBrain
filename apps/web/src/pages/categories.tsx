@@ -238,14 +238,14 @@ export default function CategoriesPage() {
                   <div className="flex items-center gap-1">
                     <button
                       onClick={(e) => { e.stopPropagation(); openEdit(group); }}
-                      className="p-1.5 rounded-lg hover:bg-white/[0.04] hover:text-foreground transition-colors"
+                      className="p-1.5 rounded-lg hover:bg-foreground/[0.04] hover:text-foreground transition-colors"
                     >
                       <Pencil className="h-3 w-3" />
                     </button>
                     {group.isCustom && (
                       <button
                         onClick={(e) => { e.stopPropagation(); handleDelete(group.id); }}
-                        className="p-1.5 rounded-lg hover:bg-white/[0.04] hover:text-rose-400 transition-colors"
+                        className="p-1.5 rounded-lg hover:bg-foreground/[0.04] hover:text-rose-400 transition-colors"
                       >
                         <Trash2 className="h-3 w-3" />
                       </button>
@@ -264,7 +264,7 @@ export default function CategoriesPage() {
                       return (
                         <div
                           key={child.id}
-                          className="flex items-center justify-between p-2 rounded-lg hover:bg-white/[0.02] group/item"
+                          className="flex items-center justify-between p-2 rounded-lg hover:bg-foreground/[0.02] group/item"
                         >
                           <div className="flex items-center gap-2">
                             <div
@@ -277,11 +277,11 @@ export default function CategoriesPage() {
                             <span className="text-[10px] text-muted-foreground">{child.isCustom ? 'Custom' : 'Default'}</span>
                           </div>
                           <div className="flex gap-0.5 opacity-0 group-hover/item:opacity-100 transition-opacity">
-                            <button onClick={() => openEdit(child)} className="p-1 rounded-lg hover:bg-white/[0.04] hover:text-foreground transition-colors">
+                            <button onClick={() => openEdit(child)} className="p-1 rounded-lg hover:bg-foreground/[0.04] hover:text-foreground transition-colors">
                               <Pencil className="h-3 w-3" />
                             </button>
                             {child.isCustom && (
-                              <button onClick={() => handleDelete(child.id)} className="p-1 rounded-lg hover:bg-white/[0.04] hover:text-rose-400 transition-colors">
+                              <button onClick={() => handleDelete(child.id)} className="p-1 rounded-lg hover:bg-foreground/[0.04] hover:text-rose-400 transition-colors">
                                 <Trash2 className="h-3 w-3" />
                               </button>
                             )}
@@ -318,11 +318,11 @@ export default function CategoriesPage() {
                     <CardTitle className="text-sm font-medium">{cat.name}</CardTitle>
                   </div>
                   <div className="flex items-center gap-1">
-                    <button onClick={() => openEdit(cat)} className="p-1.5 rounded-lg hover:bg-white/[0.04] hover:text-foreground transition-colors">
+                    <button onClick={() => openEdit(cat)} className="p-1.5 rounded-lg hover:bg-foreground/[0.04] hover:text-foreground transition-colors">
                       <Pencil className="h-3 w-3" />
                     </button>
                     {cat.isCustom && (
-                      <button onClick={() => handleDelete(cat.id)} className="p-1.5 rounded-lg hover:bg-white/[0.04] hover:text-rose-400 transition-colors">
+                      <button onClick={() => handleDelete(cat.id)} className="p-1.5 rounded-lg hover:bg-foreground/[0.04] hover:text-rose-400 transition-colors">
                         <Trash2 className="h-3 w-3" />
                       </button>
                     )}
@@ -340,19 +340,19 @@ export default function CategoriesPage() {
       {showForm && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm" onClick={() => setShowForm(false)}>
           <div className="w-full max-w-md mx-4 glass rounded-xl" onClick={(e) => e.stopPropagation()}>
-            <div className="flex items-center justify-between p-5 border-b border-white/[0.06]">
+            <div className="flex items-center justify-between p-5 border-b border-foreground/[0.06]">
               <h2 className="text-lg font-semibold">
                 {formMode === 'create'
                   ? (formType === 'group' ? 'Add Group' : 'Add Subcategory')
                   : 'Edit Category'}
               </h2>
-              <button onClick={() => setShowForm(false)} className="p-1.5 rounded-lg hover:bg-white/[0.04]">
+              <button onClick={() => setShowForm(false)} className="p-1.5 rounded-lg hover:bg-foreground/[0.04]">
                 <X className="h-5 w-5" />
               </button>
             </div>
             <div className="p-5 space-y-4">
               {formMode === 'create' && (
-                <div className="flex gap-2 p-1 rounded-lg bg-white/[0.04]">
+                <div className="flex gap-2 p-1 rounded-lg bg-foreground/[0.04]">
                   <button
                     onClick={() => setFormType('group')}
                     className={`flex-1 py-1.5 px-3 rounded-md text-sm transition-colors ${formType === 'group' ? 'bg-emerald-500/10 text-emerald-400' : 'text-muted-foreground'}`}
@@ -376,7 +376,7 @@ export default function CategoriesPage() {
                   value={form.name}
                   onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))}
                   placeholder={formType === 'group' ? 'e.g. Housing' : 'e.g. Rent'}
-                  className="w-full h-10 px-3 rounded-lg bg-white/[0.02] border border-white/[0.08] text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/20"
+                  className="w-full h-10 px-3 rounded-lg bg-foreground/[0.02] border border-foreground/[0.08] text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/20"
                 />
               </div>
 
@@ -400,7 +400,7 @@ export default function CategoriesPage() {
                       key={color}
                       type="button"
                       onClick={() => setForm((f) => ({ ...f, color }))}
-                      className={`h-8 w-8 rounded-lg border-2 transition-all duration-200 hover:scale-110 ${form.color === color ? 'border-white scale-110 shadow-lg' : 'border-transparent hover:border-white/30'}`}
+                      className={`h-8 w-8 rounded-lg border-2 transition-all duration-200 hover:scale-110 ${form.color === color ? 'border-foreground scale-110 shadow-lg' : 'border-transparent hover:border-foreground/30'}`}
                       style={{ backgroundColor: color }}
                     >
                       {form.color === color && <Check className="h-4 w-4 mx-auto text-white drop-shadow" />}

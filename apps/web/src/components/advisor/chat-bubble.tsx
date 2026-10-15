@@ -24,16 +24,16 @@ export function ChatBubble({ message, onRetry, children }: ChatBubbleProps) {
       <div
         className={`max-w-[85%] min-w-0 rounded-2xl px-4 py-3 ${
           isUser
-            ? 'bg-emerald-500/10 border border-emerald-500/20'
+            ? 'bg-primary/10 border border-primary/20'
             : message.isError
-              ? 'bg-rose-500/5 border border-rose-500/20'
+              ? 'bg-negative/5 border border-negative/20'
               : 'glass'
         }`}
       >
         {!isUser && !message.isError && (
           <div className="flex items-center gap-2 mb-2">
-            <Brain className="h-4 w-4 text-emerald-400" aria-hidden="true" />
-            <span className="text-xs font-medium text-emerald-400">Advisor</span>
+            <Brain className="h-4 w-4 text-primary" aria-hidden="true" />
+            <span className="text-xs font-medium text-primary">Advisor</span>
             {message.confidence && <ConfidenceBadge confidence={message.confidence} />}
           </div>
         )}
@@ -43,8 +43,8 @@ export function ChatBubble({ message, onRetry, children }: ChatBubbleProps) {
           // read as financial advice.
           <div role="alert" className="space-y-2">
             <div className="flex items-center gap-2">
-              <AlertTriangle className="h-4 w-4 text-rose-400" aria-hidden="true" />
-              <span className="text-xs font-medium text-rose-400">Couldn't get a response</span>
+              <AlertTriangle className="h-4 w-4 text-negative" aria-hidden="true" />
+              <span className="text-xs font-medium text-negative">Couldn't get a response</span>
             </div>
             <p className="text-sm text-muted-foreground">{message.content}</p>
             {onRetry && (
@@ -61,7 +61,7 @@ export function ChatBubble({ message, onRetry, children }: ChatBubbleProps) {
           <>
             <MarkdownMessage content={message.content} />
             {message.isStreaming && (
-              <span className="ml-0.5 inline-block h-4 w-1.5 translate-y-0.5 animate-pulse rounded-sm bg-emerald-400/70 align-middle" />
+              <span className="ml-0.5 inline-block h-4 w-1.5 translate-y-0.5 animate-pulse rounded-sm bg-primary/70 align-middle" />
             )}
           </>
         )}
@@ -73,9 +73,9 @@ export function ChatBubble({ message, onRetry, children }: ChatBubbleProps) {
 }
 
 const CONFIDENCE_STYLES: Record<string, string> = {
-  high: 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20',
-  medium: 'bg-yellow-500/10 text-yellow-400 border-yellow-500/20',
-  low: 'bg-red-500/10 text-red-400 border-red-500/20',
+  high: 'bg-primary/10 text-primary border-primary/20',
+  medium: 'bg-warning/10 text-warning border-warning/20',
+  low: 'bg-negative/10 text-negative border-negative/20',
 };
 
 function ConfidenceBadge({ confidence }: { confidence: string }) {

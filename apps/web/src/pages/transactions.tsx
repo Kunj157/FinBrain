@@ -180,7 +180,7 @@ export default function TransactionsPage() {
                 placeholder="Search transactions..."
                 value={filters.search}
                 onChange={(e) => { setFilters((f) => ({ ...f, search: e.target.value })); setPage(1); }}
-                className="w-full h-10 pl-9 pr-3 rounded-lg bg-white/[0.02] border border-white/[0.08] text-sm text-foreground placeholder:text-muted-foreground/50 focus:outline-none focus:ring-2 focus:ring-emerald-500/20"
+                className="w-full h-10 pl-9 pr-3 rounded-lg bg-foreground/[0.02] border border-foreground/[0.08] text-sm text-foreground placeholder:text-muted-foreground/50 focus:outline-none focus:ring-2 focus:ring-emerald-500/20"
               />
             </div>
             <Select
@@ -244,7 +244,7 @@ export default function TransactionsPage() {
             <div className="overflow-x-auto">
               <table className="w-full text-sm">
                 <thead>
-                  <tr className="border-b border-white/[0.06] bg-background/95 backdrop-blur-xl sticky top-0 z-10">
+                  <tr className="border-b border-foreground/[0.06] bg-background/95 backdrop-blur-xl sticky top-0 z-10">
                     <th className="w-10 px-4 py-3">
                       <input
                         type="checkbox"
@@ -253,7 +253,7 @@ export default function TransactionsPage() {
                           if (selected.size === txns.length) setSelected(new Set());
                           else setSelected(new Set(txns.map((t) => t.id)));
                         }}
-                        className="rounded border-white/[0.08] bg-white/[0.02]"
+                        className="rounded border-foreground/[0.08] bg-foreground/[0.02]"
                       />
                     </th>
                     <th className="text-left px-3 py-3 text-muted-foreground font-medium cursor-pointer hover:text-foreground" onClick={() => toggleSort('date')}>
@@ -273,13 +273,13 @@ export default function TransactionsPage() {
                 </thead>
                 <tbody>
                   {txns.map((txn) => (
-                    <tr key={txn.id} className="border-b border-white/[0.03] hover:bg-white/[0.01] transition-colors">
+                    <tr key={txn.id} className="border-b border-foreground/[0.03] hover:bg-foreground/[0.01] transition-colors">
                       <td className="px-4 py-3">
                         <input
                           type="checkbox"
                           checked={selected.has(txn.id)}
                           onChange={() => toggleSelect(txn.id)}
-                          className="rounded border-white/[0.08] bg-white/[0.02]"
+                          className="rounded border-foreground/[0.08] bg-foreground/[0.02]"
                         />
                       </td>
                       <td className="px-3 py-3 text-muted-foreground">{formatDate(txn.date)}</td>
@@ -303,10 +303,10 @@ export default function TransactionsPage() {
                       </td>
                       <td className="px-3 py-3">
                         <div className="flex items-center gap-1">
-                          <button onClick={() => openEdit(txn)} className="p-1.5 rounded-lg hover:bg-white/[0.04] text-muted-foreground hover:text-foreground transition-colors">
+                          <button onClick={() => openEdit(txn)} className="p-1.5 rounded-lg hover:bg-foreground/[0.04] text-muted-foreground hover:text-foreground transition-colors">
                             <Pencil className="h-3.5 w-3.5" />
                           </button>
-                          <button onClick={() => handleDelete(txn.id)} className="p-1.5 rounded-lg hover:bg-white/[0.04] text-muted-foreground hover:text-rose-400 transition-colors">
+                          <button onClick={() => handleDelete(txn.id)} className="p-1.5 rounded-lg hover:bg-foreground/[0.04] text-muted-foreground hover:text-rose-400 transition-colors">
                             <Trash2 className="h-3.5 w-3.5" />
                           </button>
                         </div>
@@ -439,9 +439,9 @@ function TransactionForm({
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm" onClick={onClose} onKeyDown={(e) => { if (e.key === 'Escape') onClose(); }}>
       <div className="w-full max-w-lg mx-4 glass rounded-xl" onClick={(e) => e.stopPropagation()}>
-        <div className="flex items-center justify-between p-5 border-b border-white/[0.06]">
+        <div className="flex items-center justify-between p-5 border-b border-foreground/[0.06]">
           <h2 className="text-lg font-semibold">{mode === 'create' ? 'Add Transaction' : 'Edit Transaction'}</h2>
-          <button onClick={onClose} className="p-1.5 rounded-lg hover:bg-white/[0.04]">
+          <button onClick={onClose} className="p-1.5 rounded-lg hover:bg-foreground/[0.04]">
             <X className="h-5 w-5" />
           </button>
         </div>
@@ -455,7 +455,7 @@ function TransactionForm({
                 className={`flex-1 py-2.5 rounded-lg text-sm font-medium transition-all ${
                   form.type === t
                     ? t === 'income' ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20' : 'bg-rose-500/10 text-rose-400 border border-rose-500/20'
-                    : 'bg-white/[0.02] text-muted-foreground border border-white/[0.06]'
+                    : 'bg-foreground/[0.02] text-muted-foreground border border-foreground/[0.06]'
                 }`}
               >
                 {t === 'income' ? 'Income' : 'Expense'}
@@ -474,7 +474,7 @@ function TransactionForm({
                 value={form.amount}
                 onChange={(e) => setForm((f) => ({ ...f, amount: e.target.value }))}
                 placeholder="0.00"
-                className="w-full h-10 px-3 rounded-lg bg-white/[0.02] border border-white/[0.08] text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/20"
+                className="w-full h-10 px-3 rounded-lg bg-foreground/[0.02] border border-foreground/[0.08] text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/20"
               />
             </div>
             <div>
@@ -484,7 +484,7 @@ function TransactionForm({
                 required
                 value={form.date}
                 onChange={(e) => setForm((f) => ({ ...f, date: e.target.value }))}
-                className="w-full h-10 px-3 rounded-lg bg-white/[0.02] border border-white/[0.08] text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/20"
+                className="w-full h-10 px-3 rounded-lg bg-foreground/[0.02] border border-foreground/[0.08] text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/20"
               />
             </div>
           </div>
@@ -497,7 +497,7 @@ function TransactionForm({
               value={form.description}
               onChange={(e) => setForm((f) => ({ ...f, description: e.target.value }))}
               placeholder="Coffee, Groceries, etc."
-              className="w-full h-10 px-3 rounded-lg bg-white/[0.02] border border-white/[0.08] text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/20"
+              className="w-full h-10 px-3 rounded-lg bg-foreground/[0.02] border border-foreground/[0.08] text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/20"
             />
           </div>
 
@@ -509,7 +509,7 @@ function TransactionForm({
                 value={form.merchant}
                 onChange={(e) => setForm((f) => ({ ...f, merchant: e.target.value }))}
                 placeholder="Starbucks, Amazon, etc."
-                className="w-full h-10 px-3 rounded-lg bg-white/[0.02] border border-white/[0.08] text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/20"
+                className="w-full h-10 px-3 rounded-lg bg-foreground/[0.02] border border-foreground/[0.08] text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/20"
               />
             </div>
             <div>
@@ -552,7 +552,7 @@ function TransactionForm({
               onChange={(e) => setForm((f) => ({ ...f, notes: e.target.value }))}
               placeholder="Optional notes..."
               rows={2}
-              className="w-full px-3 py-2 rounded-lg bg-white/[0.02] border border-white/[0.08] text-sm resize-none focus:outline-none focus:ring-2 focus:ring-emerald-500/20"
+              className="w-full px-3 py-2 rounded-lg bg-foreground/[0.02] border border-foreground/[0.08] text-sm resize-none focus:outline-none focus:ring-2 focus:ring-emerald-500/20"
             />
           </div>
 
@@ -562,7 +562,7 @@ function TransactionForm({
               id="isRecurring"
               checked={form.isRecurring}
               onChange={(e) => setForm((f) => ({ ...f, isRecurring: e.target.checked }))}
-              className="rounded border-white/[0.08] bg-white/[0.02]"
+              className="rounded border-foreground/[0.08] bg-foreground/[0.02]"
             />
             <label htmlFor="isRecurring" className="text-sm text-muted-foreground">Recurring transaction</label>
           </div>

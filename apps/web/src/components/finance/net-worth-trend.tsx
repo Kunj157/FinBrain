@@ -89,20 +89,20 @@ export function NetWorthTrend({ currency }: { currency: SharedCurrency }) {
           <div className="flex items-baseline gap-2 mt-1">
             <span className="text-xl font-semibold">{formatCurrency(currentNW, currency)}</span>
             {data.length > 1 && (
-              <span className={`text-xs ${change >= 0 ? 'text-emerald-400' : 'text-rose-400'}`}>
+              <span className={`text-xs ${change >= 0 ? 'text-positive' : 'text-negative'}`}>
                 {change >= 0 ? '+' : ''}{change.toFixed(1)}% over period
               </span>
             )}
           </div>
         </div>
-        <div className="flex gap-1 bg-white/[0.03] rounded-lg p-0.5">
+        <div className="flex gap-1 bg-foreground/[0.03] rounded-lg p-0.5">
           {PERIODS.map((p) => (
             <button
               key={p.months}
               onClick={() => setPeriod(p.months)}
               className={`px-3 py-1 text-xs rounded-md transition-colors ${
                 period === p.months
-                  ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20'
+                  ? 'bg-primary/10 text-primary border border-primary/20'
                   : 'text-muted-foreground hover:text-foreground'
               }`}
             >

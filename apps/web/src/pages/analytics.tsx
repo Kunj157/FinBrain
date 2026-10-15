@@ -408,14 +408,14 @@ export default function Analytics() {
           <select
             value={categoryFilter}
             onChange={(e) => setCategoryFilter(e.target.value)}
-            className="h-8 px-2 rounded-lg bg-white/5 border border-white/[0.08] text-xs text-foreground focus:outline-none focus:ring-2 focus:ring-emerald-500/20"
+            className="h-8 px-2 rounded-lg bg-foreground/5 border border-foreground/[0.08] text-xs text-foreground focus:outline-none focus:ring-2 focus:ring-emerald-500/20"
           >
             <option value="all">All Categories</option>
             {categories.map((c) => (
               <option key={c.id} value={c.id}>{c.name}</option>
             ))}
           </select>
-          <div className="flex gap-0.5 p-0.5 rounded-lg bg-white/5">
+          <div className="flex gap-0.5 p-0.5 rounded-lg bg-foreground/5">
             {TYPE_FILTERS.map((t) => (
               <Button
                 key={t.value}
@@ -428,7 +428,7 @@ export default function Analytics() {
               </Button>
             ))}
           </div>
-          <div className="flex gap-0.5 p-0.5 rounded-lg bg-white/5">
+          <div className="flex gap-0.5 p-0.5 rounded-lg bg-foreground/5">
             {TIME_PERIODS.map((p) => (
               <Button
                 key={p.value}
@@ -570,7 +570,7 @@ export default function Analytics() {
                   <span className="text-xs text-muted-foreground flex-1 truncate">{cat.name}</span>
                   <span className="text-xs font-medium">{formatCurrency(cat.amount, currency)}</span>
                   <span className="text-[10px] text-muted-foreground w-10 text-right">{cat.percentage.toFixed(0)}%</span>
-                  <div className="w-16 h-1.5 bg-white/5 rounded-full overflow-hidden">
+                  <div className="w-16 h-1.5 bg-foreground/5 rounded-full overflow-hidden">
                     <div className="h-full rounded-full" style={{ width: `${cat.percentage}%`, backgroundColor: cat.color }} />
                   </div>
                 </div>
@@ -590,7 +590,7 @@ export default function Analytics() {
           ) : (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3">
               {topMerchants.map((m, i) => (
-                <div key={m.name} className="flex items-center gap-3 p-2.5 rounded-lg bg-white/[0.02]">
+                <div key={m.name} className="flex items-center gap-3 p-2.5 rounded-lg bg-foreground/[0.02]">
                   <span className="text-xs text-muted-foreground font-mono w-5">{i + 1}</span>
                   <div className="min-w-0">
                     <p className="text-xs font-medium truncate">{m.name}</p>
@@ -632,7 +632,7 @@ export default function Analytics() {
             <div className="space-y-4">
               <div className="grid grid-cols-3 gap-3">
                 {cashFlowForecast.forecast.map((f) => (
-                  <div key={f.days} className="p-3 rounded-lg bg-white/[0.02] text-center">
+                  <div key={f.days} className="p-3 rounded-lg bg-foreground/[0.02] text-center">
                     <p className="text-[10px] text-muted-foreground uppercase tracking-wider">{f.label}</p>
                     <p className={`text-lg font-bold mt-1 ${f.balance >= 0 ? 'text-emerald-400' : 'text-rose-400'}`}>
                       {formatCurrency(f.balance, currency)}
@@ -646,7 +646,7 @@ export default function Analytics() {
                 {cashFlowForecast.monthlyProjections.map((p) => (
                   <div key={p.month} className="flex items-center gap-3">
                     <span className="text-[10px] text-muted-foreground w-12">{p.label}</span>
-                    <div className="flex-1 h-2 bg-white/5 rounded-full overflow-hidden">
+                    <div className="flex-1 h-2 bg-foreground/5 rounded-full overflow-hidden">
                       <div
                         className="h-full rounded-full transition-all"
                         style={{
@@ -662,7 +662,7 @@ export default function Analytics() {
                 ))}
               </div>
 
-              <div className="flex items-center gap-4 text-xs text-muted-foreground pt-2 border-t border-white/5">
+              <div className="flex items-center gap-4 text-xs text-muted-foreground pt-2 border-t border-foreground/5">
                 <span>Recurring: <span className="text-rose-400">{formatCurrency(cashFlowForecast.recurringExpense, currency)}/mo</span></span>
                 <span>Variable: <span className="text-amber-400">{formatCurrency(cashFlowForecast.nonRecurringExpense, currency)}/mo</span></span>
                 <span>Net: <span className={cashFlowForecast.netMonthly >= 0 ? 'text-emerald-400' : 'text-rose-400'}>{formatCurrency(cashFlowForecast.netMonthly, currency)}/mo</span></span>

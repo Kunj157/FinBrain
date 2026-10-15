@@ -103,7 +103,7 @@ export default function HelpPage() {
                   <a
                     key={step.title}
                     href={step.link}
-                    className="block p-3 rounded-lg bg-white/[0.02] hover:bg-white/[0.04] transition-colors border border-white/[0.06]"
+                    className="block p-3 rounded-lg bg-foreground/[0.02] hover:bg-foreground/[0.04] transition-colors border border-foreground/[0.06]"
                   >
                     <span className="inline-flex items-center justify-center w-6 h-6 rounded-full bg-emerald-500/10 text-emerald-400 text-xs font-bold mb-2">
                       {i + 1}
@@ -128,7 +128,7 @@ export default function HelpPage() {
                 const Icon = faq.icon;
                 const isOpen = openFaq === faq.question;
                 return (
-                  <div key={faq.question} className="border-b border-white/[0.04] last:border-0">
+                  <div key={faq.question} className="border-b border-foreground/[0.04] last:border-0">
                     <button
                       onClick={() => setOpenFaq(isOpen ? null : faq.question)}
                       className="w-full flex items-center gap-3 py-3 text-left"
@@ -171,7 +171,7 @@ export default function HelpPage() {
                   Report an Issue
                 </Button>
               </a>
-              <div className="pt-2 border-t border-white/[0.06]">
+              <div className="pt-2 border-t border-foreground/[0.06]">
                 <p className="text-[11px] text-muted-foreground mb-2">Keyboard Shortcuts</p>
                 <div className="space-y-1.5">
                   {[
@@ -181,7 +181,7 @@ export default function HelpPage() {
                   ].map((shortcut) => (
                     <div key={shortcut.keys} className="flex items-center justify-between">
                       <span className="text-xs text-muted-foreground">{shortcut.action}</span>
-                      <kbd className="text-[10px] px-1.5 py-0.5 rounded bg-white/[0.06] text-muted-foreground font-mono">
+                      <kbd className="text-[10px] px-1.5 py-0.5 rounded bg-foreground/[0.06] text-muted-foreground font-mono">
                         {shortcut.keys}
                       </kbd>
                     </div>

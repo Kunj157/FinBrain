@@ -24,10 +24,10 @@ export function StatCard({ title, value, change, icon: Icon, variant = 'default'
   };
 
   const iconBg = {
-    default: 'bg-white/[0.04]',
-    positive: 'bg-emerald-500/10',
-    negative: 'bg-rose-500/10',
-    warning: 'bg-amber-500/10',
+    default: 'bg-foreground/[0.04]',
+    positive: 'bg-primary/10',
+    negative: 'bg-negative/10',
+    warning: 'bg-warning/10',
   };
 
   return (
@@ -43,7 +43,7 @@ export function StatCard({ title, value, change, icon: Icon, variant = 'default'
             <div
               className={cn(
                 'flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium',
-                favourable ? 'bg-emerald-500/10 text-emerald-400' : 'bg-rose-500/10 text-rose-400',
+                favourable ? 'bg-positive/10 text-positive' : 'bg-negative/10 text-negative',
               )}
               // Colour and arrow alone carry the direction; spell it out for
               // screen readers and anyone who cannot distinguish the two.
