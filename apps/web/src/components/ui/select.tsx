@@ -32,6 +32,7 @@ export function Select({
   placeholder,
   ariaLabel,
   name,
+  className,
 }: {
   value: string;
   onValueChange: (value: string) => void;
@@ -39,6 +40,8 @@ export function Select({
   placeholder?: string;
   ariaLabel?: string;
   name?: string;
+  /** Trigger classes, e.g. a fixed width inside a filter bar. */
+  className?: string;
 }) {
   // Radix treats an empty-string value as "nothing selected" and renders the
   // placeholder instead. Several call sites use '' as a real option (e.g.
@@ -52,6 +55,7 @@ export function Select({
         aria-label={ariaLabel ?? placeholder ?? selectedLabel}
         className={cn(
           'flex h-10 w-full cursor-pointer items-center justify-between rounded-lg border border-input bg-surface-sunken/60 px-3 py-2 text-sm transition-[border-color,box-shadow] duration-200 placeholder:text-muted-foreground hover:border-border-strong focus:outline-none focus-visible:border-primary/60 focus-visible:ring-4 focus-visible:ring-ring/15 disabled:cursor-not-allowed disabled:opacity-50 data-[state=open]:border-primary/60 [&>span]:line-clamp-1',
+          className,
         )}
       >
         <SelectPrimitive.Value placeholder={selectedLabel ?? placeholder} />

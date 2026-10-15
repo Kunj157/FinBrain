@@ -1,10 +1,17 @@
 import { useState, useMemo, useCallback, useEffect } from 'react';
 import {
-  FileText, Download, Printer, ChevronLeft, ChevronRight, Loader2,
-  TrendingUp, TrendingDown, ArrowUpRight, ArrowDownRight, Receipt,
+  FileText, Download, Printer, ChevronLeft, ChevronRight,
+  TrendingUp, TrendingDown, ArrowUpRight, ArrowDownRight, Receipt, Check, Store, Waypoints,
 } from 'lucide-react';
 import { ExplainViewButton } from '@/components/finance/explain-view-button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { PageHeader } from '@/components/ui/page-header';
+import { Segmented } from '@/components/ui/segmented';
+import { CardSkeleton, Skeleton } from '@/components/ui/skeleton';
+import { EmptyState } from '@/components/ui/empty-state';
+import { MetricCard } from '@/components/finance/metric-card';
+import { InView } from '@/components/motion/in-view';
+import { TransitionPanel } from '@/components/motion/transition-panel';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/hooks/use-auth';
 import api from '@/lib/api';
@@ -150,7 +157,7 @@ export default function Reports() {
       .map(([id, amount]) => ({
         id,
         name: catMap[id]?.name || 'Other',
-        color: catMap[id]?.color || '#64748b',
+        color: catMap[id]?.color || 'hsl(var(--muted-foreground))',
         amount,
         percentage: totalExpense > 0 ? (amount / totalExpense) * 100 : 0,
       }))
@@ -314,8 +321,12 @@ export default function Reports() {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center h-full">
-        <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+      <div className="space-y-6" aria-busy="true" aria-label="Loading reports">
+        <div className="space-y-2"><Skeleton className="h-8 w-40" /><Skeleton className="h-4 w-72" /></div>
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+          {Array.from({ length: 4 }, (_, i) => <CardSkeleton key={i} lines={0} className="h-[104px]" />)}
+        </div>
+        <div className="grid gap-4 lg:grid-cols-2"><CardSkeleton className="h-72" /><CardSkeleton className="h-72" /></div>
       </div>
     );
   }
@@ -324,262 +335,211 @@ export default function Reports() {
     return <LoadError message={loadError} onRetry={fetchData} />;
   }
 
+  const change = (value: number, lowerIsBetter = false) => {
+    if (value === 0) return <span>No change vs prev</span>;
+    const good = lowerIsBetter ? value < 0 : value > 0;
+    return (
+      <span className="inline-flex items-center gap-1">
+        <span className={`inline-flex items-center gap-0.5 font-medium ${good ? 'text-positive' : 'text-negative'}`}>
+          {value > 0 ? <ArrowUpRight className="h-3 w-3" aria-hidden /> : <ArrowDownRight className="h-3 w-3" aria-hidden />}
+          {Math.abs(value).toFixed(1)}%
+        </span>
+        vs prev
+      </span>
+    );
+  };
+
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <div>
-            <h1 className="text-2xl font-bold tracking-tight">Reports</h1>
-            <p className="text-sm text-muted-foreground">Generate and export financial reports</p>
-          </div>
-          <ExplainViewButton viewName="Reports" />
-        </div>
-        <div className="flex gap-2">
-          <Button variant="outline" size="sm" onClick={exportCSV}>
-            <Download className="h-4 w-4 mr-2" />
-            Export CSV
-          </Button>
-          <Button variant="outline" size="sm" onClick={exportPDF}>
-            <FileText className="h-4 w-4 mr-2" />
-            Export PDF
-          </Button>
-          <Button variant="outline" size="sm" onClick={printReport}>
-            <Printer className="h-4 w-4 mr-2" />
-            Print
-          </Button>
-        </div>
-      </div>
-
-      <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
-        <div className="flex gap-1 p-1 rounded-lg bg-foreground/5">
-          {REPORT_TYPES.map((rt) => (
-            <Button
-              key={rt.value}
-              variant={reportType === rt.value ? 'default' : 'ghost'}
-              size="sm"
-              onClick={() => { setReportType(rt.value); setCurrentDate(new Date()); }}
-              className="h-7 text-xs"
-            >
-              {rt.label}
+      <PageHeader
+        icon={FileText}
+        title="Reports"
+        description="Generate and export financial reports"
+        actions={
+          <>
+            <ExplainViewButton viewName="Reports" />
+            <Button variant="outline" size="sm" onClick={exportCSV}>
+              <Download className="h-4 w-4" />
+              Export CSV
             </Button>
-          ))}
-        </div>
-        <div className="flex items-center gap-3">
-          <Button variant="ghost" size="sm" onClick={() => setCurrentDate((d) => navigatePeriod(reportType, d, -1))} className="h-8 w-8 p-0">
+            <Button variant="outline" size="sm" onClick={exportPDF}>
+              <FileText className="h-4 w-4" />
+              Export PDF
+            </Button>
+            <Button variant="outline" size="sm" onClick={printReport}>
+              <Printer className="h-4 w-4" />
+              Print
+            </Button>
+          </>
+        }
+      />
+
+      <div className="flex flex-col items-start gap-3 sm:flex-row sm:items-center">
+        <Segmented
+          id="report-type"
+          label="Report type"
+          value={reportType}
+          onChange={(value) => { setReportType(value); setCurrentDate(new Date()); }}
+          options={REPORT_TYPES}
+        />
+        <div className="flex items-center gap-1 rounded-lg border bg-card/60 p-0.5 shadow-edge">
+          <Button variant="ghost" size="icon" aria-label="Previous period" onClick={() => setCurrentDate((d) => navigatePeriod(reportType, d, -1))} className="h-8 w-8">
             <ChevronLeft className="h-4 w-4" />
           </Button>
-          <span className="text-sm font-medium min-w-[160px] text-center">{getPeriodLabel(reportType, currentDate)}</span>
-          <Button variant="ghost" size="sm" onClick={() => setCurrentDate((d) => navigatePeriod(reportType, d, 1))} className="h-8 w-8 p-0">
+          <span className="min-w-[150px] text-center text-sm font-medium tabular-nums" aria-live="polite">{getPeriodLabel(reportType, currentDate)}</span>
+          <Button variant="ghost" size="icon" aria-label="Next period" onClick={() => setCurrentDate((d) => navigatePeriod(reportType, d, 1))} className="h-8 w-8">
             <ChevronRight className="h-4 w-4" />
           </Button>
-          <Button variant="ghost" size="sm" onClick={() => setCurrentDate(new Date())} className="h-7 text-xs ml-2">
-            Today
-          </Button>
         </div>
+        <Button variant="ghost" size="sm" onClick={() => setCurrentDate(new Date())} className="h-8 text-xs">
+          Today
+        </Button>
       </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+      <TransitionPanel activeKey={`${reportType}-${currentDate.toDateString()}`} className="space-y-6">
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        <MetricCard label="Income" value={report.totalIncome} icon={TrendingUp} tone="positive" currency={currency} footer={change(report.incomeChange)} />
+        <MetricCard label="Expenses" value={report.totalExpense} icon={TrendingDown} tone="negative" currency={currency} footer={change(report.expenseChange, true)} />
+        <MetricCard
+          label="Net"
+          value={report.net}
+          icon={report.net >= 0 ? ArrowUpRight : ArrowDownRight}
+          tone={report.net >= 0 ? 'positive' : 'negative'}
+          valueTone={report.net >= 0 ? 'positive' : 'negative'}
+          currency={currency}
+          footer="Income minus expenses"
+        />
+        <MetricCard
+          label="Transactions"
+          value={periodTransactions.length}
+          icon={FileText}
+          tone="info"
+          count
+          footer={`${report.incomeCount} in / ${report.expenseCount} out`}
+        />
+      </div>
+
+      <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+        <InView index={0}>
+          <Card className="h-full">
+            <CardHeader><CardTitle>Category Breakdown</CardTitle><CardDescription>Where this period&apos;s spending went</CardDescription></CardHeader>
+            <CardContent>
+              <div className="space-y-3">
+                {report.categoryBreakdown.length === 0 ? (
+                  <EmptyState icon={FileText} title="No expenses this period" className="py-6" />
+                ) : report.categoryBreakdown.map((cat) => (
+                  <div key={cat.id}>
+                    <div className="mb-1.5 flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <span className="h-2 w-2 rounded-full" style={{ backgroundColor: cat.color }} />
+                        <span className="text-xs font-medium">{cat.name}</span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <span className="text-xs font-medium tabular-nums">{formatCurrency(cat.amount, currency)}</span>
+                        <span className="w-8 text-right text-[10px] tabular-nums text-muted-foreground">{cat.percentage.toFixed(0)}%</span>
+                      </div>
+                    </div>
+                    <div className="h-1.5 overflow-hidden rounded-full bg-foreground/[0.06]">
+                      <div className="h-full rounded-full transition-all duration-500 ease-out" style={{ width: `${cat.percentage}%`, backgroundColor: cat.color }} />
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+        </InView>
+        <InView index={1}>
+          <Card className="h-full">
+            <CardHeader><CardTitle>Top Merchants</CardTitle><CardDescription>Ranked by amount spent</CardDescription></CardHeader>
+            <CardContent>
+              <div className="space-y-1.5">
+                {report.topMerchants.length === 0 ? (
+                  <EmptyState icon={Store} title="No merchant data this period" className="py-6" />
+                ) : report.topMerchants.map((m, i) => (
+                  <div key={m.name} className="flex items-center gap-3 rounded-lg border bg-foreground/[0.02] p-2.5">
+                    <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-md bg-foreground/[0.05] font-mono text-[11px] text-muted-foreground">{i + 1}</span>
+                    <p className="min-w-0 flex-1 truncate text-xs font-medium">{m.name}</p>
+                    <span className="text-xs font-medium tabular-nums">{formatCurrency(m.amount, currency)}</span>
+                  </div>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+        </InView>
+      </div>
+
+      <InView index={2}>
         <Card>
-          <CardContent className="p-4">
-            <div className="flex items-center gap-3">
-              <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10">
-                <TrendingUp className="h-5 w-5 text-primary" />
-              </div>
-              <div className="flex-1 min-w-0">
-                <p className="text-xs text-muted-foreground">Income</p>
-                <p className="text-lg font-bold text-primary">{formatCurrency(report.totalIncome, currency)}</p>
-                <div className="flex items-center gap-1 mt-0.5">
-                  {report.incomeChange !== 0 && (
-                    <>
-                      {report.incomeChange > 0 ? <ArrowUpRight className="h-3 w-3 text-positive" /> : <ArrowDownRight className="h-3 w-3 text-negative" />}
-                      <span className={`text-[10px] ${report.incomeChange > 0 ? 'text-positive' : 'text-negative'}`}>
-                        {Math.abs(report.incomeChange).toFixed(1)}%
-                      </span>
-                    </>
-                  )}
-                  <span className="text-[10px] text-muted-foreground">vs prev</span>
-                </div>
-              </div>
-            </div>
+          <CardHeader><CardTitle>Money Flow</CardTitle><CardDescription>How income moved into each kind of spending</CardDescription></CardHeader>
+          <CardContent>
+            {report.categoryBreakdown.length > 0 ? (
+              <SankeyFlow
+                income={[
+                  { name: 'Income', amount: report.totalIncome },
+                ]}
+                expenses={report.categoryBreakdown.map((c) => ({
+                  name: c.name,
+                  amount: c.amount,
+                  color: c.color,
+                }))}
+                currency={currency}
+              />
+            ) : (
+              <EmptyState icon={Waypoints} title="No data to visualize" className="py-10" />
+            )}
           </CardContent>
         </Card>
+      </InView>
+
+      <InView index={3}>
         <Card>
-          <CardContent className="p-4">
-            <div className="flex items-center gap-3">
-              <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-negative/10">
-                <TrendingDown className="h-5 w-5 text-negative" />
-              </div>
-              <div className="flex-1 min-w-0">
-                <p className="text-xs text-muted-foreground">Expenses</p>
-                <p className="text-lg font-bold text-negative">{formatCurrency(report.totalExpense, currency)}</p>
-                <div className="flex items-center gap-1 mt-0.5">
-                  {report.expenseChange !== 0 && (
-                    <>
-                      {report.expenseChange > 0 ? <ArrowUpRight className="h-3 w-3 text-negative" /> : <ArrowDownRight className="h-3 w-3 text-positive" />}
-                      <span className={`text-[10px] ${report.expenseChange > 0 ? 'text-negative' : 'text-positive'}`}>
-                        {Math.abs(report.expenseChange).toFixed(1)}%
-                      </span>
-                    </>
-                  )}
-                  <span className="text-[10px] text-muted-foreground">vs prev</span>
-                </div>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="p-4">
-            <div className="flex items-center gap-3">
-              <div className={`flex h-10 w-10 items-center justify-center rounded-lg ${report.net >= 0 ? 'bg-positive/10' : 'bg-negative/10'}`}>
-                {report.net >= 0 ? <ArrowUpRight className="h-5 w-5 text-positive" /> : <ArrowDownRight className="h-5 w-5 text-negative" />}
-              </div>
-              <div>
-                <p className="text-xs text-muted-foreground">Net</p>
-                <p className={`text-lg font-bold ${report.net >= 0 ? 'text-positive' : 'text-negative'}`}>
-                  {formatCurrency(report.net, currency)}
+          <CardHeader><CardTitle>Transaction Summary</CardTitle></CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+              <div className="rounded-lg border bg-foreground/[0.02] p-3">
+                <p className="stat-label">Period</p>
+                <p className="mt-1 text-sm font-medium">
+                  {start.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })} – {end.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
                 </p>
               </div>
-            </div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="p-4">
-            <div className="flex items-center gap-3">
-              <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-info/10">
-                <FileText className="h-5 w-5 text-info" />
+              <div className="rounded-lg border bg-foreground/[0.02] p-3">
+                <p className="stat-label">Savings Rate</p>
+                <p className={`mt-1 text-sm font-medium tabular-nums ${report.savingsRate >= 20 ? 'text-positive' : report.savingsRate >= 0 ? 'text-warning' : 'text-negative'}`}>
+                  {report.savingsRate.toFixed(1)}%
+                </p>
               </div>
-              <div>
-                <p className="text-xs text-muted-foreground">Transactions</p>
-                <p className="text-lg font-bold">{periodTransactions.length}</p>
-                <p className="text-[10px] text-muted-foreground">{report.incomeCount} in / {report.expenseCount} out</p>
+              <div className="rounded-lg border bg-foreground/[0.02] p-3">
+                <p className="stat-label">Avg Transaction</p>
+                <p className="mt-1 text-sm font-medium tabular-nums">
+                  {periodTransactions.length > 0
+                    ? formatCurrency(periodTransactions.reduce((s, t) => s + t.amount, 0) / periodTransactions.length, currency)
+                    : formatCurrency(0, currency)}
+                </p>
+              </div>
+              <div className="rounded-lg border bg-foreground/[0.02] p-3">
+                <p className="stat-label">Categories Used</p>
+                <p className="mt-1 text-sm font-medium tabular-nums">{report.categoryBreakdown.length}</p>
               </div>
             </div>
           </CardContent>
         </Card>
-      </div>
-
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium">Category Breakdown</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-3">
-              {report.categoryBreakdown.length === 0 ? (
-                <p className="text-xs text-muted-foreground text-center py-8">No expenses this period</p>
-              ) : report.categoryBreakdown.map((cat) => (
-                <div key={cat.id}>
-                  <div className="flex items-center justify-between mb-1">
-                    <div className="flex items-center gap-2">
-                      <div className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: cat.color }} />
-                      <span className="text-xs font-medium">{cat.name}</span>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <span className="text-xs font-medium">{formatCurrency(cat.amount, currency)}</span>
-                      <span className="text-[10px] text-muted-foreground w-8 text-right">{cat.percentage.toFixed(0)}%</span>
-                    </div>
-                  </div>
-                  <div className="h-1.5 bg-foreground/5 rounded-full overflow-hidden">
-                    <div className="h-full rounded-full transition-all" style={{ width: `${cat.percentage}%`, backgroundColor: cat.color }} />
-                  </div>
-                </div>
-              ))}
-            </div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium">Top Merchants</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-2">
-              {report.topMerchants.length === 0 ? (
-                <p className="text-xs text-muted-foreground text-center py-8">No merchant data this period</p>
-              ) : report.topMerchants.map((m, i) => (
-                <div key={m.name} className="flex items-center gap-3 p-2.5 rounded-lg bg-foreground/[0.02]">
-                  <span className="text-xs text-muted-foreground font-mono w-5">{i + 1}</span>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-xs font-medium truncate">{m.name}</p>
-                  </div>
-                  <span className="text-xs font-medium">{formatCurrency(m.amount, currency)}</span>
-                </div>
-              ))}
-            </div>
-          </CardContent>
-        </Card>
-      </div>
+      </InView>
+      </TransitionPanel>
 
       <Card>
-        <CardHeader className="pb-2">
-          <CardTitle className="text-sm font-medium">Money Flow</CardTitle>
-        </CardHeader>
-        <CardContent>
-          {report.categoryBreakdown.length > 0 ? (
-            <SankeyFlow
-              income={[
-                { name: 'Income', amount: report.totalIncome },
-              ]}
-              expenses={report.categoryBreakdown.map((c) => ({
-                name: c.name,
-                amount: c.amount,
-                color: c.color,
-              }))}
-              currency={currency}
-            />
-          ) : (
-            <p className="text-xs text-muted-foreground text-center py-12">No data to visualize</p>
-          )}
-        </CardContent>
-      </Card>
-
-      <Card>
-        <CardHeader className="pb-2">
-          <CardTitle className="text-sm font-medium">Transaction Summary</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-            <div className="p-3 rounded-lg bg-foreground/[0.02]">
-              <p className="text-[10px] text-muted-foreground uppercase tracking-wider">Period</p>
-              <p className="text-sm font-medium mt-0.5">
-                {start.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })} – {end.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
-              </p>
-            </div>
-            <div className="p-3 rounded-lg bg-foreground/[0.02]">
-              <p className="text-[10px] text-muted-foreground uppercase tracking-wider">Savings Rate</p>
-              <p className={`text-sm font-medium mt-0.5 ${report.savingsRate >= 20 ? 'text-positive' : report.savingsRate >= 0 ? 'text-warning' : 'text-negative'}`}>
-                {report.savingsRate.toFixed(1)}%
-              </p>
-            </div>
-            <div className="p-3 rounded-lg bg-foreground/[0.02]">
-              <p className="text-[10px] text-muted-foreground uppercase tracking-wider">Avg Transaction</p>
-              <p className="text-sm font-medium mt-0.5">
-                {periodTransactions.length > 0
-                  ? formatCurrency(periodTransactions.reduce((s, t) => s + t.amount, 0) / periodTransactions.length, currency)
-                  : formatCurrency(0, currency)}
-              </p>
-            </div>
-            <div className="p-3 rounded-lg bg-foreground/[0.02]">
-              <p className="text-[10px] text-muted-foreground uppercase tracking-wider">Categories Used</p>
-              <p className="text-sm font-medium mt-0.5">{report.categoryBreakdown.length}</p>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
-
-      <Card>
-        <CardHeader className="pb-2">
-          <CardTitle className="text-sm font-medium flex items-center gap-2">
-            <Receipt className="h-4 w-4" />
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Receipt className="h-4 w-4 text-primary" aria-hidden />
             Tax Summary — {taxYear}
           </CardTitle>
         </CardHeader>
         <CardContent>
           <div className="flex items-center gap-2 mb-4">
-            <Button variant="ghost" size="sm" onClick={() => setTaxYear((y) => y - 1)} className="h-7 w-7 p-0">
+            <Button variant="ghost" size="icon" aria-label="Previous tax year" onClick={() => setTaxYear((y) => y - 1)} className="h-7 w-7">
               <ChevronLeft className="h-3.5 w-3.5" />
             </Button>
             <span className="text-sm font-medium">{taxYear}</span>
-            <Button variant="ghost" size="sm" onClick={() => setTaxYear((y) => y + 1)} className="h-7 w-7 p-0">
+            <Button variant="ghost" size="icon" aria-label="Next tax year" onClick={() => setTaxYear((y) => y + 1)} className="h-7 w-7">
               <ChevronRight className="h-3.5 w-3.5" />
             </Button>
           </div>
@@ -596,7 +556,7 @@ export default function Reports() {
             )
               .map(([id, amount]) => ({
                 id, name: catMap[id]?.name || 'Other',
-                amount, color: catMap[id]?.color || '#64748b',
+                amount, color: catMap[id]?.color || 'hsl(var(--muted-foreground))',
                 deductible: !!deductibleCats[id],
               }))
               .sort((a, b) => b.amount - a.amount);
@@ -607,19 +567,19 @@ export default function Reports() {
             return (
               <div className="space-y-3">
                 <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-3">
-                  <div className="p-2.5 rounded-lg bg-foreground/[0.02]">
+                  <div className="rounded-lg border bg-foreground/[0.02] p-2.5">
                     <p className="text-[10px] text-muted-foreground">Total Expenses</p>
                     <p className="text-sm font-medium">{formatCurrency(totalExpenses, currency)}</p>
                   </div>
-                  <div className="p-2.5 rounded-lg bg-primary/5">
+                  <div className="rounded-lg border border-primary/20 bg-primary/5 p-2.5">
                     <p className="text-[10px] text-muted-foreground">Deductible</p>
                     <p className="text-sm font-medium text-primary">{formatCurrency(totalDeductible, currency)}</p>
                   </div>
-                  <div className="p-2.5 rounded-lg bg-foreground/[0.02]">
+                  <div className="rounded-lg border bg-foreground/[0.02] p-2.5">
                     <p className="text-[10px] text-muted-foreground">Transactions</p>
                     <p className="text-sm font-medium">{taxTxns.length}</p>
                   </div>
-                  <div className="p-2.5 rounded-lg bg-foreground/[0.02]">
+                  <div className="rounded-lg border bg-foreground/[0.02] p-2.5">
                     <p className="text-[10px] text-muted-foreground">Categories</p>
                     <p className="text-sm font-medium">{byCategory.length}</p>
                   </div>
@@ -628,21 +588,23 @@ export default function Reports() {
                   Mark categories as tax deductible by clicking the checkbox:
                 </p>
                 {byCategory.map((c) => (
-                  <div key={c.id} className="flex items-center justify-between p-2 rounded-lg bg-foreground/[0.02] hover:bg-foreground/[0.04] transition-colors">
+                  <div key={c.id} className="flex items-center justify-between rounded-lg p-2 transition-colors hover:bg-foreground/[0.04]">
                     <div className="flex items-center gap-2">
-                      <button onClick={() => toggleDeductible(c.id)} className="flex-shrink-0">
-                        <div className={`w-4 h-4 rounded border ${c.deductible ? 'bg-primary border-primary' : 'border-border-strong'} flex items-center justify-center`}>
-                          {c.deductible && (
-                            <svg className="w-3 h-3 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
-                            </svg>
-                          )}
+                      <button
+                        onClick={() => toggleDeductible(c.id)}
+                        role="checkbox"
+                        aria-checked={c.deductible}
+                        aria-label={`${c.name} is tax deductible`}
+                        className="flex-shrink-0 rounded"
+                      >
+                        <div className={`flex h-4 w-4 items-center justify-center rounded border transition-colors ${c.deductible ? 'border-primary bg-primary' : 'border-border-strong'}`}>
+                          {c.deductible && <Check className="h-3 w-3 text-primary-foreground" strokeWidth={3} aria-hidden />}
                         </div>
                       </button>
                       <div className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: c.color }} />
                       <span className="text-xs">{c.name}</span>
                     </div>
-                    <span className="text-xs font-medium">{formatCurrency(c.amount, currency)}</span>
+                    <span className="text-xs font-medium tabular-nums">{formatCurrency(c.amount, currency)}</span>
                   </div>
                 ))}
               </div>

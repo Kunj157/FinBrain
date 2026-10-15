@@ -13,6 +13,9 @@ import { Line } from 'react-chartjs-2';
 import api from '@/lib/api';
 import type { Currency as SharedCurrency } from '@finbrain/shared';
 import { formatCurrency } from '@/lib/utils';
+import { areaFill, useChartTheme } from '@/lib/chart-theme';
+import { ActiveHighlight } from '@/components/motion/animated-background';
+import { Skeleton } from '@/components/ui/skeleton';
 
 ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, Title, Tooltip, Filler);
 
@@ -32,6 +35,7 @@ export function NetWorthTrend({ currency }: { currency: SharedCurrency }) {
   const [period, setPeriod] = useState(12);
   const [data, setData] = useState<NetWorthPoint[]>([]);
   const [loading, setLoading] = useState(true);
+  const chart = useChartTheme();
 
   const fetchData = useCallback(async () => {
     setLoading(true);
@@ -51,7 +55,7 @@ export function NetWorthTrend({ currency }: { currency: SharedCurrency }) {
     if (!data.length) {
       return {
         labels: ['No data'],
-        datasets: [{ data: [0], borderColor: '#10b981', backgroundColor: 'rgba(16,185,129,0.05)', fill: true }],
+        datasets: [{ data: [0], borderColor: chart.primary, backgroundColor: areaFill('primary'), fill: true }],
       };
     }
 
@@ -64,18 +68,20 @@ export function NetWorthTrend({ currency }: { currency: SharedCurrency }) {
         {
           label: 'Net Worth',
           data: data.map((d) => d.netWorth),
-          borderColor: '#10b981',
-          backgroundColor: 'rgba(16, 185, 129, 0.08)',
+          borderColor: chart.primary,
+          backgroundColor: areaFill('primary'),
           fill: true,
           tension: 0.4,
-          pointRadius: data.length <= 12 ? 3 : 0,
+          pointRadius: 0,
           pointHoverRadius: 5,
-          pointBackgroundColor: '#10b981',
+          pointHoverBackgroundColor: chart.primary,
+          pointHoverBorderColor: chart.surface,
+          pointHoverBorderWidth: 2,
           borderWidth: 2,
         },
       ],
     };
-  }, [data]);
+  }, [data, chart]);
 
   const currentNW = data.length > 0 ? data[data.length - 1].netWorth : 0;
   const startNW = data.length > 0 ? data[0].netWorth : 0;
@@ -83,29 +89,31 @@ export function NetWorthTrend({ currency }: { currency: SharedCurrency }) {
 
   return (
     <div>
-      <div className="flex items-center justify-between mb-4">
+      <div className="mb-5 flex flex-wrap items-start justify-between gap-3">
         <div>
-          <h3 className="text-sm font-medium text-muted-foreground">Net Worth Trend</h3>
-          <div className="flex items-baseline gap-2 mt-1">
-            <span className="text-xl font-semibold">{formatCurrency(currentNW, currency)}</span>
+          <h3 className="text-sm font-semibold tracking-tight">Net Worth Trend</h3>
+          <div className="mt-1.5 flex items-baseline gap-2">
+            <span className="text-2xl font-semibold tracking-tight tabular-nums">{formatCurrency(currentNW, currency)}</span>
             {data.length > 1 && (
-              <span className={`text-xs ${change >= 0 ? 'text-positive' : 'text-negative'}`}>
+              <span className={`rounded-full px-1.5 py-0.5 text-xs font-medium tabular-nums ${change >= 0 ? 'bg-positive/10 text-positive' : 'bg-negative/10 text-negative'}`}>
                 {change >= 0 ? '+' : ''}{change.toFixed(1)}% over period
               </span>
             )}
           </div>
         </div>
-        <div className="flex gap-1 bg-foreground/[0.03] rounded-lg p-0.5">
+        <div className="flex gap-0.5 rounded-lg border bg-surface-sunken/60 p-0.5" role="group" aria-label="Period">
           {PERIODS.map((p) => (
             <button
               key={p.months}
               onClick={() => setPeriod(p.months)}
-              className={`px-3 py-1 text-xs rounded-md transition-colors ${
-                period === p.months
-                  ? 'bg-primary/10 text-primary border border-primary/20'
-                  : 'text-muted-foreground hover:text-foreground'
+              aria-pressed={period === p.months}
+              className={`relative isolate rounded-md px-3 py-1 text-xs font-medium transition-colors ${
+                period === p.months ? 'text-foreground' : 'text-muted-foreground hover:text-foreground'
               }`}
             >
+              {period === p.months && (
+                <ActiveHighlight layoutId="net-worth-period" className="rounded-md bg-card shadow-raised ring-1 ring-border" />
+              )}
               {p.label}
             </button>
           ))}
@@ -113,9 +121,7 @@ export function NetWorthTrend({ currency }: { currency: SharedCurrency }) {
       </div>
       <div className="h-[220px]">
         {loading ? (
-          <div className="h-full flex items-center justify-center text-sm text-muted-foreground/50">
-            Loading...
-          </div>
+          <Skeleton className="h-full rounded-xl" />
         ) : (
           <Line
             data={chartData}
@@ -125,27 +131,18 @@ export function NetWorthTrend({ currency }: { currency: SharedCurrency }) {
               plugins: {
                 legend: { display: false },
                 tooltip: {
-                  backgroundColor: 'rgba(0,0,0,0.8)',
-                  titleColor: '#e2e8f0',
-                  bodyColor: '#e2e8f0',
-                  borderColor: 'rgba(255,255,255,0.1)',
-                  borderWidth: 1,
-                  padding: 12,
-                  cornerRadius: 8,
+                  ...chart.tooltip,
                   callbacks: {
                     label: (ctx) => formatCurrency(ctx.parsed.y ?? 0, currency),
                   },
                 },
               },
               scales: {
-                x: {
-                  grid: { display: false },
-                  ticks: { color: '#64748b', maxRotation: 0 },
-                },
+                x: chart.axes.x,
                 y: {
-                  grid: { color: 'rgba(255,255,255,0.03)' },
+                  ...chart.axes.y,
                   ticks: {
-                    color: '#64748b',
+                    ...chart.axes.y.ticks,
                     callback: (val) => formatCurrency(Number(val), currency),
                   },
                 },
