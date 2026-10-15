@@ -130,7 +130,7 @@ export default function HouseholdPage() {
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-[400px]">
-        <Loader2 className="h-6 w-6 animate-spin text-emerald-400" />
+        <Loader2 className="h-6 w-6 animate-spin text-primary" />
       </div>
     );
   }
@@ -139,13 +139,13 @@ export default function HouseholdPage() {
     return (
       <div className="max-w-2xl mx-auto px-4 py-8 space-y-8">
         <div className="flex items-center gap-3">
-          <Users className="h-7 w-7 text-emerald-400" />
+          <Users className="h-7 w-7 text-primary" />
           <h1 className="text-2xl font-bold text-white">Household</h1>
         </div>
         <p className="text-muted-foreground">Share budgets, goals, and financial tracking with a partner.</p>
 
         {msg && (
-          <div className={`p-3 rounded-lg text-sm ${msg.type === 'success' ? 'bg-emerald-500/10 text-emerald-400' : 'bg-rose-500/10 text-rose-400'}`}>
+          <div className={`p-3 rounded-lg text-sm ${msg.type === 'success' ? 'bg-positive/10 text-positive' : 'bg-negative/10 text-negative'}`}>
             {msg.text}
           </div>
         )}
@@ -193,7 +193,7 @@ export default function HouseholdPage() {
     <div className="max-w-2xl mx-auto px-4 py-8 space-y-8">
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
-          <Users className="h-7 w-7 text-emerald-400" />
+          <Users className="h-7 w-7 text-primary" />
           <div>
             <h1 className="text-2xl font-bold text-white">{household.name}</h1>
             <p className="text-sm text-muted-foreground">
@@ -208,7 +208,7 @@ export default function HouseholdPage() {
       </div>
 
       {msg && (
-        <div className={`p-3 rounded-lg text-sm ${msg.type === 'success' ? 'bg-emerald-500/10 text-emerald-400' : 'bg-rose-500/10 text-rose-400'}`}>
+        <div className={`p-3 rounded-lg text-sm ${msg.type === 'success' ? 'bg-positive/10 text-positive' : 'bg-negative/10 text-negative'}`}>
           {msg.text}
         </div>
       )}
@@ -233,13 +233,13 @@ export default function HouseholdPage() {
               </div>
               <div className="flex items-center gap-2">
                 {m.role === 'OWNER' && (
-                  <span className="flex items-center gap-1 text-xs text-emerald-400 bg-emerald-500/10 px-2 py-1 rounded">
+                  <span className="flex items-center gap-1 text-xs text-primary bg-primary/10 px-2 py-1 rounded">
                     <Shield className="h-3 w-3" /> Owner
                   </span>
                 )}
                 {isOwner && m.role !== 'OWNER' && (
                   <Button variant="ghost" size="sm" onClick={() => removeMember(m.id)}>
-                    <LogOut className="h-4 w-4 text-red-400" />
+                    <LogOut className="h-4 w-4 text-negative" />
                   </Button>
                 )}
               </div>
@@ -257,9 +257,9 @@ export default function HouseholdPage() {
           {inviteToken ? (
             <div className="space-y-3">
               <div className="flex items-center gap-2 p-3 bg-muted rounded-lg">
-                <code className="flex-1 text-sm text-emerald-400 break-all">{inviteToken}</code>
+                <code className="flex-1 text-sm text-primary break-all">{inviteToken}</code>
                 <Button variant="ghost" size="sm" onClick={copyToken}>
-                  {copied ? <Check className="h-4 w-4 text-emerald-400" /> : <Copy className="h-4 w-4 text-muted-foreground" />}
+                  {copied ? <Check className="h-4 w-4 text-primary" /> : <Copy className="h-4 w-4 text-muted-foreground" />}
                 </Button>
               </div>
               <p className="text-xs text-muted-foreground">

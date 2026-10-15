@@ -116,7 +116,7 @@ export default function CreditScorePage() {
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-[400px]">
-        <Loader2 className="h-6 w-6 animate-spin text-emerald-400" />
+        <Loader2 className="h-6 w-6 animate-spin text-primary" />
       </div>
     );
   }
@@ -124,12 +124,12 @@ export default function CreditScorePage() {
   return (
     <div className="max-w-3xl mx-auto px-4 py-8 space-y-8">
       <div className="flex items-center gap-3">
-        <TrendingUp className="h-7 w-7 text-emerald-400" />
+        <TrendingUp className="h-7 w-7 text-primary" />
         <h1 className="text-2xl font-bold text-white">Credit Score</h1>
       </div>
 
       {msg && (
-        <div className={`p-3 rounded-lg text-sm ${msg.type === 'success' ? 'bg-emerald-500/10 text-emerald-400' : 'bg-rose-500/10 text-rose-400'}`}>
+        <div className={`p-3 rounded-lg text-sm ${msg.type === 'success' ? 'bg-positive/10 text-positive' : 'bg-negative/10 text-negative'}`}>
           {msg.text}
         </div>
       )}
@@ -198,7 +198,7 @@ export default function CreditScorePage() {
                   </span>
                 </div>
                 <Button variant="ghost" size="sm" onClick={() => deleteScore(s.id)}>
-                  <Trash2 className="h-4 w-4 text-red-400" />
+                  <Trash2 className="h-4 w-4 text-negative" />
                 </Button>
               </div>
             ))}
@@ -212,11 +212,11 @@ export default function CreditScorePage() {
           <div>
             <h3 className="text-sm font-medium text-white mb-1">About Credit Score Ranges</h3>
             <ul className="text-xs text-muted-foreground space-y-1">
-              <li><span className="text-emerald-400">750-900</span> Excellent</li>
-              <li><span className="text-blue-400">700-749</span> Good</li>
-              <li><span className="text-amber-400">650-699</span> Fair</li>
-              <li><span className="text-orange-400">600-649</span> Poor</li>
-              <li><span className="text-red-400">300-599</span> Bad</li>
+              <li><span className="text-primary">750-900</span> Excellent</li>
+              <li><span className="text-info">700-749</span> Good</li>
+              <li><span className="text-warning">650-699</span> Fair</li>
+              <li><span className="text-warning">600-649</span> Poor</li>
+              <li><span className="text-negative">300-599</span> Bad</li>
             </ul>
             <p className="text-xs text-muted-foreground mt-2">
               Scores are manually entered. Connect to a credit monitoring service for automatic updates.

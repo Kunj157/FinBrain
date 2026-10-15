@@ -245,7 +245,7 @@ export default function CategoriesPage() {
                     {group.isCustom && (
                       <button
                         onClick={(e) => { e.stopPropagation(); handleDelete(group.id); }}
-                        className="p-1.5 rounded-lg hover:bg-foreground/[0.04] hover:text-rose-400 transition-colors"
+                        className="p-1.5 rounded-lg hover:bg-foreground/[0.04] hover:text-negative transition-colors"
                       >
                         <Trash2 className="h-3 w-3" />
                       </button>
@@ -281,7 +281,7 @@ export default function CategoriesPage() {
                               <Pencil className="h-3 w-3" />
                             </button>
                             {child.isCustom && (
-                              <button onClick={() => handleDelete(child.id)} className="p-1 rounded-lg hover:bg-foreground/[0.04] hover:text-rose-400 transition-colors">
+                              <button onClick={() => handleDelete(child.id)} className="p-1 rounded-lg hover:bg-foreground/[0.04] hover:text-negative transition-colors">
                                 <Trash2 className="h-3 w-3" />
                               </button>
                             )}
@@ -292,7 +292,7 @@ export default function CategoriesPage() {
                   )}
                   <button
                     onClick={() => { openCreate(false); setForm((f) => ({ ...f, parentId: group.id })); }}
-                    className="w-full text-left p-2 rounded-lg text-xs text-muted-foreground hover:text-emerald-400 hover:bg-emerald-500/5 transition-colors"
+                    className="w-full text-left p-2 rounded-lg text-xs text-muted-foreground hover:text-primary hover:bg-primary/5 transition-colors"
                   >
                     + Add subcategory
                   </button>
@@ -322,7 +322,7 @@ export default function CategoriesPage() {
                       <Pencil className="h-3 w-3" />
                     </button>
                     {cat.isCustom && (
-                      <button onClick={() => handleDelete(cat.id)} className="p-1.5 rounded-lg hover:bg-foreground/[0.04] hover:text-rose-400 transition-colors">
+                      <button onClick={() => handleDelete(cat.id)} className="p-1.5 rounded-lg hover:bg-foreground/[0.04] hover:text-negative transition-colors">
                         <Trash2 className="h-3 w-3" />
                       </button>
                     )}
@@ -355,13 +355,13 @@ export default function CategoriesPage() {
                 <div className="flex gap-2 p-1 rounded-lg bg-foreground/[0.04]">
                   <button
                     onClick={() => setFormType('group')}
-                    className={`flex-1 py-1.5 px-3 rounded-md text-sm transition-colors ${formType === 'group' ? 'bg-emerald-500/10 text-emerald-400' : 'text-muted-foreground'}`}
+                    className={`flex-1 py-1.5 px-3 rounded-md text-sm transition-colors ${formType === 'group' ? 'bg-primary/10 text-primary' : 'text-muted-foreground'}`}
                   >
                     Group
                   </button>
                   <button
                     onClick={() => setFormType('subcategory')}
-                    className={`flex-1 py-1.5 px-3 rounded-md text-sm transition-colors ${formType === 'subcategory' ? 'bg-emerald-500/10 text-emerald-400' : 'text-muted-foreground'}`}
+                    className={`flex-1 py-1.5 px-3 rounded-md text-sm transition-colors ${formType === 'subcategory' ? 'bg-primary/10 text-primary' : 'text-muted-foreground'}`}
                   >
                     Subcategory
                   </button>
@@ -376,7 +376,7 @@ export default function CategoriesPage() {
                   value={form.name}
                   onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))}
                   placeholder={formType === 'group' ? 'e.g. Housing' : 'e.g. Rent'}
-                  className="w-full h-10 px-3 rounded-lg bg-foreground/[0.02] border border-foreground/[0.08] text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/20"
+                  className="w-full h-10 px-3 rounded-lg bg-foreground/[0.02] border border-foreground/[0.08] text-sm focus:outline-none focus:ring-2 focus:ring-primary/20"
                 />
               </div>
 

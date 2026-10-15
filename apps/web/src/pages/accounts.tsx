@@ -105,7 +105,7 @@ export default function AccountsPage() {
               <CardTitle className="text-xs text-muted-foreground font-normal">Net Worth</CardTitle>
             </CardHeader>
             <CardContent>
-              <p className={`text-2xl font-semibold ${netWorth.netWorth >= 0 ? 'text-emerald-400' : 'text-rose-400'}`}>
+              <p className={`text-2xl font-semibold ${netWorth.netWorth >= 0 ? 'text-positive' : 'text-negative'}`}>
                 {formatCurrency(netWorth.netWorth, currency)}
               </p>
             </CardContent>
@@ -115,7 +115,7 @@ export default function AccountsPage() {
               <CardTitle className="text-xs text-muted-foreground font-normal">Total Assets</CardTitle>
             </CardHeader>
             <CardContent>
-              <p className="text-2xl font-semibold text-emerald-400">{formatCurrency(netWorth.totalAssets, currency)}</p>
+              <p className="text-2xl font-semibold text-primary">{formatCurrency(netWorth.totalAssets, currency)}</p>
             </CardContent>
           </Card>
           <Card>
@@ -123,7 +123,7 @@ export default function AccountsPage() {
               <CardTitle className="text-xs text-muted-foreground font-normal">Total Liabilities</CardTitle>
             </CardHeader>
             <CardContent>
-              <p className="text-2xl font-semibold text-rose-400">{formatCurrency(netWorth.totalLiabilities, currency)}</p>
+              <p className="text-2xl font-semibold text-negative">{formatCurrency(netWorth.totalLiabilities, currency)}</p>
             </CardContent>
           </Card>
         </div>
@@ -140,8 +140,8 @@ export default function AccountsPage() {
       {accounts.length === 0 && (
         <Card>
           <CardContent className="flex flex-col items-center gap-4 py-16 text-center">
-            <div className="flex h-12 w-12 items-center justify-center rounded-full bg-emerald-500/10">
-              <Building2 className="h-6 w-6 text-emerald-400" aria-hidden="true" />
+            <div className="flex h-12 w-12 items-center justify-center rounded-full bg-primary/10">
+              <Building2 className="h-6 w-6 text-primary" aria-hidden="true" />
             </div>
             <div className="space-y-1">
               <p className="font-medium">No accounts yet</p>
@@ -165,8 +165,8 @@ export default function AccountsPage() {
               <CardHeader className="pb-2">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-3">
-                    <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-emerald-500/10">
-                      <Icon className="h-5 w-5 text-emerald-400" />
+                    <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10">
+                      <Icon className="h-5 w-5 text-primary" />
                     </div>
                     <div>
                       <CardTitle className="text-sm font-medium">{acct.name}</CardTitle>
@@ -176,7 +176,7 @@ export default function AccountsPage() {
                 </div>
               </CardHeader>
               <CardContent>
-                <p className={`text-lg font-semibold ${acct.balance >= 0 ? 'text-emerald-400' : 'text-rose-400'}`}>
+                <p className={`text-lg font-semibold ${acct.balance >= 0 ? 'text-positive' : 'text-negative'}`}>
                   {formatCurrency(acct.balance, acct.currency || currency)}
                 </p>
                 {acct.institution && (
@@ -206,7 +206,7 @@ export default function AccountsPage() {
                   value={form.name}
                   onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))}
                   placeholder="e.g. Main Checking"
-                  className="w-full h-10 px-3 rounded-lg bg-foreground/[0.02] border border-foreground/[0.08] text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/20"
+                  className="w-full h-10 px-3 rounded-lg bg-foreground/[0.02] border border-foreground/[0.08] text-sm focus:outline-none focus:ring-2 focus:ring-primary/20"
                 />
               </div>
               <div>
@@ -224,7 +224,7 @@ export default function AccountsPage() {
                   value={form.balance}
                   onChange={(e) => setForm((f) => ({ ...f, balance: parseFloat(e.target.value) || 0 }))}
                   placeholder="0.00"
-                  className="w-full h-10 px-3 rounded-lg bg-foreground/[0.02] border border-foreground/[0.08] text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/20"
+                  className="w-full h-10 px-3 rounded-lg bg-foreground/[0.02] border border-foreground/[0.08] text-sm focus:outline-none focus:ring-2 focus:ring-primary/20"
                 />
               </div>
               <div>
@@ -234,7 +234,7 @@ export default function AccountsPage() {
                   value={form.institution}
                   onChange={(e) => setForm((f) => ({ ...f, institution: e.target.value }))}
                   placeholder="e.g. Chase"
-                  className="w-full h-10 px-3 rounded-lg bg-foreground/[0.02] border border-foreground/[0.08] text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/20"
+                  className="w-full h-10 px-3 rounded-lg bg-foreground/[0.02] border border-foreground/[0.08] text-sm focus:outline-none focus:ring-2 focus:ring-primary/20"
                 />
               </div>
               <div className="flex gap-3 pt-2">

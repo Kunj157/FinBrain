@@ -55,11 +55,11 @@ type Summary = {
 };
 
 const ASSET_TYPE_COLORS: Record<string, string> = {
-  stock: 'bg-blue-500',
-  etf: 'bg-emerald-500',
-  bond: 'bg-amber-500',
-  mutual_fund: 'bg-purple-500',
-  crypto: 'bg-rose-500',
+  stock: 'bg-info',
+  etf: 'bg-primary',
+  bond: 'bg-warning',
+  mutual_fund: 'bg-accent',
+  crypto: 'bg-negative',
   other: 'bg-muted-foreground',
 };
 
@@ -211,18 +211,18 @@ export default function Investments() {
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-xs text-muted-foreground">Gain/Loss</p>
-                  <p className={`text-xl font-bold flex items-center gap-1 ${summary.gainLoss >= 0 ? 'text-emerald-400' : 'text-rose-400'}`}>
+                  <p className={`text-xl font-bold flex items-center gap-1 ${summary.gainLoss >= 0 ? 'text-positive' : 'text-negative'}`}>
                     {summary.gainLoss >= 0 ? <ArrowUpRight className="h-4 w-4" /> : <ArrowDownRight className="h-4 w-4" />}
                     {formatCurrency(Math.abs(summary.gainLoss), currency)}
                   </p>
                 </div>
                 {summary.gainLoss >= 0 ? (
-                  <TrendingUp className="h-5 w-5 text-emerald-400" />
+                  <TrendingUp className="h-5 w-5 text-primary" />
                 ) : (
-                  <TrendingDown className="h-5 w-5 text-rose-400" />
+                  <TrendingDown className="h-5 w-5 text-negative" />
                 )}
               </div>
-              <p className={`text-xs mt-1 ${summary.gainLossPct >= 0 ? 'text-emerald-400' : 'text-rose-400'}`}>
+              <p className={`text-xs mt-1 ${summary.gainLossPct >= 0 ? 'text-positive' : 'text-negative'}`}>
                 {summary.gainLossPct >= 0 ? '+' : ''}{summary.gainLossPct}%
               </p>
             </CardContent>
@@ -303,13 +303,13 @@ export default function Investments() {
                       <div className="flex items-center gap-4">
                         <div className="text-right">
                           <p className="text-sm font-medium">{formatCurrency(value, currency)}</p>
-                          <p className={`text-xs ${gl >= 0 ? 'text-emerald-400' : 'text-rose-400'}`}>
+                          <p className={`text-xs ${gl >= 0 ? 'text-positive' : 'text-negative'}`}>
                             {gl >= 0 ? '+' : ''}{formatCurrency(gl, currency)} ({glPct >= 0 ? '+' : ''}{glPct.toFixed(1)}%)
                           </p>
                         </div>
                         <button
                           onClick={() => handleDeleteHolding(h.id)}
-                          className="p-1.5 rounded-lg hover:bg-rose-500/10 text-muted-foreground hover:text-rose-400 transition-colors"
+                          className="p-1.5 rounded-lg hover:bg-negative/10 text-muted-foreground hover:text-negative transition-colors"
                         >
                           <X className="h-3.5 w-3.5" />
                         </button>
@@ -326,7 +326,7 @@ export default function Investments() {
           {portfolios.map((p) => (
             <Card
               key={p.id}
-              className="cursor-pointer hover:border-emerald-500/20 transition-colors"
+              className="cursor-pointer hover:border-primary/20 transition-colors"
               onClick={() => fetchPortfolioDetail(p.id)}
             >
               <CardContent className="p-5">
@@ -341,7 +341,7 @@ export default function Investments() {
                   </div>
                   <div className="flex items-center justify-between">
                     <span className="text-xs text-muted-foreground">Gain/Loss</span>
-                    <span className={`text-sm font-medium flex items-center gap-1 ${p.gainLoss >= 0 ? 'text-emerald-400' : 'text-rose-400'}`}>
+                    <span className={`text-sm font-medium flex items-center gap-1 ${p.gainLoss >= 0 ? 'text-positive' : 'text-negative'}`}>
                       {p.gainLoss >= 0 ? <ArrowUpRight className="h-3 w-3" /> : <ArrowDownRight className="h-3 w-3" />}
                       {formatCurrency(Math.abs(p.gainLoss), currency)} ({p.gainLossPct >= 0 ? '+' : ''}{p.gainLossPct}%)
                     </span>
@@ -372,7 +372,7 @@ export default function Investments() {
       {(topMovers.gainers.length > 0 || topMovers.losers.length > 0) && !selectedPortfolio && (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <Card>
-            <CardHeader className="pb-2"><CardTitle className="text-sm font-medium flex items-center gap-2"><TrendingUp className="h-4 w-4 text-emerald-400" /> Top Gainers</CardTitle></CardHeader>
+            <CardHeader className="pb-2"><CardTitle className="text-sm font-medium flex items-center gap-2"><TrendingUp className="h-4 w-4 text-primary" /> Top Gainers</CardTitle></CardHeader>
             <CardContent>
               {topMovers.gainers.map((g) => (
                 <div key={g.symbol} className="flex items-center justify-between py-2 border-b border-foreground/[0.02] last:border-0">
@@ -381,7 +381,7 @@ export default function Investments() {
                     <p className="text-xs text-muted-foreground">{g.name}</p>
                   </div>
                   <div className="text-right">
-                    <p className="text-sm font-medium text-emerald-400">+{g.gainLossPercent}%</p>
+                    <p className="text-sm font-medium text-primary">+{g.gainLossPercent}%</p>
                     <p className="text-xs text-muted-foreground">Today: {g.dailyChangePercent >= 0 ? '+' : ''}{g.dailyChangePercent}%</p>
                   </div>
                 </div>
@@ -389,7 +389,7 @@ export default function Investments() {
             </CardContent>
           </Card>
           <Card>
-            <CardHeader className="pb-2"><CardTitle className="text-sm font-medium flex items-center gap-2"><TrendingDown className="h-4 w-4 text-rose-400" /> Top Losers</CardTitle></CardHeader>
+            <CardHeader className="pb-2"><CardTitle className="text-sm font-medium flex items-center gap-2"><TrendingDown className="h-4 w-4 text-negative" /> Top Losers</CardTitle></CardHeader>
             <CardContent>
               {topMovers.losers.map((l) => (
                 <div key={l.symbol} className="flex items-center justify-between py-2 border-b border-foreground/[0.02] last:border-0">
@@ -398,7 +398,7 @@ export default function Investments() {
                     <p className="text-xs text-muted-foreground">{l.name}</p>
                   </div>
                   <div className="text-right">
-                    <p className="text-sm font-medium text-rose-400">{l.gainLossPercent}%</p>
+                    <p className="text-sm font-medium text-negative">{l.gainLossPercent}%</p>
                     <p className="text-xs text-muted-foreground">Today: {l.dailyChangePercent >= 0 ? '+' : ''}{l.dailyChangePercent}%</p>
                   </div>
                 </div>
@@ -425,7 +425,7 @@ export default function Investments() {
                   value={newPortfolioName}
                   onChange={(e) => setNewPortfolioName(e.target.value)}
                   placeholder="e.g., My Investments"
-                  className="w-full h-10 px-3 rounded-lg bg-foreground/[0.03] border border-foreground/[0.06] text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/20"
+                  className="w-full h-10 px-3 rounded-lg bg-foreground/[0.03] border border-foreground/[0.06] text-sm focus:outline-none focus:ring-2 focus:ring-primary/20"
                   autoFocus
                 />
               </div>
@@ -456,7 +456,7 @@ export default function Investments() {
                     value={newHolding.symbol}
                     onChange={(e) => setNewHolding({ ...newHolding, symbol: e.target.value.toUpperCase() })}
                     placeholder="AAPL"
-                    className="w-full h-10 px-3 rounded-lg bg-foreground/[0.03] border border-foreground/[0.06] text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/20"
+                    className="w-full h-10 px-3 rounded-lg bg-foreground/[0.03] border border-foreground/[0.06] text-sm focus:outline-none focus:ring-2 focus:ring-primary/20"
                   />
                 </div>
                 <div>
@@ -466,7 +466,7 @@ export default function Investments() {
                     value={newHolding.name}
                     onChange={(e) => setNewHolding({ ...newHolding, name: e.target.value })}
                     placeholder="Apple Inc."
-                    className="w-full h-10 px-3 rounded-lg bg-foreground/[0.03] border border-foreground/[0.06] text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/20"
+                    className="w-full h-10 px-3 rounded-lg bg-foreground/[0.03] border border-foreground/[0.06] text-sm focus:outline-none focus:ring-2 focus:ring-primary/20"
                   />
                 </div>
               </div>
@@ -478,7 +478,7 @@ export default function Investments() {
                     value={newHolding.quantity}
                     onChange={(e) => setNewHolding({ ...newHolding, quantity: e.target.value })}
                     placeholder="10"
-                    className="w-full h-10 px-3 rounded-lg bg-foreground/[0.03] border border-foreground/[0.06] text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/20"
+                    className="w-full h-10 px-3 rounded-lg bg-foreground/[0.03] border border-foreground/[0.06] text-sm focus:outline-none focus:ring-2 focus:ring-primary/20"
                   />
                 </div>
                 <div>
@@ -488,7 +488,7 @@ export default function Investments() {
                     value={newHolding.avgCostBasis}
                     onChange={(e) => setNewHolding({ ...newHolding, avgCostBasis: e.target.value })}
                     placeholder="150.00"
-                    className="w-full h-10 px-3 rounded-lg bg-foreground/[0.03] border border-foreground/[0.06] text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/20"
+                    className="w-full h-10 px-3 rounded-lg bg-foreground/[0.03] border border-foreground/[0.06] text-sm focus:outline-none focus:ring-2 focus:ring-primary/20"
                   />
                 </div>
                 <div>
@@ -498,7 +498,7 @@ export default function Investments() {
                     value={newHolding.currentPrice}
                     onChange={(e) => setNewHolding({ ...newHolding, currentPrice: e.target.value })}
                     placeholder="175.00"
-                    className="w-full h-10 px-3 rounded-lg bg-foreground/[0.03] border border-foreground/[0.06] text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/20"
+                    className="w-full h-10 px-3 rounded-lg bg-foreground/[0.03] border border-foreground/[0.06] text-sm focus:outline-none focus:ring-2 focus:ring-primary/20"
                   />
                 </div>
               </div>
@@ -507,7 +507,7 @@ export default function Investments() {
                 <select
                   value={newHolding.assetType}
                   onChange={(e) => setNewHolding({ ...newHolding, assetType: e.target.value })}
-                  className="w-full h-10 px-3 rounded-lg bg-foreground/[0.03] border border-foreground/[0.06] text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/20"
+                  className="w-full h-10 px-3 rounded-lg bg-foreground/[0.03] border border-foreground/[0.06] text-sm focus:outline-none focus:ring-2 focus:ring-primary/20"
                 >
                   <option value="stock">Stock</option>
                   <option value="etf">ETF</option>

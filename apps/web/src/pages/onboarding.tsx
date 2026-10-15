@@ -37,8 +37,8 @@ export default function Onboarding() {
     return (
       <div className="flex min-h-screen items-center justify-center bg-background">
         <div className="text-center max-w-md px-4 animate-fade-in">
-          <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-2xl bg-emerald-500/10 border border-emerald-500/20 mb-6">
-            <Check className="h-8 w-8 text-emerald-400" />
+          <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-2xl bg-primary/10 border border-primary/20 mb-6">
+            <Check className="h-8 w-8 text-primary" />
           </div>
           <h2 className="text-2xl font-semibold">You&apos;re all set!</h2>
           <p className="text-muted-foreground mt-2">
@@ -54,7 +54,7 @@ export default function Onboarding() {
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-background p-4">
-      <div className="absolute inset-0 bg-gradient-to-br from-emerald-500/5 via-transparent to-teal-500/5 pointer-events-none" />
+      <div className="absolute inset-0 bg-gradient-to-br from-primary/5 via-transparent to-accent/5 pointer-events-none" />
 
       <div className="relative w-full max-w-lg mx-auto animate-fade-in">
         {step !== 'welcome' && (
@@ -68,8 +68,8 @@ export default function Onboarding() {
         )}
 
         <div className="text-center mb-8">
-          <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-xl bg-emerald-500/10 border border-emerald-500/20 mb-4">
-            <Brain className="h-6 w-6 text-emerald-400" />
+          <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-xl bg-primary/10 border border-primary/20 mb-4">
+            <Brain className="h-6 w-6 text-primary" />
           </div>
           <h1 className="text-2xl font-semibold">
             {step === 'welcome' && 'Welcome to FinBrain'}
@@ -91,14 +91,14 @@ export default function Onboarding() {
                 onClick={() => { setSelected(opt.id); setStep(opt.id); }}
                 className="w-full flex items-center gap-4 glass rounded-xl p-5 card-hover text-left group"
               >
-                <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-foreground/[0.04] group-hover:bg-emerald-500/10 transition-colors">
-                  <opt.icon className="h-6 w-6 text-muted-foreground group-hover:text-emerald-400 transition-colors" />
+                <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-foreground/[0.04] group-hover:bg-primary/10 transition-colors">
+                  <opt.icon className="h-6 w-6 text-muted-foreground group-hover:text-primary transition-colors" />
                 </div>
                 <div className="flex-1">
                   <p className="font-medium">{opt.title}</p>
                   <p className="text-sm text-muted-foreground">{opt.desc}</p>
                 </div>
-                <ArrowRight className="h-5 w-5 text-muted-foreground group-hover:text-emerald-400 transition-colors" />
+                <ArrowRight className="h-5 w-5 text-muted-foreground group-hover:text-primary transition-colors" />
               </button>
             ))}
           </div>

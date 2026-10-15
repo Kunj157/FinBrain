@@ -26,10 +26,10 @@ type Insight = {
 };
 
 const HEALTH_LABELS: Record<number, { label: string; color: string; icon: typeof ShieldCheck }> = {
-  0: { label: 'Critical', color: 'text-rose-400', icon: ShieldX },
-  40: { label: 'Needs Work', color: 'text-amber-400', icon: ShieldAlert },
-  70: { label: 'Good', color: 'text-emerald-400', icon: ShieldCheck },
-  90: { label: 'Excellent', color: 'text-emerald-300', icon: ShieldCheck },
+  0: { label: 'Critical', color: 'text-negative', icon: ShieldX },
+  40: { label: 'Needs Work', color: 'text-warning', icon: ShieldAlert },
+  70: { label: 'Good', color: 'text-primary', icon: ShieldCheck },
+  90: { label: 'Excellent', color: 'text-primary', icon: ShieldCheck },
 };
 
 function getHealthLevel(score: number) {
@@ -118,7 +118,7 @@ function generateInsights(
         title: 'Spending Surge Detected',
         description: `Your expenses are up ${change.toFixed(0)}% compared to last month (${formatCurrency(thisTotal, currency)} vs ${formatCurrency(lastTotal, currency)}). Review your recent transactions to identify where the extra spending is coming from.`,
         icon: TrendingUp,
-        color: 'text-rose-400',
+        color: 'text-negative',
       });
     } else if (change < -15) {
       insights.push({
@@ -128,7 +128,7 @@ function generateInsights(
         title: 'Great Spending Discipline',
         description: `Your expenses dropped ${Math.abs(change).toFixed(0)}% this month — from ${formatCurrency(lastTotal, currency)} to ${formatCurrency(thisTotal, currency)}. Keep up the good work!`,
         icon: TrendingDown,
-        color: 'text-emerald-400',
+        color: 'text-primary',
       });
     }
   }
@@ -148,7 +148,7 @@ function generateInsights(
       title: `Top Spending: ${cat?.name || 'Unknown'}`,
       description: `You've spent ${formatCurrency(topCat[1], currency)} on ${cat?.name || 'this category'} this month — that's ${pct}% of your total expenses. ${Number(pct) > 40 ? 'This seems high — consider if there are ways to reduce.' : ''}`,
       icon: Target,
-      color: 'text-blue-400',
+      color: 'text-info',
     });
   }
 
@@ -163,7 +163,7 @@ function generateInsights(
         title: `${cat?.name || 'Budget'} Over Budget`,
         description: `You've exceeded your ${budget.period} ${cat?.name || ''} budget by ${formatCurrency(over, currency)}. Consider adjusting your spending for the rest of the period.`,
         icon: AlertTriangle,
-        color: 'text-amber-400',
+        color: 'text-warning',
       });
     } else if (budget.spent > budget.amount * 0.8) {
       const cat = categories.find((c) => c.id === budget.categoryId);
@@ -174,7 +174,7 @@ function generateInsights(
         title: `${cat?.name || 'Budget'} Nearing Limit`,
         description: `You've used ${((budget.spent / budget.amount) * 100).toFixed(0)}% of your ${cat?.name || ''} budget with days remaining. Pace your spending to stay on track.`,
         icon: Lightbulb,
-        color: 'text-blue-400',
+        color: 'text-info',
       });
     }
   }
@@ -201,7 +201,7 @@ function generateInsights(
             title: `${goal.name} Goal at Risk`,
             description: `You need ${formatCurrency(remaining, currency)} in ${daysLeft} days to reach your ${goal.name} goal. That requires saving ~${formatCurrency(neededPerDay, currency)}/day.`,
             icon: AlertTriangle,
-            color: 'text-amber-400',
+            color: 'text-warning',
           });
         }
       }
@@ -229,7 +229,7 @@ function generateInsights(
       title: `${recurring.length} Recurring Transactions`,
       description: `You have ${recurring.length} recurring transactions totaling ${formatCurrency(recurringTotal, currency)}. Review these to ensure they're all still needed.`,
       icon: RefreshCw,
-      color: 'text-purple-400',
+      color: 'text-accent',
     });
   }
 
@@ -246,7 +246,7 @@ function generateInsights(
         title: 'Savings Rate Below 20%',
         description: `Your savings rate is ${sr}%. Financial experts recommend saving at least 20% of your income. Look for expenses you can reduce to boost your savings.`,
         icon: PiggyBank,
-        color: 'text-amber-400',
+        color: 'text-warning',
       });
     }
   }
@@ -262,7 +262,7 @@ function generateInsights(
       title: 'Daily Spending Average',
       description: `You're averaging ${formatCurrency(avgDaily, currency)}/day this month across ${thisMonthExpenses.length} transactions.`,
       icon: DollarSign,
-      color: 'text-blue-400',
+      color: 'text-info',
     });
   }
 
@@ -389,8 +389,8 @@ export default function Insights() {
                   <circle cx="60" cy="60" r="52" fill="none" strokeWidth="8" strokeLinecap="round"
                     strokeDasharray={`${(health.score / 100) * 327} 327`}
                     className={
-                      health.score >= 70 ? 'stroke-emerald-400' :
-                      health.score >= 40 ? 'stroke-amber-400' : 'stroke-rose-400'
+                      health.score >= 70 ? 'stroke-primary' :
+                      health.score >= 40 ? 'stroke-warning' : 'stroke-negative'
                     }
                   />
                 </svg>
@@ -416,7 +416,7 @@ export default function Insights() {
                   <div className="w-full h-1.5 bg-foreground/5 rounded-full overflow-hidden">
                     <div
                       className={`h-full rounded-full transition-all duration-500 ${
-                        value >= 70 ? 'bg-emerald-400' : value >= 40 ? 'bg-amber-400' : 'bg-rose-400'
+                        value >= 70 ? 'bg-positive' : value >= 40 ? 'bg-warning' : 'bg-negative'
                       }`}
                       style={{ width: `${value}%` }}
                     />
@@ -448,8 +448,8 @@ export default function Insights() {
                     <CardContent className="p-4">
                       <div className="flex gap-3">
                         <div className={`flex h-9 w-9 items-center justify-center rounded-lg flex-shrink-0 ${
-                          insight.type === 'alert' ? 'bg-rose-500/10' :
-                          insight.type === 'suggestion' ? 'bg-amber-500/10' : 'bg-blue-500/10'
+                          insight.type === 'alert' ? 'bg-negative/10' :
+                          insight.type === 'suggestion' ? 'bg-warning/10' : 'bg-info/10'
                         }`}>
                           <Icon className={`h-4 w-4 ${insight.color}`} />
                         </div>
@@ -457,7 +457,7 @@ export default function Insights() {
                           <div className="flex items-center gap-2 mb-0.5">
                             <p className="text-xs font-medium truncate">{insight.title}</p>
                             {insight.severity === 'high' && (
-                              <span className="text-[9px] px-1.5 py-0.5 rounded-full bg-rose-500/20 text-rose-300 flex-shrink-0">
+                              <span className="text-[9px] px-1.5 py-0.5 rounded-full bg-negative/20 text-negative flex-shrink-0">
                                 HIGH
                               </span>
                             )}
@@ -477,7 +477,7 @@ export default function Insights() {
       <Card>
         <CardHeader className="pb-3">
           <CardTitle className="text-sm font-medium flex items-center gap-2">
-            <Brain className="h-4 w-4 text-emerald-400" />
+            <Brain className="h-4 w-4 text-primary" />
             Ask FinBrain
           </CardTitle>
         </CardHeader>
@@ -485,7 +485,7 @@ export default function Insights() {
           <div className="h-[300px] overflow-y-auto mb-4 space-y-3 scrollbar-thin">
             {messages.length === 0 && (
               <div className="flex flex-col items-center justify-center h-full text-center">
-                <Brain className="h-8 w-8 text-emerald-400/20 mb-3" />
+                <Brain className="h-8 w-8 text-primary/20 mb-3" />
                 <p className="text-sm text-muted-foreground mb-4">Ask me anything about your finances</p>
                 <div className="flex flex-wrap gap-2 justify-center max-w-lg">
                   {[
@@ -497,7 +497,7 @@ export default function Insights() {
                     <button
                       key={q}
                       onClick={() => { setChatInput(q); }}
-                      className="text-[11px] px-3 py-1.5 rounded-full bg-emerald-500/10 text-emerald-300 hover:bg-emerald-500/20 transition-colors"
+                      className="text-[11px] px-3 py-1.5 rounded-full bg-primary/10 text-primary hover:bg-primary/20 transition-colors"
                     >
                       {q}
                     </button>
@@ -512,7 +512,7 @@ export default function Insights() {
               <div className="flex justify-start">
                 <div className="rounded-xl px-4 py-3 bg-foreground/[0.04]">
                   <div className="flex items-center gap-2">
-                    <Brain className="h-3 w-3 text-emerald-400 animate-pulse" />
+                    <Brain className="h-3 w-3 text-primary animate-pulse" />
                     <span className="text-xs text-muted-foreground">Thinking...</span>
                   </div>
                 </div>
@@ -528,7 +528,7 @@ export default function Insights() {
               onChange={(e) => setChatInput(e.target.value)}
               onKeyDown={handleKeyDown}
               placeholder="Ask about your spending, budgets, goals..."
-              className="flex-1 h-10 px-3 rounded-lg bg-foreground/[0.03] border border-foreground/[0.06] text-sm text-foreground placeholder:text-muted-foreground/50 focus:outline-none focus:ring-2 focus:ring-emerald-500/20"
+              className="flex-1 h-10 px-3 rounded-lg bg-foreground/[0.03] border border-foreground/[0.06] text-sm text-foreground placeholder:text-muted-foreground/50 focus:outline-none focus:ring-2 focus:ring-primary/20"
               disabled={isThinking}
             />
             <Button

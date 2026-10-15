@@ -169,7 +169,7 @@ export default function Dashboard() {
             {[{ label: 'Create Budget', icon: PiggyBank, variant: 'warning' as const }, { label: 'Add Goal', icon: Target, variant: 'default' as const }].map((action) => (
               <button key={action.label} onClick={() => { if (action.label === 'Create Budget') navigate('/budgets'); else if (action.label === 'Add Goal') navigate('/goals'); }}
                 className="flex items-center gap-3 rounded-xl border border-foreground/[0.06] bg-foreground/[0.02] p-4 hover:bg-foreground/[0.04] hover:border-foreground/[0.1] transition-all duration-200 group cursor-pointer">
-                <div className={`flex h-10 w-10 items-center justify-center rounded-lg ${action.variant === 'warning' ? 'bg-amber-500/10 text-amber-400' : 'bg-foreground/[0.04] text-foreground'}`}>
+                <div className={`flex h-10 w-10 items-center justify-center rounded-lg ${action.variant === 'warning' ? 'bg-warning/10 text-warning' : 'bg-foreground/[0.04] text-foreground'}`}>
                   <action.icon className="h-5 w-5" />
                 </div>
                 <span className="text-sm font-medium">{action.label}</span>
@@ -210,8 +210,8 @@ export default function Dashboard() {
                   {allTransactions.slice(0, 5).map((tx) => (
                     <div key={tx.id} className="flex items-center justify-between rounded-lg p-3 hover:bg-foreground/[0.02] transition-colors cursor-pointer">
                       <div className="flex items-center gap-3">
-                        <div className={`flex h-9 w-9 items-center justify-center rounded-lg ${tx.type === 'income' ? 'bg-emerald-500/10' : 'bg-rose-500/10'}`}>
-                          <ArrowRightLeft className={`h-4 w-4 ${tx.type === 'income' ? 'text-emerald-400' : 'text-rose-400'}`} />
+                        <div className={`flex h-9 w-9 items-center justify-center rounded-lg ${tx.type === 'income' ? 'bg-positive/10' : 'bg-negative/10'}`}>
+                          <ArrowRightLeft className={`h-4 w-4 ${tx.type === 'income' ? 'text-positive' : 'text-negative'}`} />
                         </div>
                         <div>
                           <p className="text-sm font-medium">{tx.merchant || tx.description}</p>
@@ -219,7 +219,7 @@ export default function Dashboard() {
                         </div>
                       </div>
                       <div className="text-right">
-                        <p className={`text-sm font-medium ${tx.type === 'income' ? 'text-emerald-400' : 'text-foreground'}`}>
+                        <p className={`text-sm font-medium ${tx.type === 'income' ? 'text-positive' : 'text-foreground'}`}>
                           {tx.type === 'income' ? '+' : '-'}{formatCurrency(tx.amount, currency)}
                         </p>
                         <Badge variant="default" className="text-[10px] px-1.5 py-0">{tx.status}</Badge>
@@ -240,7 +240,7 @@ export default function Dashboard() {
           <Card>
             <CardHeader><div className="flex items-center justify-between"><CardTitle>AI Insights</CardTitle>
               <Button variant="ghost" size="sm" className="h-6 px-2 text-[10px] gap-1" onClick={() => navigate('/insights')}>
-                <Sparkles className="h-3 w-3 text-emerald-400" />View all
+                <Sparkles className="h-3 w-3 text-primary" />View all
               </Button>
             </div></CardHeader>
             <CardContent className="space-y-3">
@@ -249,16 +249,16 @@ export default function Dashboard() {
               ) : advisorInsights.length > 0 ? (
                 advisorInsights.slice(0, 3).map((insight) => (
                   <div key={insight.id} className={`rounded-xl p-3 border ${
-                    insight.severity === 'critical' ? 'bg-rose-500/5 border-rose-500/10' :
-                    insight.severity === 'warning' ? 'bg-amber-500/5 border-amber-500/10' :
-                    insight.severity === 'positive' ? 'bg-emerald-500/5 border-emerald-500/10' :
-                    'bg-blue-500/5 border-blue-500/10'
+                    insight.severity === 'critical' ? 'bg-negative/5 border-negative/10' :
+                    insight.severity === 'warning' ? 'bg-warning/5 border-warning/10' :
+                    insight.severity === 'positive' ? 'bg-positive/5 border-positive/10' :
+                    'bg-info/5 border-info/10'
                   }`}>
                     <div className="flex items-start gap-2">
                       <Sparkles className={`h-3.5 w-3.5 mt-0.5 flex-shrink-0 ${
-                        insight.severity === 'critical' ? 'text-rose-400' :
-                        insight.severity === 'warning' ? 'text-amber-400' :
-                        insight.severity === 'positive' ? 'text-emerald-400' : 'text-blue-400'
+                        insight.severity === 'critical' ? 'text-negative' :
+                        insight.severity === 'warning' ? 'text-warning' :
+                        insight.severity === 'positive' ? 'text-positive' : 'text-info'
                       }`} />
                       <div className="min-w-0">
                         <p className="text-xs font-medium truncate">{insight.title}</p>
@@ -277,7 +277,7 @@ export default function Dashboard() {
         return (
           <Card>
             <CardHeader className="pb-3"><CardTitle className="text-sm font-medium flex items-center gap-2">
-              <Brain className="h-4 w-4 text-emerald-400" />Ask FinBrain
+              <Brain className="h-4 w-4 text-primary" />Ask FinBrain
             </CardTitle></CardHeader>
             <CardContent>
               {chatMessages.length > 0 && (
@@ -290,7 +290,7 @@ export default function Dashboard() {
               )}
               <div className="flex gap-2">
                 <input type="text" value={chatInput} onChange={(e) => setChatInput(e.target.value)} onKeyDown={handleChatKeyDown}
-                  placeholder="Ask anything..." className="flex-1 h-10 px-3 rounded-lg bg-foreground/[0.03] border border-foreground/[0.06] text-sm text-foreground placeholder:text-muted-foreground/50 focus:outline-none focus:ring-2 focus:ring-emerald-500/20" disabled={isChatLoading} />
+                  placeholder="Ask anything..." className="flex-1 h-10 px-3 rounded-lg bg-foreground/[0.03] border border-foreground/[0.06] text-sm text-foreground placeholder:text-muted-foreground/50 focus:outline-none focus:ring-2 focus:ring-primary/20" disabled={isChatLoading} />
                 <Button size="sm" onClick={handleChatSend} disabled={!chatInput.trim() || isChatLoading}>
                   {isChatLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
                 </Button>
@@ -307,8 +307,8 @@ export default function Dashboard() {
     <div className="flex items-center justify-center min-h-[70vh] animate-fade-in">
       <div className="w-full max-w-lg mx-4 text-center space-y-8">
         <div className="space-y-4">
-          <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-2xl bg-emerald-500/10 border border-emerald-500/20">
-            <Brain className="h-8 w-8 text-emerald-400" />
+          <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-2xl bg-primary/10 border border-primary/20">
+            <Brain className="h-8 w-8 text-primary" />
           </div>
           <div>
             <h1 className="text-3xl font-bold tracking-tight">Welcome to <span className="text-gradient">Fin</span>Brain</h1>
