@@ -382,17 +382,17 @@ export default function Reports() {
         <Card>
           <CardContent className="p-4">
             <div className="flex items-center gap-3">
-              <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-emerald-500/10">
-                <TrendingUp className="h-5 w-5 text-emerald-400" />
+              <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10">
+                <TrendingUp className="h-5 w-5 text-primary" />
               </div>
               <div className="flex-1 min-w-0">
                 <p className="text-xs text-muted-foreground">Income</p>
-                <p className="text-lg font-bold text-emerald-400">{formatCurrency(report.totalIncome, currency)}</p>
+                <p className="text-lg font-bold text-primary">{formatCurrency(report.totalIncome, currency)}</p>
                 <div className="flex items-center gap-1 mt-0.5">
                   {report.incomeChange !== 0 && (
                     <>
-                      {report.incomeChange > 0 ? <ArrowUpRight className="h-3 w-3 text-emerald-400" /> : <ArrowDownRight className="h-3 w-3 text-rose-400" />}
-                      <span className={`text-[10px] ${report.incomeChange > 0 ? 'text-emerald-400' : 'text-rose-400'}`}>
+                      {report.incomeChange > 0 ? <ArrowUpRight className="h-3 w-3 text-positive" /> : <ArrowDownRight className="h-3 w-3 text-negative" />}
+                      <span className={`text-[10px] ${report.incomeChange > 0 ? 'text-positive' : 'text-negative'}`}>
                         {Math.abs(report.incomeChange).toFixed(1)}%
                       </span>
                     </>
@@ -406,17 +406,17 @@ export default function Reports() {
         <Card>
           <CardContent className="p-4">
             <div className="flex items-center gap-3">
-              <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-rose-500/10">
-                <TrendingDown className="h-5 w-5 text-rose-400" />
+              <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-negative/10">
+                <TrendingDown className="h-5 w-5 text-negative" />
               </div>
               <div className="flex-1 min-w-0">
                 <p className="text-xs text-muted-foreground">Expenses</p>
-                <p className="text-lg font-bold text-rose-400">{formatCurrency(report.totalExpense, currency)}</p>
+                <p className="text-lg font-bold text-negative">{formatCurrency(report.totalExpense, currency)}</p>
                 <div className="flex items-center gap-1 mt-0.5">
                   {report.expenseChange !== 0 && (
                     <>
-                      {report.expenseChange > 0 ? <ArrowUpRight className="h-3 w-3 text-rose-400" /> : <ArrowDownRight className="h-3 w-3 text-emerald-400" />}
-                      <span className={`text-[10px] ${report.expenseChange > 0 ? 'text-rose-400' : 'text-emerald-400'}`}>
+                      {report.expenseChange > 0 ? <ArrowUpRight className="h-3 w-3 text-negative" /> : <ArrowDownRight className="h-3 w-3 text-positive" />}
+                      <span className={`text-[10px] ${report.expenseChange > 0 ? 'text-negative' : 'text-positive'}`}>
                         {Math.abs(report.expenseChange).toFixed(1)}%
                       </span>
                     </>
@@ -430,12 +430,12 @@ export default function Reports() {
         <Card>
           <CardContent className="p-4">
             <div className="flex items-center gap-3">
-              <div className={`flex h-10 w-10 items-center justify-center rounded-lg ${report.net >= 0 ? 'bg-emerald-500/10' : 'bg-rose-500/10'}`}>
-                {report.net >= 0 ? <ArrowUpRight className="h-5 w-5 text-emerald-400" /> : <ArrowDownRight className="h-5 w-5 text-rose-400" />}
+              <div className={`flex h-10 w-10 items-center justify-center rounded-lg ${report.net >= 0 ? 'bg-positive/10' : 'bg-negative/10'}`}>
+                {report.net >= 0 ? <ArrowUpRight className="h-5 w-5 text-positive" /> : <ArrowDownRight className="h-5 w-5 text-negative" />}
               </div>
               <div>
                 <p className="text-xs text-muted-foreground">Net</p>
-                <p className={`text-lg font-bold ${report.net >= 0 ? 'text-emerald-400' : 'text-rose-400'}`}>
+                <p className={`text-lg font-bold ${report.net >= 0 ? 'text-positive' : 'text-negative'}`}>
                   {formatCurrency(report.net, currency)}
                 </p>
               </div>
@@ -445,8 +445,8 @@ export default function Reports() {
         <Card>
           <CardContent className="p-4">
             <div className="flex items-center gap-3">
-              <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-blue-500/10">
-                <FileText className="h-5 w-5 text-blue-400" />
+              <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-info/10">
+                <FileText className="h-5 w-5 text-info" />
               </div>
               <div>
                 <p className="text-xs text-muted-foreground">Transactions</p>
@@ -546,7 +546,7 @@ export default function Reports() {
             </div>
             <div className="p-3 rounded-lg bg-foreground/[0.02]">
               <p className="text-[10px] text-muted-foreground uppercase tracking-wider">Savings Rate</p>
-              <p className={`text-sm font-medium mt-0.5 ${report.savingsRate >= 20 ? 'text-emerald-400' : report.savingsRate >= 0 ? 'text-amber-400' : 'text-rose-400'}`}>
+              <p className={`text-sm font-medium mt-0.5 ${report.savingsRate >= 20 ? 'text-positive' : report.savingsRate >= 0 ? 'text-warning' : 'text-negative'}`}>
                 {report.savingsRate.toFixed(1)}%
               </p>
             </div>
@@ -611,9 +611,9 @@ export default function Reports() {
                     <p className="text-[10px] text-muted-foreground">Total Expenses</p>
                     <p className="text-sm font-medium">{formatCurrency(totalExpenses, currency)}</p>
                   </div>
-                  <div className="p-2.5 rounded-lg bg-emerald-500/5">
+                  <div className="p-2.5 rounded-lg bg-primary/5">
                     <p className="text-[10px] text-muted-foreground">Deductible</p>
-                    <p className="text-sm font-medium text-emerald-400">{formatCurrency(totalDeductible, currency)}</p>
+                    <p className="text-sm font-medium text-primary">{formatCurrency(totalDeductible, currency)}</p>
                   </div>
                   <div className="p-2.5 rounded-lg bg-foreground/[0.02]">
                     <p className="text-[10px] text-muted-foreground">Transactions</p>
@@ -631,7 +631,7 @@ export default function Reports() {
                   <div key={c.id} className="flex items-center justify-between p-2 rounded-lg bg-foreground/[0.02] hover:bg-foreground/[0.04] transition-colors">
                     <div className="flex items-center gap-2">
                       <button onClick={() => toggleDeductible(c.id)} className="flex-shrink-0">
-                        <div className={`w-4 h-4 rounded border ${c.deductible ? 'bg-emerald-500 border-emerald-500' : 'border-border-strong'} flex items-center justify-center`}>
+                        <div className={`w-4 h-4 rounded border ${c.deductible ? 'bg-primary border-primary' : 'border-border-strong'} flex items-center justify-center`}>
                           {c.deductible && (
                             <svg className="w-3 h-3 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />

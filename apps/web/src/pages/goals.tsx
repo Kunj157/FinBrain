@@ -84,11 +84,11 @@ function getGoalIcon(iconName: string) {
 }
 
 function getProgressColor(progress: number, onTrack: boolean): string {
-  if (progress >= 100) return 'bg-emerald-500';
-  if (!onTrack) return 'bg-amber-500';
-  if (progress >= 60) return 'bg-emerald-500';
-  if (progress >= 30) return 'bg-emerald-400';
-  return 'bg-emerald-300';
+  if (progress >= 100) return 'bg-primary';
+  if (!onTrack) return 'bg-warning';
+  if (progress >= 60) return 'bg-primary';
+  if (progress >= 30) return 'bg-primary';
+  return 'bg-primary';
 }
 
 export default function Goals() {
@@ -261,8 +261,8 @@ export default function Goals() {
         <Card>
           <CardContent className="p-4">
             <div className="flex items-center gap-3">
-              <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-emerald-500/10">
-                <Coins className="h-5 w-5 text-emerald-400" />
+              <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10">
+                <Coins className="h-5 w-5 text-primary" />
               </div>
               <div>
                 <p className="text-xs text-muted-foreground">Total Saved</p>
@@ -274,8 +274,8 @@ export default function Goals() {
         <Card>
           <CardContent className="p-4">
             <div className="flex items-center gap-3">
-              <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-blue-500/10">
-                <Target className="h-5 w-5 text-blue-400" />
+              <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-info/10">
+                <Target className="h-5 w-5 text-info" />
               </div>
               <div>
                 <p className="text-xs text-muted-foreground">Total Target</p>
@@ -287,8 +287,8 @@ export default function Goals() {
         <Card>
           <CardContent className="p-4">
             <div className="flex items-center gap-3">
-              <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-emerald-500/10">
-                <Check className="h-5 w-5 text-emerald-400" />
+              <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10">
+                <Check className="h-5 w-5 text-primary" />
               </div>
               <div>
                 <p className="text-xs text-muted-foreground">Completed</p>
@@ -300,8 +300,8 @@ export default function Goals() {
         <Card>
           <CardContent className="p-4">
             <div className="flex items-center gap-3">
-              <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-amber-500/10">
-                <TrendingUp className="h-5 w-5 text-amber-400" />
+              <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-warning/10">
+                <TrendingUp className="h-5 w-5 text-warning" />
               </div>
               <div>
                 <p className="text-xs text-muted-foreground">On Track</p>
@@ -339,8 +339,8 @@ export default function Goals() {
                 <CardContent className="p-5">
                   <div className="flex items-start justify-between mb-3">
                     <div className="flex items-center gap-3">
-                      <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-emerald-500/10">
-                        <GoalIcon className="h-5 w-5 text-emerald-400" />
+                      <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10">
+                        <GoalIcon className="h-5 w-5 text-primary" />
                       </div>
                       <div>
                         <h3 className="font-semibold">{goal.name}</h3>
@@ -351,7 +351,7 @@ export default function Goals() {
                       <Button variant="ghost" size="sm" onClick={() => openEdit(goal)} className="h-7 w-7 p-0">
                         <Pencil className="h-3.5 w-3.5" />
                       </Button>
-                      <Button variant="ghost" size="sm" onClick={() => handleDelete(goal.id)} disabled={deleting === goal.id} className="h-7 w-7 p-0 text-red-400 hover:text-red-300">
+                      <Button variant="ghost" size="sm" onClick={() => handleDelete(goal.id)} disabled={deleting === goal.id} className="h-7 w-7 p-0 text-negative hover:text-negative">
                         {deleting === goal.id ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Trash2 className="h-3.5 w-3.5" />}
                       </Button>
                     </div>
@@ -371,7 +371,7 @@ export default function Goals() {
                     <div className="flex items-center justify-between mt-1.5">
                       <span className="text-xs text-muted-foreground">{goal.progress.toFixed(1)}%</span>
                       {goal.deadline && (
-                        <span className={`text-xs ${goal.onTrack ? 'text-emerald-400' : 'text-amber-400'}`}>
+                        <span className={`text-xs ${goal.onTrack ? 'text-primary' : 'text-warning'}`}>
                           {goal.daysLeft !== null ? (
                             goal.daysLeft > 0 ? `${goal.daysLeft} days left` : 'Deadline passed'
                           ) : 'No deadline'}
@@ -381,16 +381,16 @@ export default function Goals() {
                   </div>
 
                   {!goal.onTrack && goal.progress < 100 && (
-                    <div className="flex items-center gap-2 p-2 rounded-lg bg-amber-500/5 border border-amber-500/10 mb-3">
-                      <AlertTriangle className="h-3.5 w-3.5 text-amber-400 flex-shrink-0" />
-                      <span className="text-xs text-amber-400">Behind schedule</span>
+                    <div className="flex items-center gap-2 p-2 rounded-lg bg-warning/5 border border-warning/10 mb-3">
+                      <AlertTriangle className="h-3.5 w-3.5 text-warning flex-shrink-0" />
+                      <span className="text-xs text-warning">Behind schedule</span>
                     </div>
                   )}
 
                   {goal.progress >= 100 && (
-                    <div className="flex items-center gap-2 p-2 rounded-lg bg-emerald-500/5 border border-emerald-500/10 mb-3">
-                      <Check className="h-3.5 w-3.5 text-emerald-400 flex-shrink-0" />
-                      <span className="text-xs text-emerald-400">Goal achieved!</span>
+                    <div className="flex items-center gap-2 p-2 rounded-lg bg-primary/5 border border-primary/10 mb-3">
+                      <Check className="h-3.5 w-3.5 text-primary flex-shrink-0" />
+                      <span className="text-xs text-primary">Goal achieved!</span>
                     </div>
                   )}
 
@@ -423,7 +423,7 @@ export default function Goals() {
                           </div>
                           <button
                             onClick={() => handleDeleteContribution(goal.id, c.id)}
-                            className="opacity-0 group-hover:opacity-100 transition-opacity text-red-400 hover:text-red-300 p-0.5"
+                            className="opacity-0 group-hover:opacity-100 transition-opacity text-negative hover:text-negative p-0.5"
                           >
                             <Trash2 className="h-3 w-3" />
                           </button>
@@ -485,7 +485,7 @@ export default function Goals() {
                           onChange={(e) => setSimAmount({ ...simAmount, [goal.id]: e.target.value })}
                           placeholder="Monthly amount"
                           min="0"
-                          className="flex-1 h-7 px-2 rounded bg-foreground/5 border border-foreground/10 text-xs focus:outline-none focus:ring-1 focus:ring-emerald-500/50"
+                          className="flex-1 h-7 px-2 rounded bg-foreground/5 border border-foreground/10 text-xs focus:outline-none focus:ring-1 focus:ring-primary/50"
                         />
                       </div>
                       {simAmount[goal.id] && parseFloat(simAmount[goal.id]) > 0 && (
@@ -498,7 +498,7 @@ export default function Goals() {
                             const savedMonths = Math.max(0, Math.round(currentPace - monthsToGoal));
                             return (
                               <>
-                                <p className="text-xs text-emerald-400">At ${monthly}/month: goal reached in ~{monthsToGoal} months</p>
+                                <p className="text-xs text-primary">At ${monthly}/month: goal reached in ~{monthsToGoal} months</p>
                                 {savedMonths > 0 && <p className="text-xs text-muted-foreground">That's {savedMonths} months faster than your current pace</p>}
                               </>
                             );
@@ -537,7 +537,7 @@ export default function Goals() {
                       placeholder="0.00"
                       min="0.01"
                       step="0.01"
-                      className="w-full h-9 px-3 rounded-lg bg-foreground/5 border border-foreground/10 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/50"
+                      className="w-full h-9 px-3 rounded-lg bg-foreground/5 border border-foreground/10 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
                     />
                   </div>
                   <div>
@@ -546,7 +546,7 @@ export default function Goals() {
                       type="date"
                       value={contributionData.date}
                       onChange={(e) => setContributionData({ ...contributionData, date: e.target.value })}
-                      className="w-full h-9 px-3 rounded-lg bg-foreground/5 border border-foreground/10 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/50"
+                      className="w-full h-9 px-3 rounded-lg bg-foreground/5 border border-foreground/10 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
                     />
                   </div>
                   <div>
@@ -556,7 +556,7 @@ export default function Goals() {
                       value={contributionData.notes}
                       onChange={(e) => setContributionData({ ...contributionData, notes: e.target.value })}
                       placeholder="Optional note"
-                      className="w-full h-9 px-3 rounded-lg bg-foreground/5 border border-foreground/10 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/50"
+                      className="w-full h-9 px-3 rounded-lg bg-foreground/5 border border-foreground/10 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
                     />
                   </div>
                   <div className="flex justify-end gap-2 pt-2">
@@ -576,7 +576,7 @@ export default function Goals() {
                       value={formData.name}
                       onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                       placeholder="e.g., Emergency Fund"
-                      className="w-full h-9 px-3 rounded-lg bg-foreground/5 border border-foreground/10 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/50"
+                      className="w-full h-9 px-3 rounded-lg bg-foreground/5 border border-foreground/10 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
                     />
                   </div>
                   <div>
@@ -588,7 +588,7 @@ export default function Goals() {
                       placeholder="0.00"
                       min="1"
                       step="0.01"
-                      className="w-full h-9 px-3 rounded-lg bg-foreground/5 border border-foreground/10 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/50"
+                      className="w-full h-9 px-3 rounded-lg bg-foreground/5 border border-foreground/10 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
                     />
                   </div>
                   <div>
@@ -596,7 +596,7 @@ export default function Goals() {
                     <select
                       value={formData.goalType}
                       onChange={(e) => setFormData({ ...formData, goalType: e.target.value })}
-                      className="w-full h-9 px-3 rounded-lg bg-foreground/5 border border-foreground/10 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/50"
+                      className="w-full h-9 px-3 rounded-lg bg-foreground/5 border border-foreground/10 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
                     >
                       {GOAL_TYPES.map((t) => (
                         <option key={t.value} value={t.value}>{t.label}</option>
@@ -609,7 +609,7 @@ export default function Goals() {
                       type="date"
                       value={formData.deadline}
                       onChange={(e) => setFormData({ ...formData, deadline: e.target.value })}
-                      className="w-full h-9 px-3 rounded-lg bg-foreground/5 border border-foreground/10 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/50"
+                      className="w-full h-9 px-3 rounded-lg bg-foreground/5 border border-foreground/10 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
                     />
                   </div>
                   <div>
@@ -621,7 +621,7 @@ export default function Goals() {
                           onClick={() => setFormData({ ...formData, icon: opt.value })}
                           className={`flex h-9 w-9 items-center justify-center rounded-lg border transition-all ${
                             formData.icon === opt.value
-                              ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-400'
+                              ? 'bg-primary/10 border-primary/30 text-primary'
                               : 'bg-foreground/5 border-foreground/10 text-muted-foreground hover:border-foreground/20'
                           }`}
                           title={opt.label}

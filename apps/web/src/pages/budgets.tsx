@@ -57,9 +57,9 @@ const BUCKET_ICONS: Record<string, string> = {
 };
 
 const BUCKET_COLORS: Record<string, string> = {
-  fixed: 'border-blue-500/30 bg-blue-500/5',
-  flexible: 'border-emerald-500/30 bg-emerald-500/5',
-  non_monthly: 'border-amber-500/30 bg-amber-500/5',
+  fixed: 'border-info/30 bg-info/5',
+  flexible: 'border-primary/30 bg-primary/5',
+  non_monthly: 'border-warning/30 bg-warning/5',
 };
 
 const BUCKET_HEADINGS: Record<string, { title: string; desc: string }> = {
@@ -245,7 +245,7 @@ export default function Budgets() {
                             <div className="relative h-1.5 rounded-full bg-foreground/[0.06] overflow-hidden">
                               <div
                                 className={`absolute inset-y-0 left-0 rounded-full transition-all ${
-                                  pct >= 100 ? 'bg-rose-500' : pct >= 90 ? 'bg-amber-500' : 'bg-emerald-500'
+                                  pct >= 100 ? 'bg-negative' : pct >= 90 ? 'bg-warning' : 'bg-positive'
                                 }`}
                                 style={{ width: `${pct}%` }}
                               />
@@ -327,11 +327,11 @@ export default function Budgets() {
       )}
 
       {alerts.length > 0 && (
-        <Card className="border-amber-500/20 bg-amber-500/5">
+        <Card className="border-warning/20 bg-warning/5">
           <CardContent className="p-4">
             <div className="flex items-center gap-2 mb-2">
-              <AlertTriangle className="h-4 w-4 text-amber-400" />
-              <span className="text-sm font-medium text-amber-400">Budget Alerts</span>
+              <AlertTriangle className="h-4 w-4 text-warning" />
+              <span className="text-sm font-medium text-warning">Budget Alerts</span>
             </div>
             <div className="flex flex-wrap gap-2">
               {alerts.map((a) => (
@@ -339,8 +339,8 @@ export default function Budgets() {
                   key={a.id}
                   variant={a.level === 'critical' ? 'destructive' : 'secondary'}
                   className={`text-[10px] gap-1 ${
-                    a.level === 'danger' ? 'bg-rose-500/10 text-rose-400 border-rose-500/20' :
-                    a.level === 'warning' ? 'bg-amber-500/10 text-amber-400 border-amber-500/20' : ''
+                    a.level === 'danger' ? 'bg-negative/10 text-negative border-negative/20' :
+                    a.level === 'warning' ? 'bg-warning/10 text-warning border-warning/20' : ''
                   }`}
                 >
                   {a.name}: {a.pct.toFixed(0)}%
@@ -381,7 +381,7 @@ export default function Budgets() {
                         <button onClick={() => openEdit(b)} className="p-1.5 rounded-lg hover:bg-foreground/[0.04] text-muted-foreground hover:text-foreground transition-colors">
                           <Pencil className="h-3.5 w-3.5" />
                         </button>
-                        <button onClick={() => handleDelete(b.id)} className="p-1.5 rounded-lg hover:bg-foreground/[0.04] text-muted-foreground hover:text-rose-400 transition-colors">
+                        <button onClick={() => handleDelete(b.id)} className="p-1.5 rounded-lg hover:bg-foreground/[0.04] text-muted-foreground hover:text-negative transition-colors">
                           <Trash2 className="h-3.5 w-3.5" />
                         </button>
                       </div>
@@ -394,12 +394,12 @@ export default function Budgets() {
                         </Badge>
                       )}
                       {!isOver && pct >= 90 && (
-                        <Badge variant="secondary" className="text-[10px] bg-amber-500/10 text-amber-400 border-amber-500/20">
+                        <Badge variant="secondary" className="text-[10px] bg-warning/10 text-warning border-warning/20">
                           90%+ used
                         </Badge>
                       )}
                       {!isOver && pct >= 75 && pct < 90 && (
-                        <Badge variant="secondary" className="text-[10px] bg-amber-500/10 text-amber-400 border-amber-500/20">
+                        <Badge variant="secondary" className="text-[10px] bg-warning/10 text-warning border-warning/20">
                           75%+ used
                         </Badge>
                       )}
@@ -409,13 +409,13 @@ export default function Budgets() {
                     <div className="space-y-3">
                       <div className="flex items-baseline justify-between">
                         <span className="text-2xl font-semibold">{formatCurrency(b.amount, b.currency as SharedCurrency)}</span>
-                        <span className={`text-sm ${isOver ? 'text-rose-400' : 'text-muted-foreground'}`}>
+                        <span className={`text-sm ${isOver ? 'text-negative' : 'text-muted-foreground'}`}>
                           {formatCurrency(b.spent, b.currency as SharedCurrency)} spent
                         </span>
                       </div>
                       <div className="relative h-2 rounded-full bg-foreground/[0.06] overflow-hidden">
                         <div
-                          className={`absolute inset-y-0 left-0 rounded-full transition-all duration-500 ${isOver ? 'bg-rose-500' : pct >= 90 ? 'bg-amber-500' : pct >= 75 ? 'bg-amber-400' : 'bg-emerald-500'}`}
+                          className={`absolute inset-y-0 left-0 rounded-full transition-all duration-500 ${isOver ? 'bg-negative' : pct >= 90 ? 'bg-warning' : pct >= 75 ? 'bg-warning' : 'bg-positive'}`}
                           style={{ width: `${pct}%` }}
                         />
                         {[75, 90].map((threshold) => (
@@ -551,7 +551,7 @@ function BudgetForm({
                 value={form.amount}
                 onChange={(e) => setForm((f) => ({ ...f, amount: e.target.value }))}
                 placeholder="0.00"
-                className="w-full h-10 px-3 rounded-lg bg-foreground/[0.02] border border-foreground/[0.08] text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/20"
+                className="w-full h-10 px-3 rounded-lg bg-foreground/[0.02] border border-foreground/[0.08] text-sm focus:outline-none focus:ring-2 focus:ring-primary/20"
               />
             </div>
             <div>
@@ -571,12 +571,12 @@ function BudgetForm({
               required
               value={form.startDate}
               onChange={(e) => setForm((f) => ({ ...f, startDate: e.target.value }))}
-              className="w-full h-10 px-3 rounded-lg bg-foreground/[0.02] border border-foreground/[0.08] text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/20"
+              className="w-full h-10 px-3 rounded-lg bg-foreground/[0.02] border border-foreground/[0.08] text-sm focus:outline-none focus:ring-2 focus:ring-primary/20"
             />
           </div>
 
           {error && (
-            <div className="flex items-center gap-2 text-sm text-rose-400 bg-rose-500/10 rounded-lg px-3 py-2">
+            <div className="flex items-center gap-2 text-sm text-negative bg-negative/10 rounded-lg px-3 py-2">
               <AlertTriangle className="h-4 w-4 flex-shrink-0" />
               {error}
             </div>

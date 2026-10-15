@@ -79,7 +79,7 @@ export default function ReceiptsPage() {
           onClick={() => inputRef.current?.click()}
           className={`cursor-pointer rounded-xl border-2 border-dashed p-14 text-center transition-all ${
             dragOver
-              ? 'border-emerald-500/50 bg-emerald-500/5'
+              ? 'border-primary/50 bg-primary/5'
               : 'border-foreground/[0.08] hover:border-foreground/[0.15] bg-foreground/[0.02]'
           }`}
         >
@@ -105,7 +105,7 @@ export default function ReceiptsPage() {
       )}
 
       {error && (
-        <div className="flex items-center gap-2 rounded-lg bg-rose-500/10 border border-rose-500/20 p-3 text-sm text-rose-400">
+        <div className="flex items-center gap-2 rounded-lg bg-negative/10 border border-negative/20 p-3 text-sm text-negative">
           <AlertCircle className="h-4 w-4 flex-shrink-0" />
           {error}
         </div>
@@ -117,7 +117,7 @@ export default function ReceiptsPage() {
             <CardHeader>
               <div className="flex items-center justify-between">
                 <CardTitle className="text-base flex items-center gap-2">
-                  <FileText className="h-4 w-4 text-emerald-400" />
+                  <FileText className="h-4 w-4 text-primary" />
                   Extracted Data
                 </CardTitle>
                 <Button variant="ghost" size="sm" onClick={() => { setResult(null); setFile(null); }}>
@@ -167,13 +167,13 @@ export default function ReceiptsPage() {
             <Card>
               <CardHeader>
                 <CardTitle className="text-base flex items-center gap-2">
-                  <Check className="h-4 w-4 text-emerald-400" />
+                  <Check className="h-4 w-4 text-primary" />
                   Ready to Create Transaction
                 </CardTitle>
               </CardHeader>
               <CardContent>
                 <div className="flex items-center gap-3 rounded-xl bg-foreground/[0.02] border border-foreground/[0.06] p-4">
-                  <ReceiptIcon className="h-8 w-8 text-emerald-400" />
+                  <ReceiptIcon className="h-8 w-8 text-primary" />
                   <div className="flex-1">
                     <p className="text-sm font-medium">{result.merchant || 'Unknown merchant'}</p>
                     <p className="text-xs text-muted-foreground">

@@ -161,7 +161,7 @@ export default function SettingsPage() {
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="flex items-center gap-3 pb-4 border-b border-foreground/[0.04]">
-            <div className="flex h-12 w-12 items-center justify-center rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-lg font-semibold">
+            <div className="flex h-12 w-12 items-center justify-center rounded-full bg-primary/10 border border-primary/20 text-primary text-lg font-semibold">
               {user?.name?.charAt(0) || '?'}
             </div>
             <div>
@@ -241,7 +241,7 @@ export default function SettingsPage() {
               </div>
               <button
                 onClick={() => updateNotifPref(nt.key, !notifPrefs[nt.key])}
-                className={`relative w-10 h-5 rounded-full transition-colors ${notifPrefs[nt.key] ? 'bg-emerald-500' : 'bg-muted-foreground'}`}
+                className={`relative w-10 h-5 rounded-full transition-colors ${notifPrefs[nt.key] ? 'bg-primary' : 'bg-muted-foreground'}`}
               >
                 <span
                   className={`absolute top-0.5 left-0.5 w-4 h-4 rounded-full bg-white transition-transform ${notifPrefs[nt.key] ? 'translate-x-5' : ''}`}
@@ -328,9 +328,9 @@ export default function SettingsPage() {
               type="email"
               placeholder="your@email.com"
               defaultValue={user?.email || ''}
-              className="flex-1 h-10 px-3 rounded-lg bg-foreground/[0.03] border border-foreground/[0.06] text-sm text-foreground placeholder:text-muted-foreground/50 focus:outline-none focus:ring-2 focus:ring-emerald-500/20"
+              className="flex-1 h-10 px-3 rounded-lg bg-foreground/[0.03] border border-foreground/[0.06] text-sm text-foreground placeholder:text-muted-foreground/50 focus:outline-none focus:ring-2 focus:ring-primary/20"
             />
-            <select className="h-10 px-3 rounded-lg bg-foreground/[0.03] border border-foreground/[0.06] text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-emerald-500/20">
+            <select className="h-10 px-3 rounded-lg bg-foreground/[0.03] border border-foreground/[0.06] text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary/20">
               <option value="monthly">Monthly</option>
               <option value="quarterly">Quarterly</option>
               <option value="annual">Annual</option>
@@ -343,9 +343,9 @@ export default function SettingsPage() {
       </Card>
 
       {/* Security */}
-      <Card className="border-red-500/20">
+      <Card className="border-negative/20">
         <CardHeader>
-          <CardTitle className="text-base flex items-center gap-2 text-red-400">
+          <CardTitle className="text-base flex items-center gap-2 text-negative">
             <Trash2 className="h-4 w-4" />
             Danger Zone
           </CardTitle>
@@ -369,22 +369,22 @@ export default function SettingsPage() {
       <Dialog open={showDeleteModal} onClose={() => { setShowDeleteModal(false); setConfirmEmail(''); setDeleteError(''); }}>
         <DialogClose onClose={() => { setShowDeleteModal(false); setConfirmEmail(''); setDeleteError(''); }} />
         <DialogHeader>
-          <DialogTitle className="text-red-400">Delete Account</DialogTitle>
+          <DialogTitle className="text-negative">Delete Account</DialogTitle>
           <DialogDescription>
             This will permanently delete your FinBrain account and all associated data. This action cannot be undone.
           </DialogDescription>
         </DialogHeader>
 
         <DialogContent className="space-y-4">
-          <div className="rounded-lg bg-red-500/5 border border-red-500/10 p-4">
+          <div className="rounded-lg bg-negative/5 border border-negative/10 p-4">
             <div className="flex items-start gap-3">
-              <AlertTriangle className="h-5 w-5 text-red-400 mt-0.5 flex-shrink-0" />
+              <AlertTriangle className="h-5 w-5 text-negative mt-0.5 flex-shrink-0" />
               <div>
-                <p className="text-sm font-medium text-red-400">You will lose access to:</p>
+                <p className="text-sm font-medium text-negative">You will lose access to:</p>
                 <ul className="mt-2 space-y-1.5">
                   {DATA_TYPES.map((item) => (
                     <li key={item.key} className="flex items-center gap-2 text-sm text-muted-foreground">
-                      <item.icon className="h-3.5 w-3.5 text-red-400/60" />
+                      <item.icon className="h-3.5 w-3.5 text-negative/60" />
                       <span>{item.label}</span>
                     </li>
                   ))}
@@ -402,12 +402,12 @@ export default function SettingsPage() {
               value={confirmEmail}
               onChange={(e) => setConfirmEmail(e.target.value)}
               placeholder="your@email.com"
-              className="w-full h-10 px-3 rounded-lg bg-foreground/[0.03] border border-foreground/[0.06] text-sm text-foreground placeholder:text-muted-foreground/50 focus:outline-none focus:ring-2 focus:ring-red-500/20 focus:border-red-500/30 transition-all"
+              className="w-full h-10 px-3 rounded-lg bg-foreground/[0.03] border border-foreground/[0.06] text-sm text-foreground placeholder:text-muted-foreground/50 focus:outline-none focus:ring-2 focus:ring-negative/20 focus:border-negative/30 transition-all"
             />
           </div>
           {deleteError && (
-            <div className="rounded-lg bg-red-500/10 border border-red-500/20 p-3">
-              <p className="text-sm text-red-400">{deleteError}</p>
+            <div className="rounded-lg bg-negative/10 border border-negative/20 p-3">
+              <p className="text-sm text-negative">{deleteError}</p>
             </div>
           )}
         </DialogContent>
