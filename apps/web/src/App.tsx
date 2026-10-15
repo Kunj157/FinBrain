@@ -1,3 +1,4 @@
+import { lazy, Suspense } from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { QueryClientProvider } from '@tanstack/react-query';
 import { queryClient } from '@/lib/query';
@@ -5,34 +6,40 @@ import { AuthProvider } from '@/auth/auth-provider';
 import { ThemeProvider } from '@/hooks/use-theme';
 import { ProtectedRoute } from '@/auth/protected-route';
 import { AppLayout } from '@/components/layout/app-layout';
+import { MotionProvider } from '@/components/motion/motion-provider';
 
 import SignIn from '@/auth/sign-in';
 import SignUp from '@/auth/sign-up';
-import HomePage from '@/pages/home';
-import Dashboard from '@/pages/dashboard';
-import Transactions from '@/pages/transactions';
-import Budgets from '@/pages/budgets';
-import Goals from '@/pages/goals';
-import Analytics from '@/pages/analytics';
-import Categories from '@/pages/categories';
-import Receipts from '@/pages/receipts';
-import Reports from '@/pages/reports';
-import Insights from '@/pages/insights';
-import SettingsPage from '@/pages/settings';
-import HelpPage from '@/pages/help';
-import AccountsPage from '@/pages/accounts';
-import RecurringPage from '@/pages/recurring';
-import InvestmentsPage from '@/pages/investments';
-import ForecastingPage from '@/pages/forecasting';
-import AdvisorPage from '@/pages/advisor';
-import HouseholdPage from '@/pages/household';
-import CreditScorePage from '@/pages/credit-score';
+
+// Pages load on demand, so a visit pays only for the screen it opens.
+const HomePage = lazy(() => import('@/pages/home'));
+const Dashboard = lazy(() => import('@/pages/dashboard'));
+const Transactions = lazy(() => import('@/pages/transactions'));
+const Budgets = lazy(() => import('@/pages/budgets'));
+const Goals = lazy(() => import('@/pages/goals'));
+const Analytics = lazy(() => import('@/pages/analytics'));
+const Categories = lazy(() => import('@/pages/categories'));
+const Receipts = lazy(() => import('@/pages/receipts'));
+const Reports = lazy(() => import('@/pages/reports'));
+const Insights = lazy(() => import('@/pages/insights'));
+const SettingsPage = lazy(() => import('@/pages/settings'));
+const HelpPage = lazy(() => import('@/pages/help'));
+const AccountsPage = lazy(() => import('@/pages/accounts'));
+const RecurringPage = lazy(() => import('@/pages/recurring'));
+const InvestmentsPage = lazy(() => import('@/pages/investments'));
+const ForecastingPage = lazy(() => import('@/pages/forecasting'));
+const AdvisorPage = lazy(() => import('@/pages/advisor'));
+const HouseholdPage = lazy(() => import('@/pages/household'));
+const CreditScorePage = lazy(() => import('@/pages/credit-score'));
+
 export default function App() {
   return (
     <QueryClientProvider client={queryClient}>
       <BrowserRouter>
         <ThemeProvider>
+        <MotionProvider>
         <AuthProvider>
+          <Suspense fallback={null}>
           <Routes>
             <Route path="/" element={<HomePage />} />
             <Route path="/sign-in" element={<SignIn />} />
@@ -66,7 +73,9 @@ export default function App() {
               <Route path="/credit-score" element={<CreditScorePage />} />
             </Route>
           </Routes>
+          </Suspense>
         </AuthProvider>
+        </MotionProvider>
         </ThemeProvider>
       </BrowserRouter>
     </QueryClientProvider>

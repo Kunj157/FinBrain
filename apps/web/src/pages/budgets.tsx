@@ -1,10 +1,17 @@
 import { useState, useMemo, useCallback, useEffect } from 'react';
-import { Plus, PiggyBank, Pencil, Trash2, X, Check, Loader2, AlertTriangle, Layers } from 'lucide-react';
+import { Plus, PiggyBank, Pencil, Trash2, X, Check, Loader2, AlertTriangle, Layers, Wallet, Lock, Repeat, CalendarDays, Package, type LucideIcon } from 'lucide-react';
 import { ExplainViewButton } from '@/components/finance/explain-view-button';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Select } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
+import { PageHeader } from '@/components/ui/page-header';
+import { EmptyState } from '@/components/ui/empty-state';
+import { CardSkeleton } from '@/components/ui/skeleton';
+import { StatCard } from '@/components/finance/stat-card';
+import { ActiveHighlight } from '@/components/motion/animated-background';
+import { AnimatedNumber } from '@/components/motion/animated-number';
+import { InView } from '@/components/motion/in-view';
 import { useAuth } from '@/hooks/use-auth';
 import api from '@/lib/api';
 import { formatCurrency } from '@/lib/utils';
@@ -50,16 +57,44 @@ const PERIODS = [
   { value: 'yearly', label: 'Yearly' },
 ] as const;
 
-const BUCKET_ICONS: Record<string, string> = {
-  fixed: '🔒',
-  flexible: '🔄',
-  non_monthly: '📅',
+const BUCKET_ICONS: Record<string, LucideIcon> = {
+  fixed: Lock,
+  flexible: Repeat,
+  non_monthly: CalendarDays,
 };
 
+const fieldClass =
+  'w-full h-10 px-3 rounded-lg border border-input bg-surface-sunken/60 text-sm transition-[border-color,box-shadow] placeholder:text-muted-foreground/70 hover:border-border-strong focus-visible:border-primary/60 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-ring/15';
+
+/** Spend against a limit: green, amber from 75%, red once exceeded. */
+function progressTone(pct: number, over: boolean) {
+  if (over || pct >= 100) return 'from-negative/80 to-negative shadow-[0_0_12px_hsl(var(--negative)/0.45)]';
+  if (pct >= 75) return 'from-warning/80 to-warning shadow-[0_0_12px_hsl(var(--warning)/0.4)]';
+  return 'from-positive/70 to-positive shadow-[0_0_12px_hsl(var(--positive)/0.35)]';
+}
+
+/** A circular gauge for overall utilisation. */
+function UtilisationRing({ pct }: { pct: number }) {
+  const r = 22;
+  const c = 2 * Math.PI * r;
+  const shown = Math.min(pct, 100);
+  const tone = pct >= 100 ? 'text-negative' : pct >= 75 ? 'text-warning' : 'text-positive';
+  return (
+    <svg viewBox="0 0 56 56" className={`h-14 w-14 -rotate-90 ${tone}`} aria-hidden>
+      <circle cx="28" cy="28" r={r} fill="none" strokeWidth="5" className="stroke-foreground/[0.08]" />
+      <circle
+        cx="28" cy="28" r={r} fill="none" strokeWidth="5" strokeLinecap="round" stroke="currentColor"
+        strokeDasharray={c} strokeDashoffset={c - (shown / 100) * c}
+        className="transition-[stroke-dashoffset] duration-1000 ease-out"
+      />
+    </svg>
+  );
+}
+
 const BUCKET_COLORS: Record<string, string> = {
-  fixed: 'border-blue-500/30 bg-blue-500/5',
-  flexible: 'border-emerald-500/30 bg-emerald-500/5',
-  non_monthly: 'border-amber-500/30 bg-amber-500/5',
+  fixed: 'border-info/30 bg-info/5',
+  flexible: 'border-primary/30 bg-primary/5',
+  non_monthly: 'border-warning/30 bg-warning/5',
 };
 
 const BUCKET_HEADINGS: Record<string, { title: string; desc: string }> = {
@@ -157,42 +192,45 @@ export default function Budgets() {
   }, [budgetMode, loadFlexPlan]);
 
   return (
-    <div className="space-y-6 animate-fade-in">
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <div>
-            <h1 className="text-2xl font-semibold tracking-tight">Budgets</h1>
-            <p className="text-sm text-muted-foreground mt-1">
-              {budgets.length} budget{budgets.length !== 1 ? 's' : ''} set
-            </p>
-          </div>
-          <ExplainViewButton viewName="Budgets" />
-        </div>
-        <Button onClick={openCreate} className="gap-2">
-          <Plus className="h-4 w-4" />
-          Add Budget
-        </Button>
-      </div>
+    <div className="space-y-6">
+      <PageHeader
+        icon={PiggyBank}
+        title="Budgets"
+        description={`${budgets.length} budget${budgets.length !== 1 ? 's' : ''} set`}
+        actions={
+          <>
+            <ExplainViewButton viewName="Budgets" />
+            <Button onClick={openCreate}>
+              <Plus className="h-4 w-4" />
+              Add Budget
+            </Button>
+          </>
+        }
+      />
 
-      <div className="flex bg-gray-800/50 rounded-lg p-0.5 w-fit">
-        <button
-          onClick={() => setBudgetMode('category')}
-          className={`px-3 py-1.5 rounded-md text-xs font-medium transition-all flex items-center gap-1.5 ${budgetMode === 'category' ? 'bg-gray-700 text-white' : 'text-gray-400 hover:text-white'}`}
-        >
-          <PiggyBank className="h-3.5 w-3.5" /> Category Budgets
-        </button>
-        <button
-          onClick={() => setBudgetMode('flex')}
-          className={`px-3 py-1.5 rounded-md text-xs font-medium transition-all flex items-center gap-1.5 ${budgetMode === 'flex' ? 'bg-gray-700 text-white' : 'text-gray-400 hover:text-white'}`}
-        >
-          <Layers className="h-3.5 w-3.5" /> Flex Budgets
-        </button>
+      <div className="flex w-fit gap-0.5 rounded-xl border bg-surface-sunken/60 p-1" role="group" aria-label="Budget view">
+        {([
+          { mode: 'category' as const, label: 'Category Budgets', icon: PiggyBank },
+          { mode: 'flex' as const, label: 'Flex Budgets', icon: Layers },
+        ]).map((tab) => (
+          <button
+            key={tab.mode}
+            onClick={() => setBudgetMode(tab.mode)}
+            aria-pressed={budgetMode === tab.mode}
+            className={`relative isolate flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-medium transition-colors ${budgetMode === tab.mode ? 'text-foreground' : 'text-muted-foreground hover:text-foreground'}`}
+          >
+            {budgetMode === tab.mode && (
+              <ActiveHighlight layoutId="budget-mode" className="rounded-lg bg-card shadow-raised ring-1 ring-border" />
+            )}
+            <tab.icon className="h-3.5 w-3.5" aria-hidden /> {tab.label}
+          </button>
+        ))}
       </div>
 
       {budgetMode === 'flex' ? (
         flexLoading ? (
-          <div className="py-16 text-center">
-            <Loader2 className="h-10 w-10 text-muted-foreground/30 mx-auto animate-spin" />
+          <div className="grid gap-4 md:grid-cols-3" aria-busy="true">
+            {Array.from({ length: 3 }, (_, i) => <CardSkeleton key={i} lines={1} />)}
           </div>
         ) : flexPlan ? (
           <div className="space-y-6">
@@ -202,15 +240,15 @@ export default function Budgets() {
                 const totalBudgeted = items.reduce((s, i) => s + i.budget, 0);
                 const totalSpentInBucket = items.reduce((s, i) => s + i.spent, 0);
                 return (
-                  <Card key={bucket} className={`${BUCKET_COLORS[bucket]} border`}>
+                  <Card key={bucket} className={BUCKET_COLORS[bucket]}>
                     <CardHeader>
-                      <CardTitle className="text-xs text-muted-foreground flex items-center gap-1.5">
-                        <span>{BUCKET_ICONS[bucket]}</span> {BUCKET_HEADINGS[bucket].title}
+                      <CardTitle className="stat-label flex items-center gap-1.5">
+                        <BucketIcon bucket={bucket} /> {BUCKET_HEADINGS[bucket].title}
                       </CardTitle>
                     </CardHeader>
                     <CardContent>
-                      <p className="text-xl font-semibold">{formatCurrency(totalBudgeted, currency)}</p>
-                      <p className="text-xs text-muted-foreground">{formatCurrency(totalSpentInBucket, currency)} spent</p>
+                      <p className="text-2xl font-semibold tracking-tight tabular-nums">{formatCurrency(totalBudgeted, currency)}</p>
+                      <p className="text-xs text-muted-foreground tabular-nums">{formatCurrency(totalSpentInBucket, currency)} spent</p>
                     </CardContent>
                   </Card>
                 );
@@ -221,10 +259,10 @@ export default function Budgets() {
               const items = flexPlan[bucket === 'non_monthly' ? 'nonMonthly' : bucket === 'flexible' ? 'flexible' : 'fixed'];
               if (items.length === 0) return null;
               return (
-                <Card key={bucket} className="border-white/[0.06]">
+                <Card key={bucket}>
                   <CardHeader>
-                    <CardTitle className="text-sm font-medium flex items-center gap-2">
-                      <span>{BUCKET_ICONS[bucket]}</span>
+                    <CardTitle className="flex items-center gap-2">
+                      <BucketIcon bucket={bucket} />
                       {BUCKET_HEADINGS[bucket].title}
                     </CardTitle>
                     <p className="text-xs text-muted-foreground">{BUCKET_HEADINGS[bucket].desc}</p>
@@ -236,17 +274,15 @@ export default function Budgets() {
                         return (
                           <div key={idx}>
                             <div className="flex items-center justify-between text-sm mb-1">
-                              <span className="text-white">{item.category}</span>
-                              <div className="flex items-center gap-2">
+                              <span className="font-medium">{item.category}</span>
+                              <div className="flex items-center gap-2 tabular-nums">
                                 <span className="text-muted-foreground">{formatCurrency(item.spent, currency)}</span>
-                                <span className="text-white font-medium">/ {formatCurrency(item.budget, currency)}</span>
+                                <span className="font-medium">/ {formatCurrency(item.budget, currency)}</span>
                               </div>
                             </div>
-                            <div className="relative h-1.5 rounded-full bg-white/[0.06] overflow-hidden">
+                            <div className="relative h-1.5 rounded-full bg-foreground/[0.06] overflow-hidden">
                               <div
-                                className={`absolute inset-y-0 left-0 rounded-full transition-all ${
-                                  pct >= 100 ? 'bg-rose-500' : pct >= 90 ? 'bg-amber-500' : 'bg-emerald-500'
-                                }`}
+                                className={`absolute inset-y-0 left-0 rounded-full bg-gradient-to-r transition-all duration-700 ease-out ${progressTone(pct, false)}`}
                                 style={{ width: `${pct}%` }}
                               />
                             </div>
@@ -261,9 +297,9 @@ export default function Budgets() {
             })}
 
             {flexPlan.suggestedCategories.length > 0 && (
-              <Card className="border-white/[0.06]">
+              <Card>
                 <CardHeader>
-                  <CardTitle className="text-sm font-medium">Suggested Bucket Assignments</CardTitle>
+                  <CardTitle>Suggested Bucket Assignments</CardTitle>
                   <p className="text-xs text-muted-foreground">
                     Based on your spending patterns, these categories have been classified:
                   </p>
@@ -271,12 +307,12 @@ export default function Budgets() {
                 <CardContent>
                   <div className="space-y-2">
                     {flexPlan.suggestedCategories.map((sc) => (
-                      <div key={sc.categoryId} className="flex items-center justify-between p-2 bg-gray-800/50 rounded-lg">
+                      <div key={sc.categoryId} className="flex items-center justify-between rounded-lg border bg-foreground/[0.02] px-3 py-2">
                         <div className="flex items-center gap-2">
-                          <span>{BUCKET_ICONS[sc.bucketType] || '📦'}</span>
-                          <span className="text-sm text-white">{sc.categoryName}</span>
+                          <BucketIcon bucket={sc.bucketType} />
+                          <span className="text-sm font-medium">{sc.categoryName}</span>
                         </div>
-                        <span className="text-xs text-muted-foreground">{sc.bucketType.replace('_', ' ')}</span>
+                        <Badge variant="secondary" className="capitalize">{sc.bucketType.replace('_', ' ')}</Badge>
                       </div>
                     ))}
                   </div>
@@ -285,53 +321,35 @@ export default function Budgets() {
             )}
           </div>
         ) : (
-          <div className="py-16 text-center">
-            <Layers className="h-10 w-10 text-muted-foreground/30 mx-auto" />
-            <p className="text-sm text-muted-foreground mt-3">No flex budgets found</p>
-            <p className="text-xs text-muted-foreground/60 mt-1">
-              Set up category budgets first, then switch to flex view
-            </p>
-          </div>
+          <Card>
+            <EmptyState icon={Layers} title="No flex budgets found" description="Set up category budgets first, then switch to flex view" />
+          </Card>
         )
       ) : (
         <>
       {budgets.length > 0 && (
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-xs text-muted-foreground">Total Budgeted</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <p className="text-2xl font-semibold">{formatCurrency(totalBudget, currency)}</p>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-xs text-muted-foreground">Total Spent</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <p className="text-2xl font-semibold">{formatCurrency(totalSpent, currency)}</p>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-xs text-muted-foreground">Utilization</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <p className="text-2xl font-semibold">
-                {totalBudget > 0 ? `${Math.round((totalSpent / totalBudget) * 100)}%` : '0%'}
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+          <StatCard title="Total Budgeted" value={totalBudget} icon={PiggyBank} currency={currency} />
+          <StatCard title="Total Spent" value={totalSpent} icon={Wallet} variant="warning" currency={currency} />
+          <div className="stat-card flex items-center justify-between gap-4">
+            <div>
+              <p className="stat-label">Utilization</p>
+              <p className="stat-value mt-1.5 text-[1.7rem] leading-none">
+                <AnimatedNumber value={totalBudget > 0 ? Math.round((totalSpent / totalBudget) * 100) : 0} from={0} format={(n) => `${Math.round(n)}%`} />
               </p>
-            </CardContent>
-          </Card>
+              <p className="mt-2 text-xs text-muted-foreground">of everything you budgeted</p>
+            </div>
+            <UtilisationRing pct={totalBudget > 0 ? (totalSpent / totalBudget) * 100 : 0} />
+          </div>
         </div>
       )}
 
       {alerts.length > 0 && (
-        <Card className="border-amber-500/20 bg-amber-500/5">
-          <CardContent className="p-4">
+        <Card className="border-warning/25 bg-warning/[0.06] p-4">
+          <CardContent className="pt-0">
             <div className="flex items-center gap-2 mb-2">
-              <AlertTriangle className="h-4 w-4 text-amber-400" />
-              <span className="text-sm font-medium text-amber-400">Budget Alerts</span>
+              <AlertTriangle className="h-4 w-4 text-warning" aria-hidden />
+              <span className="text-sm font-medium text-warning">Budget Alerts</span>
             </div>
             <div className="flex flex-wrap gap-2">
               {alerts.map((a) => (
@@ -339,8 +357,8 @@ export default function Budgets() {
                   key={a.id}
                   variant={a.level === 'critical' ? 'destructive' : 'secondary'}
                   className={`text-[10px] gap-1 ${
-                    a.level === 'danger' ? 'bg-rose-500/10 text-rose-400 border-rose-500/20' :
-                    a.level === 'warning' ? 'bg-amber-500/10 text-amber-400 border-amber-500/20' : ''
+                    a.level === 'danger' ? 'bg-negative/10 text-negative border-negative/20' :
+                    a.level === 'warning' ? 'bg-warning/10 text-warning border-warning/20' : ''
                   }`}
                 >
                   {a.name}: {a.pct.toFixed(0)}%
@@ -352,17 +370,22 @@ export default function Budgets() {
       )}
 
       {loading ? (
-        <div className="py-16 text-center">
-          <Loader2 className="h-10 w-10 text-muted-foreground/30 mx-auto animate-spin" />
+        <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3" aria-busy="true" aria-label="Loading budgets">
+          {Array.from({ length: 6 }, (_, i) => <CardSkeleton key={i} />)}
         </div>
       ) : budgets.length === 0 ? (
-        <div className="py-16 text-center">
-          <PiggyBank className="h-10 w-10 text-muted-foreground/30 mx-auto" />
-          <p className="text-sm text-muted-foreground mt-3">No budgets set yet</p>
-          <Button variant="outline" size="sm" className="mt-4" onClick={openCreate}>
-            <Plus className="h-4 w-4 mr-1" /> Set your first budget
-          </Button>
-        </div>
+        <Card>
+          <EmptyState
+            icon={PiggyBank}
+            title="No budgets set yet"
+            description="Give a category a monthly limit and FinBrain tracks it as you spend."
+            action={
+              <Button variant="outline" size="sm" onClick={openCreate}>
+                <Plus className="h-4 w-4" /> Set your first budget
+              </Button>
+            }
+          />
+        </Card>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {budgetsWithCategory
@@ -370,36 +393,39 @@ export default function Budgets() {
             .map((b) => {
               const pct = b.amount > 0 ? Math.min((b.spent / b.amount) * 100, 100) : 0;
               const isOver = b.spent > b.amount;
-              const color = b.category?.color || '#6b7280';
+              const color = b.category?.color || 'hsl(var(--muted-foreground))';
               return (
-                <Card key={b.id} className="group relative overflow-hidden card-hover">
-                  <div className="absolute top-0 left-0 w-1 h-full" style={{ backgroundColor: color }} />
+                <InView key={b.id} index={budgetsWithCategory.indexOf(b)}>
+                <Card className="group h-full overflow-hidden card-hover">
                   <CardHeader className="pb-2">
                     <div className="flex items-center justify-between">
-                      <CardTitle className="text-sm font-medium">{b.category?.name || 'Unknown'}</CardTitle>
-                      <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                        <button onClick={() => openEdit(b)} className="p-1.5 rounded-lg hover:bg-white/[0.04] text-muted-foreground hover:text-foreground transition-colors">
+                      <CardTitle className="flex items-center gap-2">
+                        <span aria-hidden className="h-2.5 w-2.5 rounded-full ring-4 ring-foreground/[0.04]" style={{ backgroundColor: color }} />
+                        {b.category?.name || 'Unknown'}
+                      </CardTitle>
+                      <div className="flex items-center gap-0.5 opacity-0 transition-opacity group-hover:opacity-100 group-focus-within:opacity-100">
+                        <button onClick={() => openEdit(b)} aria-label="Edit budget" className="rounded-md p-1.5 text-muted-foreground transition-colors hover:bg-foreground/[0.06] hover:text-foreground">
                           <Pencil className="h-3.5 w-3.5" />
                         </button>
-                        <button onClick={() => handleDelete(b.id)} className="p-1.5 rounded-lg hover:bg-white/[0.04] text-muted-foreground hover:text-rose-400 transition-colors">
+                        <button onClick={() => handleDelete(b.id)} aria-label="Delete budget" className="rounded-md p-1.5 text-muted-foreground transition-colors hover:bg-negative/10 hover:text-negative">
                           <Trash2 className="h-3.5 w-3.5" />
                         </button>
                       </div>
                     </div>
                     <div className="flex items-center gap-2 mt-1">
-                      <Badge variant="secondary" className="text-[10px]">{b.period}</Badge>
+                      <Badge variant="secondary" className="text-[10px] capitalize">{b.period}</Badge>
                       {isOver && (
                         <Badge variant="destructive" className="text-[10px] gap-1">
                           <AlertTriangle className="h-3 w-3" /> Exceeded
                         </Badge>
                       )}
                       {!isOver && pct >= 90 && (
-                        <Badge variant="secondary" className="text-[10px] bg-amber-500/10 text-amber-400 border-amber-500/20">
+                        <Badge variant="warning" className="text-[10px]">
                           90%+ used
                         </Badge>
                       )}
                       {!isOver && pct >= 75 && pct < 90 && (
-                        <Badge variant="secondary" className="text-[10px] bg-amber-500/10 text-amber-400 border-amber-500/20">
+                        <Badge variant="warning" className="text-[10px]">
                           75%+ used
                         </Badge>
                       )}
@@ -408,31 +434,32 @@ export default function Budgets() {
                   <CardContent>
                     <div className="space-y-3">
                       <div className="flex items-baseline justify-between">
-                        <span className="text-2xl font-semibold">{formatCurrency(b.amount, b.currency as SharedCurrency)}</span>
-                        <span className={`text-sm ${isOver ? 'text-rose-400' : 'text-muted-foreground'}`}>
+                        <span className="text-2xl font-semibold tracking-tight tabular-nums">{formatCurrency(b.amount, b.currency as SharedCurrency)}</span>
+                        <span className={`text-sm tabular-nums ${isOver ? 'text-negative' : 'text-muted-foreground'}`}>
                           {formatCurrency(b.spent, b.currency as SharedCurrency)} spent
                         </span>
                       </div>
-                      <div className="relative h-2 rounded-full bg-white/[0.06] overflow-hidden">
+                      <div className="relative h-2 rounded-full bg-foreground/[0.06] overflow-hidden">
                         <div
-                          className={`absolute inset-y-0 left-0 rounded-full transition-all duration-500 ${isOver ? 'bg-rose-500' : pct >= 90 ? 'bg-amber-500' : pct >= 75 ? 'bg-amber-400' : 'bg-emerald-500'}`}
+                          className={`absolute inset-y-0 left-0 rounded-full bg-gradient-to-r transition-all duration-700 ease-out ${progressTone(pct, isOver)}`}
                           style={{ width: `${pct}%` }}
                         />
                         {[75, 90].map((threshold) => (
                           <div
                             key={threshold}
-                            className="absolute top-0 bottom-0 w-px bg-white/20"
+                            className="absolute top-0 bottom-0 w-px bg-foreground/20"
                             style={{ left: `${threshold}%` }}
                           />
                         ))}
                       </div>
-                      <div className="flex justify-between text-xs text-muted-foreground">
+                      <div className="flex justify-between text-xs text-muted-foreground tabular-nums">
                         <span>{pct.toFixed(0)}% used</span>
                         <span>{formatCurrency(b.remaining, b.currency as SharedCurrency)} remaining</span>
                       </div>
                     </div>
                   </CardContent>
                 </Card>
+                </InView>
               );
             })}
         </div>
@@ -453,6 +480,11 @@ export default function Budgets() {
       )}
     </div>
   );
+}
+
+function BucketIcon({ bucket }: { bucket: string }) {
+  const Icon = BUCKET_ICONS[bucket] || Package;
+  return <Icon className="h-3.5 w-3.5 text-muted-foreground" aria-hidden />;
 }
 
 function BudgetForm({
@@ -521,17 +553,17 @@ function BudgetForm({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm" onClick={onClose} onKeyDown={(e) => { if (e.key === 'Escape') onClose(); }}>
-      <div className="w-full max-w-md mx-4 glass rounded-xl" onClick={(e) => e.stopPropagation()}>
-        <div className="flex items-center justify-between p-5 border-b border-white/[0.06]">
-          <h2 className="text-lg font-semibold">{mode === 'create' ? 'Set Budget' : 'Edit Budget'}</h2>
-          <button onClick={onClose} className="p-1.5 rounded-lg hover:bg-white/[0.04]">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-background/60 p-4 backdrop-blur-md animate-in fade-in-0" onClick={onClose} onKeyDown={(e) => { if (e.key === 'Escape') onClose(); }}>
+      <div role="dialog" aria-modal="true" aria-labelledby="budget-form-title" className="w-full max-w-md rounded-2xl border bg-popover shadow-float [background-image:var(--sheen)] animate-in fade-in-0 zoom-in-95 slide-in-from-bottom-2 duration-200" onClick={(e) => e.stopPropagation()}>
+        <div className="flex items-center justify-between border-b p-5">
+          <h2 id="budget-form-title" className="text-lg font-semibold tracking-tight">{mode === 'create' ? 'Set Budget' : 'Edit Budget'}</h2>
+          <button onClick={onClose} aria-label="Close" className="rounded-lg p-1.5 text-muted-foreground transition-colors hover:bg-foreground/[0.05] hover:text-foreground">
             <X className="h-5 w-5" />
           </button>
         </div>
         <form onSubmit={handleSubmit} className="p-5 space-y-4">
           <div>
-            <label className="text-xs text-muted-foreground block mb-1">Category *</label>
+            <label className="mb-1.5 block text-xs font-medium text-muted-foreground">Category *</label>
             <Select
               value={form.categoryId}
               onValueChange={(value) => setForm((f) => ({ ...f, categoryId: value }))}
@@ -542,7 +574,7 @@ function BudgetForm({
 
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="text-xs text-muted-foreground block mb-1">Budget Amount *</label>
+              <label className="mb-1.5 block text-xs font-medium text-muted-foreground">Budget Amount *</label>
               <input
                 type="number"
                 step="0.01"
@@ -551,11 +583,11 @@ function BudgetForm({
                 value={form.amount}
                 onChange={(e) => setForm((f) => ({ ...f, amount: e.target.value }))}
                 placeholder="0.00"
-                className="w-full h-10 px-3 rounded-lg bg-white/[0.02] border border-white/[0.08] text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/20"
+                className={fieldClass}
               />
             </div>
             <div>
-              <label className="text-xs text-muted-foreground block mb-1">Period *</label>
+              <label className="mb-1.5 block text-xs font-medium text-muted-foreground">Period *</label>
               <Select
                 value={form.period}
                 onValueChange={(value) => setForm((f) => ({ ...f, period: value as 'weekly' | 'monthly' | 'yearly' }))}
@@ -565,18 +597,18 @@ function BudgetForm({
           </div>
 
           <div>
-            <label className="text-xs text-muted-foreground block mb-1">Start Date *</label>
+            <label className="mb-1.5 block text-xs font-medium text-muted-foreground">Start Date *</label>
             <input
               type="date"
               required
               value={form.startDate}
               onChange={(e) => setForm((f) => ({ ...f, startDate: e.target.value }))}
-              className="w-full h-10 px-3 rounded-lg bg-white/[0.02] border border-white/[0.08] text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/20"
+              className={fieldClass}
             />
           </div>
 
           {error && (
-            <div className="flex items-center gap-2 text-sm text-rose-400 bg-rose-500/10 rounded-lg px-3 py-2">
+            <div className="flex items-center gap-2 text-sm text-negative bg-negative/10 rounded-lg px-3 py-2">
               <AlertTriangle className="h-4 w-4 flex-shrink-0" />
               {error}
             </div>

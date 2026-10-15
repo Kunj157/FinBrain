@@ -2,6 +2,30 @@
 
 All notable changes to FinBrain will be documented in this file.
 
+## 0.9.0 — 2026-10-15
+
+Interface redesign.
+
+### Added
+
+- **Design tokens** for light and dark themes: graphite surfaces, an emerald brand, an iris accent for AI features, money semantics (positive, negative, warning, info) and a categorical chart palette checked for colour-vision deficiency in each theme. Geist typography.
+- **Motion primitives** (after Motion Primitives): animated and sliding numbers, a sliding active highlight, in-view reveals, transition panels, text shimmer, spotlight, 3D tilt with glare, glow, border trail and progressive blur. Motion loads lazily and honours `prefers-reduced-motion`.
+- **3D scenes** with three.js and React Three Fiber: an interactive landing hero, a drifting-coin backdrop on the auth screens, goal progress rings and a dashboard spending-mix ring. They load only when WebGL is available, pause off screen, cap the pixel ratio, and fall back to static posters.
+- **Landing page** (`apps/landing`) published to GitHub Pages at https://kunj157.github.io/FinBrain/.
+- Shared components: page header, empty state, skeletons, table parts, segmented control, metric cards, and a chart theme hook so every Chart.js chart and the Sankey diagram follow the theme.
+- Component tests with Vitest and Testing Library.
+
+### Changed
+
+- Every page redesigned on the new system: grouped sidebar with a sliding indicator, command-bar search, dashboard grid with counting figures, ledger-style transactions, advisor chat with a thinking state, sectioned settings and the rest.
+- Pages are code-split; the entry bundle drops from about 570 kB to about 150 kB gzip.
+- Accessibility: labelled icon buttons, real switches, `aria-sort` on sortable headers, labelled auth inputs.
+
+### Fixed
+
+- A saved light theme reset to dark on reload.
+- The light theme was unreadable: white overlays vanished and green and red figures lacked contrast.
+
 ## 0.8.0 — 2026-10-02
 
 Production hardening. This is the first release to `main` since 0.5.0, so it also carries everything documented under 0.6.0 and 0.7.0.

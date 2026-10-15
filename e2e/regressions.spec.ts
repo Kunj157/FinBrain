@@ -94,7 +94,7 @@ test.describe('dashboard headline figures', () => {
     }
 
     const label = (await badge.first().getAttribute('aria-label')) ?? '';
-    const expected = label.includes(' down ') ? /text-emerald-400/ : /text-rose-400/;
+    const expected = label.includes(' down ') ? /text-positive/ : /text-negative/;
     await expect(badge.first()).toHaveClass(expected);
   });
 });

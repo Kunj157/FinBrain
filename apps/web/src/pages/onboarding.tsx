@@ -1,7 +1,8 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Brain, Building2, Upload, ArrowRight, Check, Lock, Eye, Shield, ChevronLeft } from 'lucide-react';
+import { Building2, Upload, ArrowRight, Check, Lock, Eye, Shield, ChevronLeft } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { LogoMark } from '@/components/brand/logo';
 import { PlaidLinkButton } from '@/components/finance/plaid-link';
 import { CsvImport } from '@/components/finance/csv-import';
 import { useAuth } from '@/hooks/use-auth';
@@ -37,8 +38,8 @@ export default function Onboarding() {
     return (
       <div className="flex min-h-screen items-center justify-center bg-background">
         <div className="text-center max-w-md px-4 animate-fade-in">
-          <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-2xl bg-emerald-500/10 border border-emerald-500/20 mb-6">
-            <Check className="h-8 w-8 text-emerald-400" />
+          <div className="relative mx-auto mb-6 flex h-16 w-16 items-center justify-center rounded-2xl border border-primary/20 bg-primary/10 shadow-glow">
+            <Check className="h-8 w-8 text-primary" aria-hidden />
           </div>
           <h2 className="text-2xl font-semibold">You&apos;re all set!</h2>
           <p className="text-muted-foreground mt-2">
@@ -53,8 +54,8 @@ export default function Onboarding() {
   }
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-background p-4">
-      <div className="absolute inset-0 bg-gradient-to-br from-emerald-500/5 via-transparent to-teal-500/5 pointer-events-none" />
+    <div className="relative flex min-h-screen items-center justify-center overflow-hidden bg-background p-4">
+      <div aria-hidden className="app-backdrop" />
 
       <div className="relative w-full max-w-lg mx-auto animate-fade-in">
         {step !== 'welcome' && (
@@ -68,10 +69,8 @@ export default function Onboarding() {
         )}
 
         <div className="text-center mb-8">
-          <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-xl bg-emerald-500/10 border border-emerald-500/20 mb-4">
-            <Brain className="h-6 w-6 text-emerald-400" />
-          </div>
-          <h1 className="text-2xl font-semibold">
+          <LogoMark className="mx-auto mb-5 h-12 w-12 rounded-2xl" />
+          <h1 className="text-[1.75rem] font-semibold tracking-tight">
             {step === 'welcome' && 'Welcome to FinBrain'}
             {step === 'plaid' && 'Connect your bank'}
             {step === 'csv' && 'Upload your statement'}
@@ -89,16 +88,16 @@ export default function Onboarding() {
               <button
                 key={opt.id}
                 onClick={() => { setSelected(opt.id); setStep(opt.id); }}
-                className="w-full flex items-center gap-4 glass rounded-xl p-5 card-hover text-left group"
+                className="stat-card spotlight-card card-hover group flex w-full items-center gap-4 text-left"
               >
-                <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-white/[0.04] group-hover:bg-emerald-500/10 transition-colors">
-                  <opt.icon className="h-6 w-6 text-muted-foreground group-hover:text-emerald-400 transition-colors" />
+                <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-foreground/[0.05] ring-1 ring-inset ring-border transition-colors group-hover:bg-primary/10 group-hover:ring-primary/20">
+                  <opt.icon className="h-6 w-6 text-muted-foreground group-hover:text-primary transition-colors" />
                 </div>
                 <div className="flex-1">
                   <p className="font-medium">{opt.title}</p>
                   <p className="text-sm text-muted-foreground">{opt.desc}</p>
                 </div>
-                <ArrowRight className="h-5 w-5 text-muted-foreground group-hover:text-emerald-400 transition-colors" />
+                <ArrowRight className="h-5 w-5 text-muted-foreground group-hover:text-primary transition-colors" />
               </button>
             ))}
           </div>
@@ -110,7 +109,7 @@ export default function Onboarding() {
               <PlaidLinkButton userId={user?.id || 'anon'} onSuccess={() => setStep('done')} />
             </div>
 
-            <div className="flex items-center justify-center gap-4 text-xs text-muted-foreground/50">
+            <div className="flex items-center justify-center gap-4 text-xs text-muted-foreground">
               <div className="flex items-center gap-1">
                 <Lock className="h-3 w-3" />
                 <span>256-bit encrypted</span>

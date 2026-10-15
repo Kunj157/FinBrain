@@ -1,10 +1,18 @@
 import { useState, useMemo, useCallback, useEffect } from 'react';
 import {
-  TrendingUp, TrendingDown, Calendar, Loader2, ArrowUpRight, ArrowDownRight,
+  TrendingUp, TrendingDown, Calendar, ArrowUpRight, ArrowDownRight, BarChart3, Store,
 } from 'lucide-react';
 import { ExplainViewButton } from '@/components/finance/explain-view-button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { PageHeader } from '@/components/ui/page-header';
+import { Segmented } from '@/components/ui/segmented';
+import { Select } from '@/components/ui/select';
+import { CardSkeleton, Skeleton } from '@/components/ui/skeleton';
+import { EmptyState } from '@/components/ui/empty-state';
+import { MetricCard } from '@/components/finance/metric-card';
+import { InView } from '@/components/motion/in-view';
+import { TransitionPanel } from '@/components/motion/transition-panel';
+import { areaFill, useChartTheme } from '@/lib/chart-theme';
 import { LoadError } from '@/components/ui/load-error';
 import { useAuth } from '@/hooks/use-auth';
 import api from '@/lib/api';
@@ -28,21 +36,14 @@ import type { Transaction, Category, Currency as SharedCurrency } from '@finbrai
 
 ChartJS.register(CategoryScale, LinearScale, BarElement, ArcElement, PointElement, LineElement, Title, Tooltip, Legend, Filler);
 
-const chartDefaults = {
-  responsive: true,
-  maintainAspectRatio: false,
-  plugins: {
-    legend: { display: false },
-    tooltip: {
-      backgroundColor: 'rgba(0,0,0,0.8)',
-      titleColor: '#e2e8f0',
-      bodyColor: '#e2e8f0',
-      borderColor: 'rgba(255,255,255,0.1)',
-      borderWidth: 1,
-      padding: 12,
-      cornerRadius: 8,
-    },
-  },
+const base = { responsive: true, maintainAspectRatio: false } as const;
+
+/** Bars anchored to the baseline with rounded data ends. */
+const bar = {
+  borderRadius: { topLeft: 4, topRight: 4 },
+  borderSkipped: 'bottom' as const,
+  barPercentage: 0.8,
+  categoryPercentage: 0.6,
 };
 
 type TimePeriod = '3m' | '6m' | '12m' | 'all';
@@ -74,6 +75,7 @@ const DAY_NAMES = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 export default function Analytics() {
   const { user } = useAuth();
   const currency = (user?.currency || 'USD') as SharedCurrency;
+  const chart = useChartTheme();
 
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
@@ -187,12 +189,12 @@ export default function Analytics() {
       .map(([id, amount]) => ({
         id,
         name: catMap[id]?.name || 'Other',
-        color: catMap[id]?.color || '#64748b',
+        color: catMap[id]?.color || chart.ink,
         amount,
         percentage: total > 0 ? (amount / total) * 100 : 0,
       }))
       .sort((a, b) => b.amount - a.amount);
-  }, [filtered, catMap]);
+  }, [filtered, catMap, chart]);
 
   const dayOfWeekData = useMemo(() => {
     const dayTotals = [0, 0, 0, 0, 0, 0, 0];
@@ -249,11 +251,11 @@ export default function Analytics() {
     return {
       labels,
       datasets: [
-        { label: String(thisYear), data: Object.values(months).map((m) => m.thisYear), backgroundColor: 'rgba(16,185,129,0.5)', borderColor: '#10b981', borderWidth: 1, borderRadius: 4 },
-        { label: String(lastYear), data: Object.values(months).map((m) => m.lastYear), backgroundColor: 'rgba(100,116,139,0.3)', borderColor: '#64748b', borderWidth: 1, borderRadius: 4 },
+        { label: String(thisYear), data: Object.values(months).map((m) => m.thisYear), backgroundColor: chart.series[0], ...bar },
+        { label: String(lastYear), data: Object.values(months).map((m) => m.lastYear), backgroundColor: chart.series[1], ...bar },
       ],
     };
-  }, [transactions]);
+  }, [transactions, chart]);
 
   const cashFlowForecast = useMemo(() => {
     const now = new Date();
@@ -312,33 +314,27 @@ export default function Analytics() {
       {
         label: 'Income',
         data: monthlyData.income,
-        backgroundColor: 'rgba(16, 185, 129, 0.6)',
-        borderColor: '#10b981',
-        borderWidth: 1,
-        borderRadius: 4,
+        backgroundColor: chart.positive,
+        ...bar,
       },
       {
         label: 'Expenses',
         data: monthlyData.expense,
-        backgroundColor: 'rgba(244, 63, 94, 0.6)',
-        borderColor: '#f43f5e',
-        borderWidth: 1,
-        borderRadius: 4,
+        backgroundColor: chart.negative,
+        ...bar,
       },
     ],
-  }), [monthlyData]);
+  }), [monthlyData, chart]);
 
   const dayOfWeekChartData = useMemo(() => ({
     labels: DAY_NAMES,
     datasets: [{
       label: 'Avg Spending',
       data: dayOfWeekData.averages,
-      backgroundColor: 'rgba(16, 185, 129, 0.5)',
-      borderColor: '#10b981',
-      borderWidth: 1,
-      borderRadius: 4,
+      backgroundColor: chart.primary,
+      ...bar,
     }],
-  }), [dayOfWeekData]);
+  }), [dayOfWeekData, chart]);
 
   const trendData = useMemo(() => {
     const cumulativeIncome: number[] = [];
@@ -359,33 +355,54 @@ export default function Analytics() {
         {
           label: 'Cumulative Income',
           data: cumulativeIncome,
-          borderColor: '#10b981',
-          backgroundColor: 'rgba(16, 185, 129, 0.05)',
+          borderColor: chart.positive,
+          backgroundColor: areaFill('positive', 0.22),
           fill: true,
           tension: 0.4,
-          pointRadius: 3,
+          pointRadius: 0,
           pointHoverRadius: 5,
+          pointHoverBorderColor: chart.surface,
+          pointHoverBorderWidth: 2,
           borderWidth: 2,
         },
         {
           label: 'Cumulative Expenses',
           data: cumulativeExpense,
-          borderColor: '#f43f5e',
-          backgroundColor: 'rgba(244, 63, 94, 0.05)',
+          borderColor: chart.negative,
+          backgroundColor: areaFill('negative', 0.18),
           fill: true,
           tension: 0.4,
-          pointRadius: 3,
+          pointRadius: 0,
           pointHoverRadius: 5,
+          pointHoverBorderColor: chart.surface,
+          pointHoverBorderWidth: 2,
           borderWidth: 2,
         },
       ],
     };
-  }, [monthlyData]);
+  }, [monthlyData, chart]);
+
+  const legend = {
+    display: true,
+    position: 'top' as const,
+    align: 'end' as const,
+    labels: { usePointStyle: true, pointStyle: 'circle', boxWidth: 6, boxHeight: 6, padding: 14, color: chart.ink },
+  };
+  const barOptions = (withLegend: boolean) => ({
+    ...base,
+    plugins: { legend: withLegend ? legend : { display: false }, tooltip: chart.tooltip },
+    interaction: { intersect: false, mode: 'index' as const },
+    scales: chart.axes,
+  });
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center h-full">
-        <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+      <div className="space-y-6" aria-busy="true" aria-label="Loading analytics">
+        <div className="space-y-2"><Skeleton className="h-8 w-48" /><Skeleton className="h-4 w-72" /></div>
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+          {Array.from({ length: 4 }, (_, i) => <CardSkeleton key={i} lines={0} className="h-[88px]" />)}
+        </div>
+        <div className="grid gap-4 lg:grid-cols-2"><CardSkeleton className="h-80" /><CardSkeleton className="h-80" /></div>
       </div>
     );
   }
@@ -394,283 +411,169 @@ export default function Analytics() {
     return <LoadError message={loadError} onRetry={fetchData} />;
   }
 
+  // Panels slide in from the side the period moved toward.
+  const periodIndex = TIME_PERIODS.findIndex((p) => p.value === period);
+
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between flex-wrap gap-3">
-        <div className="flex items-center gap-3">
-          <div>
-            <h1 className="text-2xl font-bold tracking-tight">Analytics</h1>
-            <p className="text-sm text-muted-foreground">Deep dive into your financial patterns</p>
-          </div>
-          <ExplainViewButton viewName="Analytics" />
+      <PageHeader
+        icon={BarChart3}
+        title="Analytics"
+        description="Deep dive into your financial patterns"
+        actions={
+          <>
+            <ExplainViewButton viewName="Analytics" />
+            <Select
+              value={categoryFilter}
+              onValueChange={setCategoryFilter}
+              ariaLabel="Category"
+              className="h-9 w-44"
+              options={[{ value: 'all', label: 'All Categories' }, ...categories.map((c) => ({ value: c.id, label: c.name }))]}
+            />
+            <Segmented id="analytics-type" label="Transaction type" value={txnType} onChange={setTxnType} options={TYPE_FILTERS} />
+            <Segmented id="analytics-period" label="Time period" value={period} onChange={setPeriod} options={TIME_PERIODS} />
+          </>
+        }
+      />
+
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        <MetricCard label="Total Income" value={stats.income} icon={TrendingUp} tone="positive" currency={currency} />
+        <MetricCard label="Total Expenses" value={stats.expense} icon={TrendingDown} tone="negative" currency={currency} />
+        <MetricCard
+          label="Net Cash Flow"
+          value={stats.net}
+          icon={stats.net >= 0 ? ArrowUpRight : ArrowDownRight}
+          tone={stats.net >= 0 ? 'positive' : 'negative'}
+          valueTone={stats.net >= 0 ? 'positive' : 'negative'}
+          currency={currency}
+        />
+        <MetricCard label="Savings Rate" value={stats.savingsRate} icon={Calendar} tone="info" percent />
+      </div>
+
+      <TransitionPanel activeKey={`${period}-${txnType}-${categoryFilter}`} direction={periodIndex >= 1 ? 1 : -1} className="space-y-6">
+        <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+          <InView index={0}>
+            <Card className="h-full">
+              <CardHeader><CardTitle>Monthly Income vs Expenses</CardTitle><CardDescription>Totals per month for the selected period</CardDescription></CardHeader>
+              <CardContent><div className="h-[260px]"><Bar data={monthlyChartData} options={barOptions(true)} /></div></CardContent>
+            </Card>
+          </InView>
+          <InView index={1}>
+            <Card className="h-full">
+              <CardHeader><CardTitle>Cumulative Trend</CardTitle><CardDescription>Running totals across the period</CardDescription></CardHeader>
+              <CardContent><div className="h-[260px]"><Line data={trendData} options={barOptions(true)} /></div></CardContent>
+            </Card>
+          </InView>
         </div>
-        <div className="flex items-center gap-2 flex-wrap">
-          <select
-            value={categoryFilter}
-            onChange={(e) => setCategoryFilter(e.target.value)}
-            className="h-8 px-2 rounded-lg bg-white/5 border border-white/[0.08] text-xs text-foreground focus:outline-none focus:ring-2 focus:ring-emerald-500/20"
-          >
-            <option value="all">All Categories</option>
-            {categories.map((c) => (
-              <option key={c.id} value={c.id}>{c.name}</option>
-            ))}
-          </select>
-          <div className="flex gap-0.5 p-0.5 rounded-lg bg-white/5">
-            {TYPE_FILTERS.map((t) => (
-              <Button
-                key={t.value}
-                variant={txnType === t.value ? 'default' : 'ghost'}
-                size="sm"
-                onClick={() => setTxnType(t.value)}
-                className="h-7 text-xs"
-              >
-                {t.label}
-              </Button>
-            ))}
-          </div>
-          <div className="flex gap-0.5 p-0.5 rounded-lg bg-white/5">
-            {TIME_PERIODS.map((p) => (
-              <Button
-                key={p.value}
-                variant={period === p.value ? 'default' : 'ghost'}
-                size="sm"
-                onClick={() => setPeriod(p.value)}
-                className="h-7 text-xs"
-              >
-                {p.label}
-              </Button>
-            ))}
-          </div>
-        </div>
-      </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <Card>
-          <CardContent className="p-4">
-            <div className="flex items-center gap-3">
-              <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-emerald-500/10">
-                <TrendingUp className="h-5 w-5 text-emerald-400" />
-              </div>
-              <div>
-                <p className="text-xs text-muted-foreground">Total Income</p>
-                <p className="text-lg font-bold text-emerald-400">{formatCurrency(stats.income, currency)}</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="p-4">
-            <div className="flex items-center gap-3">
-              <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-rose-500/10">
-                <TrendingDown className="h-5 w-5 text-rose-400" />
-              </div>
-              <div>
-                <p className="text-xs text-muted-foreground">Total Expenses</p>
-                <p className="text-lg font-bold text-rose-400">{formatCurrency(stats.expense, currency)}</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="p-4">
-            <div className="flex items-center gap-3">
-              <div className={`flex h-10 w-10 items-center justify-center rounded-lg ${stats.net >= 0 ? 'bg-emerald-500/10' : 'bg-rose-500/10'}`}>
-                {stats.net >= 0 ? <ArrowUpRight className="h-5 w-5 text-emerald-400" /> : <ArrowDownRight className="h-5 w-5 text-rose-400" />}
-              </div>
-              <div>
-                <p className="text-xs text-muted-foreground">Net Cash Flow</p>
-                <p className={`text-lg font-bold ${stats.net >= 0 ? 'text-emerald-400' : 'text-rose-400'}`}>{formatCurrency(stats.net, currency)}</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="p-4">
-            <div className="flex items-center gap-3">
-              <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-blue-500/10">
-                <Calendar className="h-5 w-5 text-blue-400" />
-              </div>
-              <div>
-                <p className="text-xs text-muted-foreground">Savings Rate</p>
-                <p className="text-lg font-bold">{stats.savingsRate.toFixed(1)}%</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium">Monthly Income vs Expenses</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="h-[260px]">
-              <Bar data={monthlyChartData} options={{
-                ...chartDefaults,
-                scales: {
-                  x: { grid: { display: false }, ticks: { color: '#64748b' } },
-                  y: { grid: { color: 'rgba(255,255,255,0.03)' }, ticks: { color: '#64748b' } },
-                },
-              }} />
-            </div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium">Cumulative Trend</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="h-[260px]">
-              <Line data={trendData} options={{
-                ...chartDefaults,
-                plugins: {
-                  ...chartDefaults.plugins,
-                  legend: { display: true, position: 'bottom', labels: { color: '#64748b', padding: 16, usePointStyle: true, pointStyle: 'circle' } },
-                },
-                scales: {
-                  x: { grid: { display: false }, ticks: { color: '#64748b' } },
-                  y: { grid: { color: 'rgba(255,255,255,0.03)' }, ticks: { color: '#64748b' } },
-                },
-                interaction: { intersect: false, mode: 'index' },
-              }} />
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium">Spending by Day of Week</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="h-[220px]">
-              <Bar data={dayOfWeekChartData} options={{
-                ...chartDefaults,
-                scales: {
-                  x: { grid: { display: false }, ticks: { color: '#64748b' } },
-                  y: { grid: { color: 'rgba(255,255,255,0.03)' }, ticks: { color: '#64748b' } },
-                },
-              }} />
-            </div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium">Category Breakdown</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-2.5 max-h-[220px] overflow-y-auto">
-              {categoryBreakdown.length === 0 ? (
-                <p className="text-xs text-muted-foreground text-center py-8">No expense data</p>
-              ) : categoryBreakdown.map((cat) => (
-                <div key={cat.id} className="flex items-center gap-3">
-                  <div className="w-2.5 h-2.5 rounded-full flex-shrink-0" style={{ backgroundColor: cat.color }} />
-                  <span className="text-xs text-muted-foreground flex-1 truncate">{cat.name}</span>
-                  <span className="text-xs font-medium">{formatCurrency(cat.amount, currency)}</span>
-                  <span className="text-[10px] text-muted-foreground w-10 text-right">{cat.percentage.toFixed(0)}%</span>
-                  <div className="w-16 h-1.5 bg-white/5 rounded-full overflow-hidden">
-                    <div className="h-full rounded-full" style={{ width: `${cat.percentage}%`, backgroundColor: cat.color }} />
-                  </div>
-                </div>
-              ))}
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-
-      <Card>
-        <CardHeader className="pb-2">
-          <CardTitle className="text-sm font-medium">Top Merchants</CardTitle>
-        </CardHeader>
-        <CardContent>
-          {topMerchants.length === 0 ? (
-            <p className="text-xs text-muted-foreground text-center py-4">No merchant data</p>
-          ) : (
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3">
-              {topMerchants.map((m, i) => (
-                <div key={m.name} className="flex items-center gap-3 p-2.5 rounded-lg bg-white/[0.02]">
-                  <span className="text-xs text-muted-foreground font-mono w-5">{i + 1}</span>
-                  <div className="min-w-0">
-                    <p className="text-xs font-medium truncate">{m.name}</p>
-                    <p className="text-[10px] text-muted-foreground">{formatCurrency(m.amount, currency)}</p>
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
-        </CardContent>
-      </Card>
-
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium">Year-over-Year Spending</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="h-[260px]">
-              <Bar data={yoyData} options={{
-                ...chartDefaults,
-                plugins: {
-                  ...chartDefaults.plugins,
-                  legend: { display: true, position: 'bottom', labels: { color: '#64748b', padding: 16, usePointStyle: true, pointStyle: 'circle' } },
-                },
-                scales: {
-                  x: { grid: { display: false }, ticks: { color: '#64748b' } },
-                  y: { grid: { color: 'rgba(255,255,255,0.03)' }, ticks: { color: '#64748b' } },
-                },
-              }} />
-            </div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium">Cash Flow Projection</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-4">
-              <div className="grid grid-cols-3 gap-3">
-                {cashFlowForecast.forecast.map((f) => (
-                  <div key={f.days} className="p-3 rounded-lg bg-white/[0.02] text-center">
-                    <p className="text-[10px] text-muted-foreground uppercase tracking-wider">{f.label}</p>
-                    <p className={`text-lg font-bold mt-1 ${f.balance >= 0 ? 'text-emerald-400' : 'text-rose-400'}`}>
-                      {formatCurrency(f.balance, currency)}
-                    </p>
-                  </div>
-                ))}
-              </div>
-
-              <div className="space-y-1.5">
-                <p className="text-xs font-medium text-muted-foreground">6-Month Projection</p>
-                {cashFlowForecast.monthlyProjections.map((p) => (
-                  <div key={p.month} className="flex items-center gap-3">
-                    <span className="text-[10px] text-muted-foreground w-12">{p.label}</span>
-                    <div className="flex-1 h-2 bg-white/5 rounded-full overflow-hidden">
-                      <div
-                        className="h-full rounded-full transition-all"
-                        style={{
-                          width: `${Math.min(100, Math.max(2, (Math.abs(p.balance) / Math.max(cashFlowForecast.currentBalance * 2, 1)) * 100))}%`,
-                          backgroundColor: p.balance >= 0 ? '#34d399' : '#fb7185',
-                        }}
-                      />
+        <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+          <InView index={2}>
+            <Card className="h-full">
+              <CardHeader><CardTitle>Spending by Day of Week</CardTitle><CardDescription>Average expense per transaction</CardDescription></CardHeader>
+              <CardContent><div className="h-[220px]"><Bar data={dayOfWeekChartData} options={barOptions(false)} /></div></CardContent>
+            </Card>
+          </InView>
+          <InView index={3}>
+            <Card className="h-full">
+              <CardHeader><CardTitle>Category Breakdown</CardTitle><CardDescription>Share of spending by category</CardDescription></CardHeader>
+              <CardContent>
+                <div className="max-h-[220px] space-y-3 overflow-y-auto pr-1">
+                  {categoryBreakdown.length === 0 ? (
+                    <EmptyState icon={BarChart3} title="No expense data" description="Nothing was spent in this period." className="py-6" />
+                  ) : categoryBreakdown.map((cat) => (
+                    <div key={cat.id} className="space-y-1.5">
+                      <div className="flex items-center gap-2.5 text-xs">
+                        <span className="h-2 w-2 shrink-0 rounded-full" style={{ backgroundColor: cat.color }} />
+                        <span className="flex-1 truncate text-muted-foreground">{cat.name}</span>
+                        <span className="font-medium tabular-nums">{formatCurrency(cat.amount, currency)}</span>
+                        <span className="w-10 text-right tabular-nums text-muted-foreground">{cat.percentage.toFixed(0)}%</span>
+                      </div>
+                      <div className="h-1.5 overflow-hidden rounded-full bg-foreground/[0.06]">
+                        <div className="h-full rounded-full" style={{ width: `${cat.percentage}%`, backgroundColor: cat.color }} />
+                      </div>
                     </div>
-                    <span className={`text-xs font-medium w-20 text-right ${p.balance >= 0 ? 'text-emerald-400' : 'text-rose-400'}`}>
-                      {formatCurrency(p.balance, currency)}
-                    </span>
-                  </div>
-                ))}
-              </div>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
+          </InView>
+        </div>
 
-              <div className="flex items-center gap-4 text-xs text-muted-foreground pt-2 border-t border-white/5">
-                <span>Recurring: <span className="text-rose-400">{formatCurrency(cashFlowForecast.recurringExpense, currency)}/mo</span></span>
-                <span>Variable: <span className="text-amber-400">{formatCurrency(cashFlowForecast.nonRecurringExpense, currency)}/mo</span></span>
-                <span>Net: <span className={cashFlowForecast.netMonthly >= 0 ? 'text-emerald-400' : 'text-rose-400'}>{formatCurrency(cashFlowForecast.netMonthly, currency)}/mo</span></span>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
+        <InView index={4}>
+          <Card>
+            <CardHeader><CardTitle>Top Merchants</CardTitle><CardDescription>Where most of the money went</CardDescription></CardHeader>
+            <CardContent>
+              {topMerchants.length === 0 ? (
+                <EmptyState icon={Store} title="No merchant data" description="Merchants appear once expenses name them." className="py-6" />
+              ) : (
+                <div className="grid grid-cols-1 gap-2.5 sm:grid-cols-2 lg:grid-cols-5">
+                  {topMerchants.map((m, i) => (
+                    <div key={m.name} className="flex items-center gap-3 rounded-lg border bg-foreground/[0.02] p-2.5 transition-colors hover:border-border-strong">
+                      <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md bg-foreground/[0.05] font-mono text-[11px] text-muted-foreground">{i + 1}</span>
+                      <div className="min-w-0">
+                        <p className="truncate text-xs font-medium">{m.name}</p>
+                        <p className="text-[11px] tabular-nums text-muted-foreground">{formatCurrency(m.amount, currency)}</p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </InView>
+
+        <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+          <InView index={5}>
+            <Card className="h-full">
+              <CardHeader><CardTitle>Year-over-Year Spending</CardTitle><CardDescription>This year against last, month by month</CardDescription></CardHeader>
+              <CardContent><div className="h-[260px]"><Bar data={yoyData} options={barOptions(true)} /></div></CardContent>
+            </Card>
+          </InView>
+          <InView index={6}>
+            <Card className="h-full">
+              <CardHeader><CardTitle>Cash Flow Projection</CardTitle><CardDescription>From your average of the last three months</CardDescription></CardHeader>
+              <CardContent>
+                <div className="space-y-4">
+                  <div className="grid grid-cols-3 gap-3">
+                    {cashFlowForecast.forecast.map((f) => (
+                      <div key={f.days} className="rounded-lg border bg-foreground/[0.02] p-3 text-center">
+                        <p className="text-[10px] uppercase tracking-wider text-muted-foreground">{f.label}</p>
+                        <p className={`mt-1 truncate text-lg font-semibold tabular-nums ${f.balance >= 0 ? 'text-positive' : 'text-negative'}`}>
+                          {formatCurrency(f.balance, currency)}
+                        </p>
+                      </div>
+                    ))}
+                  </div>
+
+                  <div className="space-y-2">
+                    <p className="text-xs font-medium text-muted-foreground">6-Month Projection</p>
+                    {cashFlowForecast.monthlyProjections.map((p) => (
+                      <div key={p.month} className="flex items-center gap-3">
+                        <span className="w-12 text-[10px] text-muted-foreground">{p.label}</span>
+                        <div className="h-2 flex-1 overflow-hidden rounded-full bg-foreground/[0.06]">
+                          <div
+                            className={`h-full rounded-full transition-all ${p.balance >= 0 ? 'bg-positive' : 'bg-negative'}`}
+                            style={{ width: `${Math.min(100, Math.max(2, (Math.abs(p.balance) / Math.max(cashFlowForecast.currentBalance * 2, 1)) * 100))}%` }}
+                          />
+                        </div>
+                        <span className={`w-20 text-right text-xs font-medium tabular-nums ${p.balance >= 0 ? 'text-positive' : 'text-negative'}`}>
+                          {formatCurrency(p.balance, currency)}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+
+                  <div className="flex flex-wrap items-center gap-x-4 gap-y-1 border-t pt-3 text-xs text-muted-foreground">
+                    <span>Recurring: <span className="text-negative">{formatCurrency(cashFlowForecast.recurringExpense, currency)}/mo</span></span>
+                    <span>Variable: <span className="text-warning">{formatCurrency(cashFlowForecast.nonRecurringExpense, currency)}/mo</span></span>
+                    <span>Net: <span className={cashFlowForecast.netMonthly >= 0 ? 'text-positive' : 'text-negative'}>{formatCurrency(cashFlowForecast.netMonthly, currency)}/mo</span></span>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </InView>
+        </div>
+      </TransitionPanel>
     </div>
   );
 }

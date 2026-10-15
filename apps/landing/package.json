@@ -1,0 +1,35 @@
+{
+  "name": "@finbrain/landing",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "description": "Static marketing site for FinBrain, published to GitHub Pages",
+  "scripts": {
+    "dev": "node scripts/copy-media.mjs && vite --port 5190",
+    "build": "node scripts/copy-media.mjs && tsc --noEmit && vite build",
+    "preview": "vite preview --port 5191",
+    "typecheck": "tsc --noEmit",
+    "lint": "eslint . --ext ts,tsx --report-unused-disable-directives",
+    "clean": "rm -rf dist public/media"
+  },
+  "devDependencies": {
+    "@finbrain/config": "workspace:^",
+    "@typescript-eslint/eslint-plugin": "^7.17.0",
+    "@typescript-eslint/parser": "^7.17.0",
+    "@vitejs/plugin-react": "^4.3.0",
+    "autoprefixer": "^10.4.0",
+    "eslint": "^8.57.0",
+    "eslint-plugin-react-hooks": "^4.6.0",
+    "postcss": "^8.4.0",
+    "tailwindcss": "^3.4.0",
+    "tailwindcss-animate": "^1.0.7",
+    "typescript": "^5.5.0",
+    "vite": "^5.4.0"
+  },
+  "dependencies": {
+    "@types/react": "^19.0.0",
+    "@types/react-dom": "^19.0.0",
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0"
+  }
+}

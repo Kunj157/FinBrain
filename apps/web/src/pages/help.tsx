@@ -2,9 +2,11 @@ import { useState } from 'react';
 import {
   HelpCircle, ChevronDown, ExternalLink, Banknote, Upload, Tags,
   PiggyBank, Target, Sparkles, FileText, ShieldCheck, Plus,
+  LifeBuoy, ArrowUpRight,
 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
+import { PageHeader } from '@/components/ui/page-header';
 import { cn } from '@/lib/utils';
 
 const faqs = [
@@ -83,17 +85,14 @@ export default function HelpPage() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold tracking-tight">Help & Support</h1>
-        <p className="text-sm text-muted-foreground">Everything you need to get started</p>
-      </div>
+      <PageHeader icon={LifeBuoy} title="Help & Support" description="Everything you need to get started" />
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <div className="lg:col-span-2 space-y-6">
           <Card>
             <CardHeader className="pb-3">
               <CardTitle className="text-sm font-medium flex items-center gap-2">
-                <Plus className="h-4 w-4 text-emerald-400" />
+                <Plus className="h-4 w-4 text-primary" />
                 Quick Start Guide
               </CardTitle>
             </CardHeader>
@@ -103,12 +102,12 @@ export default function HelpPage() {
                   <a
                     key={step.title}
                     href={step.link}
-                    className="block p-3 rounded-lg bg-white/[0.02] hover:bg-white/[0.04] transition-colors border border-white/[0.06]"
+                    className="group block rounded-xl border bg-surface-sunken/40 p-3.5 transition-[border-color,background-color,transform] duration-300 ease-out hover:-translate-y-0.5 hover:border-primary/30 hover:bg-primary/[0.04]"
                   >
-                    <span className="inline-flex items-center justify-center w-6 h-6 rounded-full bg-emerald-500/10 text-emerald-400 text-xs font-bold mb-2">
+                    <span className="mb-2.5 inline-flex h-6 w-6 items-center justify-center rounded-full bg-primary/10 text-xs font-semibold tabular-nums text-primary ring-1 ring-inset ring-primary/20">
                       {i + 1}
                     </span>
-                    <p className="text-xs font-medium mb-0.5">{step.title}</p>
+                    <p className="mb-0.5 flex items-center gap-1 text-xs font-semibold">{step.title}<ArrowUpRight className="h-3 w-3 opacity-0 transition-opacity group-hover:opacity-100" aria-hidden /></p>
                     <p className="text-[11px] text-muted-foreground">{step.description}</p>
                   </a>
                 ))}
@@ -119,7 +118,7 @@ export default function HelpPage() {
           <Card>
             <CardHeader className="pb-3">
               <CardTitle className="text-sm font-medium flex items-center gap-2">
-                <HelpCircle className="h-4 w-4 text-emerald-400" />
+                <HelpCircle className="h-4 w-4 text-primary" />
                 Frequently Asked Questions
               </CardTitle>
             </CardHeader>
@@ -128,10 +127,11 @@ export default function HelpPage() {
                 const Icon = faq.icon;
                 const isOpen = openFaq === faq.question;
                 return (
-                  <div key={faq.question} className="border-b border-white/[0.04] last:border-0">
+                  <div key={faq.question} className="border-b last:border-0">
                     <button
                       onClick={() => setOpenFaq(isOpen ? null : faq.question)}
-                      className="w-full flex items-center gap-3 py-3 text-left"
+                      aria-expanded={isOpen}
+                      className="flex w-full items-center gap-3 rounded-lg py-3 text-left transition-colors hover:text-foreground"
                     >
                       <Icon className="h-4 w-4 text-muted-foreground flex-shrink-0" />
                       <span className="text-sm flex-1 font-medium">{faq.question}</span>
@@ -141,7 +141,7 @@ export default function HelpPage() {
                       )} />
                     </button>
                     {isOpen && (
-                      <p className="text-xs text-muted-foreground pb-3 pl-7 leading-relaxed">
+                      <p className="animate-in fade-in-0 slide-in-from-top-1 pb-3 pl-7 text-xs leading-relaxed text-muted-foreground duration-200">
                         {faq.answer}
                       </p>
                     )}
@@ -171,7 +171,7 @@ export default function HelpPage() {
                   Report an Issue
                 </Button>
               </a>
-              <div className="pt-2 border-t border-white/[0.06]">
+              <div className="border-t pt-3">
                 <p className="text-[11px] text-muted-foreground mb-2">Keyboard Shortcuts</p>
                 <div className="space-y-1.5">
                   {[
@@ -181,7 +181,7 @@ export default function HelpPage() {
                   ].map((shortcut) => (
                     <div key={shortcut.keys} className="flex items-center justify-between">
                       <span className="text-xs text-muted-foreground">{shortcut.action}</span>
-                      <kbd className="text-[10px] px-1.5 py-0.5 rounded bg-white/[0.06] text-muted-foreground font-mono">
+                      <kbd className="rounded border bg-background px-1.5 py-0.5 font-mono text-[10px] text-muted-foreground shadow-edge">
                         {shortcut.keys}
                       </kbd>
                     </div>

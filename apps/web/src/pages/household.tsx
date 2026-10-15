@@ -3,6 +3,9 @@ import api from '@/lib/api';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
+import { Badge } from '@/components/ui/badge';
+import { PageHeader } from '@/components/ui/page-header';
+import { Skeleton, CardSkeleton } from '@/components/ui/skeleton';
 import { Users, Copy, Check, Loader2, UserPlus, LogOut, Trash2, Shield, User } from 'lucide-react';
 
 interface Household {
@@ -129,36 +132,37 @@ export default function HouseholdPage() {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center min-h-[400px]">
-        <Loader2 className="h-6 w-6 animate-spin text-emerald-400" />
+      <div className="mx-auto max-w-3xl space-y-6" aria-busy="true" aria-label="Loading household">
+        <Skeleton className="h-10 w-56" />
+        <CardSkeleton lines={3} />
+        <CardSkeleton lines={2} />
       </div>
     );
   }
 
   if (!household) {
     return (
-      <div className="max-w-2xl mx-auto px-4 py-8 space-y-8">
-        <div className="flex items-center gap-3">
-          <Users className="h-7 w-7 text-emerald-400" />
-          <h1 className="text-2xl font-bold text-white">Household</h1>
-        </div>
-        <p className="text-gray-400">Share budgets, goals, and financial tracking with a partner.</p>
+      <div className="mx-auto max-w-3xl space-y-6">
+        <PageHeader icon={Users} title="Household" description="Share budgets, goals, and financial tracking with a partner." />
 
         {msg && (
-          <div className={`p-3 rounded-lg text-sm ${msg.type === 'success' ? 'bg-emerald-500/10 text-emerald-400' : 'bg-rose-500/10 text-rose-400'}`}>
+          <div role="status" className={`rounded-xl border p-3 text-sm ${msg.type === 'success' ? 'border-positive/20 bg-positive/10 text-positive' : 'border-negative/20 bg-negative/10 text-negative'}`}>
             {msg.text}
           </div>
         )}
 
-        <Card className="p-6 space-y-6 bg-gray-900/60 border-gray-800">
-          <h2 className="text-lg font-semibold text-white">Create a Household</h2>
-          <p className="text-sm text-gray-400">You'll be the owner and can invite one partner to join.</p>
+        <div className="grid gap-4 md:grid-cols-2">
+        <Card className="space-y-4 p-6">
+          <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary/10 text-primary ring-1 ring-inset ring-primary/20"><Users className="h-5 w-5" aria-hidden /></span>
+          <div>
+            <h2 className="text-base font-semibold tracking-tight">Create a Household</h2>
+            <p className="mt-1 text-sm text-muted-foreground">You'll be the owner and can invite one partner to join.</p>
+          </div>
           <div className="flex gap-3">
             <Input
               value={newName}
               onChange={(e) => setNewName(e.target.value)}
               placeholder="e.g. Our Household"
-              className="bg-gray-800 border-gray-700 text-white"
             />
             <Button onClick={createHousehold} disabled={creating || !newName.trim()}>
               {creating ? <Loader2 className="h-4 w-4 animate-spin" /> : <Users className="h-4 w-4" />}
@@ -167,15 +171,17 @@ export default function HouseholdPage() {
           </div>
         </Card>
 
-        <Card className="p-6 space-y-6 bg-gray-900/60 border-gray-800">
-          <h2 className="text-lg font-semibold text-white">Join a Household</h2>
-          <p className="text-sm text-gray-400">Enter the invite token shared by the household owner.</p>
+        <Card className="space-y-4 p-6">
+          <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-accent/10 text-accent ring-1 ring-inset ring-accent/20"><UserPlus className="h-5 w-5" aria-hidden /></span>
+          <div>
+            <h2 className="text-base font-semibold tracking-tight">Join a Household</h2>
+            <p className="mt-1 text-sm text-muted-foreground">Enter the invite token shared by the household owner.</p>
+          </div>
           <div className="flex gap-3">
             <Input
               value={joinToken}
               onChange={(e) => setJoinToken(e.target.value)}
               placeholder="Paste invite token"
-              className="bg-gray-800 border-gray-700 text-white"
             />
             <Button onClick={joinHousehold} disabled={joining || !joinToken.trim()}>
               {joining ? <Loader2 className="h-4 w-4 animate-spin" /> : <UserPlus className="h-4 w-4" />}
@@ -183,6 +189,7 @@ export default function HouseholdPage() {
             </Button>
           </div>
         </Card>
+        </div>
       </div>
     );
   }
@@ -190,56 +197,51 @@ export default function HouseholdPage() {
   const isOwner = household.myRole === 'OWNER';
 
   return (
-    <div className="max-w-2xl mx-auto px-4 py-8 space-y-8">
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <Users className="h-7 w-7 text-emerald-400" />
-          <div>
-            <h1 className="text-2xl font-bold text-white">{household.name}</h1>
-            <p className="text-sm text-gray-400">
-              {household.members.length} member{household.members.length !== 1 ? 's' : ''}
-            </p>
-          </div>
-        </div>
-        <Button variant="destructive" size="sm" onClick={leaveHousehold} disabled={deleting}>
-          <Trash2 className="h-4 w-4 mr-1" />
-          {isOwner ? 'Delete' : 'Leave'}
-        </Button>
-      </div>
+    <div className="mx-auto max-w-3xl space-y-6">
+      <PageHeader
+        icon={Users}
+        eyebrow="Household"
+        title={household.name}
+        description={`${household.members.length} member${household.members.length !== 1 ? 's' : ''}`}
+        actions={
+          <Button variant="destructive" size="sm" onClick={leaveHousehold} disabled={deleting}>
+            <Trash2 className="h-4 w-4" />
+            {isOwner ? 'Delete' : 'Leave'}
+          </Button>
+        }
+      />
 
       {msg && (
-        <div className={`p-3 rounded-lg text-sm ${msg.type === 'success' ? 'bg-emerald-500/10 text-emerald-400' : 'bg-rose-500/10 text-rose-400'}`}>
+        <div role="status" className={`rounded-xl border p-3 text-sm ${msg.type === 'success' ? 'border-positive/20 bg-positive/10 text-positive' : 'border-negative/20 bg-negative/10 text-negative'}`}>
           {msg.text}
         </div>
       )}
 
-      <Card className="p-6 bg-gray-900/60 border-gray-800">
-        <h2 className="text-lg font-semibold text-white mb-4">Members</h2>
+      <Card className="p-6">
+        <h2 className="mb-4 text-base font-semibold tracking-tight">Members</h2>
         <div className="space-y-3">
           {household.members.map((m) => (
-            <div key={m.id} className="flex items-center justify-between p-3 bg-gray-800/50 rounded-lg">
+            <div key={m.id} className="flex items-center justify-between rounded-xl border bg-surface-sunken/40 p-3">
               <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-full bg-gray-700 flex items-center justify-center">
+                <div className="flex h-10 w-10 items-center justify-center overflow-hidden rounded-full bg-gradient-to-br from-primary/20 to-accent/20 ring-1 ring-inset ring-border">
                   {m.user.avatarUrl ? (
                     <img src={m.user.avatarUrl} alt="" className="w-10 h-10 rounded-full" />
                   ) : (
-                    <User className="h-5 w-5 text-gray-400" />
+                    <User className="h-5 w-5 text-muted-foreground" />
                   )}
                 </div>
                 <div>
-                  <p className="text-white font-medium">{m.user.name}</p>
-                  <p className="text-xs text-gray-400">{m.user.email}</p>
+                  <p className="font-medium">{m.user.name}</p>
+                  <p className="text-xs text-muted-foreground">{m.user.email}</p>
                 </div>
               </div>
               <div className="flex items-center gap-2">
                 {m.role === 'OWNER' && (
-                  <span className="flex items-center gap-1 text-xs text-emerald-400 bg-emerald-500/10 px-2 py-1 rounded">
-                    <Shield className="h-3 w-3" /> Owner
-                  </span>
+                  <Badge variant="default"><Shield className="h-3 w-3" aria-hidden /> Owner</Badge>
                 )}
                 {isOwner && m.role !== 'OWNER' && (
-                  <Button variant="ghost" size="sm" onClick={() => removeMember(m.id)}>
-                    <LogOut className="h-4 w-4 text-red-400" />
+                  <Button variant="ghost" size="sm" onClick={() => removeMember(m.id)} aria-label={`Remove ${m.user.name}`}>
+                    <LogOut className="h-4 w-4 text-negative" />
                   </Button>
                 )}
               </div>
@@ -249,20 +251,20 @@ export default function HouseholdPage() {
       </Card>
 
       {isOwner && (
-        <Card className="p-6 bg-gray-900/60 border-gray-800">
-          <h2 className="text-lg font-semibold text-white mb-4">Invite Partner</h2>
-          <p className="text-sm text-gray-400 mb-4">
+        <Card className="p-6">
+          <h2 className="mb-1 text-base font-semibold tracking-tight">Invite Partner</h2>
+          <p className="text-sm text-muted-foreground mb-4">
             Your household supports 2 members. Send an invite to your partner.
           </p>
           {inviteToken ? (
             <div className="space-y-3">
-              <div className="flex items-center gap-2 p-3 bg-gray-800 rounded-lg">
-                <code className="flex-1 text-sm text-emerald-400 break-all">{inviteToken}</code>
-                <Button variant="ghost" size="sm" onClick={copyToken}>
-                  {copied ? <Check className="h-4 w-4 text-emerald-400" /> : <Copy className="h-4 w-4 text-gray-400" />}
+              <div className="flex items-center gap-2 rounded-xl border border-primary/20 bg-primary/[0.06] p-3">
+                <code className="flex-1 text-sm text-primary break-all">{inviteToken}</code>
+                <Button variant="ghost" size="sm" onClick={copyToken} aria-label={copied ? 'Copied' : 'Copy invite token'}>
+                  {copied ? <Check className="h-4 w-4 text-primary" /> : <Copy className="h-4 w-4 text-muted-foreground" />}
                 </Button>
               </div>
-              <p className="text-xs text-gray-500">
+              <p className="text-xs text-muted-foreground">
                 Share this token with your partner. It expires in 7 days.
               </p>
               <Button variant="outline" size="sm" onClick={() => { setInviteToken(''); setCopied(false); }}>
@@ -275,8 +277,7 @@ export default function HouseholdPage() {
                 value={inviteEmail}
                 onChange={(e) => setInviteEmail(e.target.value)}
                 placeholder="Partner's email address"
-                className="bg-gray-800 border-gray-700 text-white"
-              />
+                />
               <Button onClick={inviteMember} disabled={inviting || !inviteEmail.trim()}>
                 {inviting ? <Loader2 className="h-4 w-4 animate-spin" /> : <UserPlus className="h-4 w-4" />}
                 Invite

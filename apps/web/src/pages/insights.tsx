@@ -1,18 +1,26 @@
 import { useState, useMemo, useCallback, useEffect, useRef } from 'react';
 import {
   Sparkles, Brain, TrendingUp, TrendingDown, AlertTriangle, Lightbulb,
-  ShieldCheck, ShieldAlert, ShieldX, Send, Loader2,
-  DollarSign, PiggyBank, Target, Zap, RefreshCw,
+  ShieldCheck, ShieldAlert, ShieldX, Send,
+  DollarSign, PiggyBank, Target, Zap, RefreshCw, Info,
 } from 'lucide-react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { m } from 'motion/react';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
+import { PageHeader } from '@/components/ui/page-header';
+import { CardSkeleton, Skeleton } from '@/components/ui/skeleton';
+import { EmptyState } from '@/components/ui/empty-state';
+import { AnimatedNumber } from '@/components/motion/animated-number';
+import { InView } from '@/components/motion/in-view';
+import { TiltCard } from '@/components/motion/tilt-card';
+import { BorderTrail } from '@/components/motion/border-trail';
 import { useAuth } from '@/hooks/use-auth';
 import api from '@/lib/api';
 import { fetchAllTransactions } from '@/lib/transactions';
 import { LoadError } from '@/components/ui/load-error';
 import { useAdvisorChat } from '@/hooks/use-advisor-chat';
 import { ChatBubble } from '@/components/advisor/chat-bubble';
-import { formatCurrency } from '@/lib/utils';
+import { cn, formatCurrency } from '@/lib/utils';
 import type { Transaction, Category, Budget, Goal, Currency as SharedCurrency } from '@finbrain/shared';
 
 type Insight = {
@@ -26,10 +34,10 @@ type Insight = {
 };
 
 const HEALTH_LABELS: Record<number, { label: string; color: string; icon: typeof ShieldCheck }> = {
-  0: { label: 'Critical', color: 'text-rose-400', icon: ShieldX },
-  40: { label: 'Needs Work', color: 'text-amber-400', icon: ShieldAlert },
-  70: { label: 'Good', color: 'text-emerald-400', icon: ShieldCheck },
-  90: { label: 'Excellent', color: 'text-emerald-300', icon: ShieldCheck },
+  0: { label: 'Critical', color: 'text-negative', icon: ShieldX },
+  40: { label: 'Needs Work', color: 'text-warning', icon: ShieldAlert },
+  70: { label: 'Good', color: 'text-positive', icon: ShieldCheck },
+  90: { label: 'Excellent', color: 'text-positive', icon: ShieldCheck },
 };
 
 function getHealthLevel(score: number) {
@@ -118,7 +126,7 @@ function generateInsights(
         title: 'Spending Surge Detected',
         description: `Your expenses are up ${change.toFixed(0)}% compared to last month (${formatCurrency(thisTotal, currency)} vs ${formatCurrency(lastTotal, currency)}). Review your recent transactions to identify where the extra spending is coming from.`,
         icon: TrendingUp,
-        color: 'text-rose-400',
+        color: 'text-negative',
       });
     } else if (change < -15) {
       insights.push({
@@ -128,7 +136,7 @@ function generateInsights(
         title: 'Great Spending Discipline',
         description: `Your expenses dropped ${Math.abs(change).toFixed(0)}% this month — from ${formatCurrency(lastTotal, currency)} to ${formatCurrency(thisTotal, currency)}. Keep up the good work!`,
         icon: TrendingDown,
-        color: 'text-emerald-400',
+        color: 'text-positive',
       });
     }
   }
@@ -148,7 +156,7 @@ function generateInsights(
       title: `Top Spending: ${cat?.name || 'Unknown'}`,
       description: `You've spent ${formatCurrency(topCat[1], currency)} on ${cat?.name || 'this category'} this month — that's ${pct}% of your total expenses. ${Number(pct) > 40 ? 'This seems high — consider if there are ways to reduce.' : ''}`,
       icon: Target,
-      color: 'text-blue-400',
+      color: 'text-info',
     });
   }
 
@@ -163,7 +171,7 @@ function generateInsights(
         title: `${cat?.name || 'Budget'} Over Budget`,
         description: `You've exceeded your ${budget.period} ${cat?.name || ''} budget by ${formatCurrency(over, currency)}. Consider adjusting your spending for the rest of the period.`,
         icon: AlertTriangle,
-        color: 'text-amber-400',
+        color: 'text-warning',
       });
     } else if (budget.spent > budget.amount * 0.8) {
       const cat = categories.find((c) => c.id === budget.categoryId);
@@ -174,7 +182,7 @@ function generateInsights(
         title: `${cat?.name || 'Budget'} Nearing Limit`,
         description: `You've used ${((budget.spent / budget.amount) * 100).toFixed(0)}% of your ${cat?.name || ''} budget with days remaining. Pace your spending to stay on track.`,
         icon: Lightbulb,
-        color: 'text-blue-400',
+        color: 'text-info',
       });
     }
   }
@@ -201,7 +209,7 @@ function generateInsights(
             title: `${goal.name} Goal at Risk`,
             description: `You need ${formatCurrency(remaining, currency)} in ${daysLeft} days to reach your ${goal.name} goal. That requires saving ~${formatCurrency(neededPerDay, currency)}/day.`,
             icon: AlertTriangle,
-            color: 'text-amber-400',
+            color: 'text-warning',
           });
         }
       }
@@ -229,7 +237,7 @@ function generateInsights(
       title: `${recurring.length} Recurring Transactions`,
       description: `You have ${recurring.length} recurring transactions totaling ${formatCurrency(recurringTotal, currency)}. Review these to ensure they're all still needed.`,
       icon: RefreshCw,
-      color: 'text-purple-400',
+      color: 'text-accent',
     });
   }
 
@@ -246,7 +254,7 @@ function generateInsights(
         title: 'Savings Rate Below 20%',
         description: `Your savings rate is ${sr}%. Financial experts recommend saving at least 20% of your income. Look for expenses you can reduce to boost your savings.`,
         icon: PiggyBank,
-        color: 'text-amber-400',
+        color: 'text-warning',
       });
     }
   }
@@ -262,7 +270,7 @@ function generateInsights(
       title: 'Daily Spending Average',
       description: `You're averaging ${formatCurrency(avgDaily, currency)}/day this month across ${thisMonthExpenses.length} transactions.`,
       icon: DollarSign,
-      color: 'text-blue-400',
+      color: 'text-info',
     });
   }
 
@@ -280,6 +288,29 @@ function generateInsights(
 
   return insights;
 }
+
+/** Each insight's tone, from its colour role; always shown with an icon and a label, never colour alone. */
+const TONES = {
+  negative: { well: 'bg-negative/10 ring-negative/20 text-negative', edge: 'from-negative/60' },
+  warning: { well: 'bg-warning/10 ring-warning/20 text-warning', edge: 'from-warning/60' },
+  info: { well: 'bg-info/10 ring-info/20 text-info', edge: 'from-info/60' },
+  positive: { well: 'bg-positive/10 ring-positive/20 text-positive', edge: 'from-positive/60' },
+  accent: { well: 'bg-accent/10 ring-accent/20 text-accent', edge: 'from-accent/60' },
+  muted: { well: 'bg-foreground/[0.05] ring-border text-muted-foreground', edge: 'from-foreground/20' },
+} as const;
+
+function toneOf(insight: Insight) {
+  const role = insight.color.replace('text-', '').replace('-foreground', '') as keyof typeof TONES;
+  return TONES[role] ?? TONES.info;
+}
+
+const TYPE_LABEL: Record<Insight['type'], { label: string; icon: typeof Info }> = {
+  alert: { label: 'Alert', icon: AlertTriangle },
+  suggestion: { label: 'Suggestion', icon: Lightbulb },
+  insight: { label: 'Insight', icon: Info },
+};
+
+const RING = 2 * Math.PI * 52;
 
 export default function Insights() {
   const { user } = useAuth();
@@ -352,11 +383,18 @@ export default function Insights() {
 
   const healthLevel = getHealthLevel(health.score);
   const HealthIcon = healthLevel.icon;
+  const ringTone = health.score >= 70 ? 'stroke-positive' : health.score >= 40 ? 'stroke-warning' : 'stroke-negative';
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center h-full">
-        <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+      <div className="space-y-6" aria-busy="true" aria-label="Loading insights">
+        <div className="space-y-2"><Skeleton className="h-8 w-48" /><Skeleton className="h-4 w-72" /></div>
+        <div className="grid gap-6 lg:grid-cols-3">
+          <CardSkeleton className="h-[420px]" />
+          <div className="grid gap-3 md:grid-cols-2 lg:col-span-2">
+            {Array.from({ length: 4 }, (_, i) => <CardSkeleton key={i} lines={2} />)}
+          </div>
+        </div>
       </div>
     );
   }
@@ -367,106 +405,112 @@ export default function Insights() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight">AI Insights</h1>
-          <p className="text-sm text-muted-foreground">Smart analysis of your financial health</p>
-        </div>
-        <Button variant="outline" size="sm" onClick={fetchData} className="gap-2">
-          <RefreshCw className="h-3.5 w-3.5" />
-          Refresh
-        </Button>
-      </div>
+      <PageHeader
+        title="AI Insights"
+        description="Smart analysis of your financial health"
+        icon={Sparkles}
+        tone="accent"
+        actions={
+          <Button variant="outline" size="sm" onClick={fetchData}>
+            <RefreshCw className="h-3.5 w-3.5" />
+            Refresh
+          </Button>
+        }
+      />
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <Card className="lg:col-span-1">
-          <CardContent className="p-6">
-            <div className="flex flex-col items-center text-center">
-              <div className="relative w-32 h-32 mb-4">
-                <svg className="w-32 h-32 -rotate-90" viewBox="0 0 120 120">
-                  <circle cx="60" cy="60" r="52" fill="none" stroke="currentColor" strokeWidth="8"
-                    className="text-white/5" />
-                  <circle cx="60" cy="60" r="52" fill="none" strokeWidth="8" strokeLinecap="round"
-                    strokeDasharray={`${(health.score / 100) * 327} 327`}
-                    className={
-                      health.score >= 70 ? 'stroke-emerald-400' :
-                      health.score >= 40 ? 'stroke-amber-400' : 'stroke-rose-400'
-                    }
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
+        <TiltCard max={3} className="rounded-xl lg:col-span-1">
+          <Card className="h-full overflow-hidden">
+            <span aria-hidden className="absolute inset-x-0 -top-24 mx-auto h-48 w-48 rounded-full bg-accent/15 blur-3xl" />
+            <div className="relative flex flex-col items-center pt-2 text-center">
+              <div className="relative mb-4 h-36 w-36">
+                <svg className="h-36 w-36 -rotate-90" viewBox="0 0 120 120" aria-hidden>
+                  <circle cx="60" cy="60" r="52" fill="none" strokeWidth="9" className="stroke-foreground/[0.06]" />
+                  <m.circle
+                    cx="60" cy="60" r="52" fill="none" strokeWidth="9" strokeLinecap="round"
+                    strokeDasharray={RING}
+                    initial={{ strokeDashoffset: RING }}
+                    animate={{ strokeDashoffset: RING * (1 - health.score / 100) }}
+                    transition={{ duration: 1.1, ease: [0.16, 1, 0.3, 1] }}
+                    className={ringTone}
                   />
                 </svg>
                 <div className="absolute inset-0 flex flex-col items-center justify-center">
-                  <span className="text-3xl font-bold">{health.score}</span>
-                  <span className="text-[10px] text-muted-foreground">/ 100</span>
+                  <span className="text-4xl font-semibold tracking-tight">
+                    <AnimatedNumber value={health.score} from={0} />
+                  </span>
+                  <span className="text-[11px] text-muted-foreground">out of 100</span>
                 </div>
               </div>
-              <div className="flex items-center gap-2 mb-1">
-                <HealthIcon className={`h-4 w-4 ${healthLevel.color}`} />
-                <span className={`text-sm font-medium ${healthLevel.color}`}>{healthLevel.label}</span>
+              <div className="mb-1 flex items-center gap-2">
+                <HealthIcon className={`h-4 w-4 ${healthLevel.color}`} aria-hidden />
+                <span className={`text-sm font-semibold ${healthLevel.color}`}>{healthLevel.label}</span>
               </div>
               <p className="text-xs text-muted-foreground">Financial Health Score</p>
             </div>
 
-            <div className="mt-6 space-y-3">
+            <div className="relative mt-6 space-y-3.5 border-t pt-5">
               {Object.entries(health.breakdown).map(([key, value]) => (
                 <div key={key}>
-                  <div className="flex items-center justify-between mb-1">
-                    <span className="text-xs text-muted-foreground capitalize">{key}</span>
-                    <span className="text-xs font-medium">{value}%</span>
+                  <div className="mb-1.5 flex items-center justify-between">
+                    <span className="text-xs capitalize text-muted-foreground">{key}</span>
+                    <span className="text-xs font-medium tabular-nums">{value}%</span>
                   </div>
-                  <div className="w-full h-1.5 bg-white/5 rounded-full overflow-hidden">
-                    <div
-                      className={`h-full rounded-full transition-all duration-500 ${
-                        value >= 70 ? 'bg-emerald-400' : value >= 40 ? 'bg-amber-400' : 'bg-rose-400'
-                      }`}
-                      style={{ width: `${value}%` }}
+                  <div className="h-1.5 w-full overflow-hidden rounded-full bg-foreground/[0.06]">
+                    <m.div
+                      className={`h-full rounded-full ${value >= 70 ? 'bg-positive' : value >= 40 ? 'bg-warning' : 'bg-negative'}`}
+                      initial={{ width: 0 }}
+                      animate={{ width: `${value}%` }}
+                      transition={{ duration: 0.9, ease: [0.16, 1, 0.3, 1] }}
                     />
                   </div>
                 </div>
               ))}
             </div>
-          </CardContent>
-        </Card>
+          </Card>
+        </TiltCard>
 
-        <div className="lg:col-span-2 space-y-4">
-          <h2 className="text-sm font-medium text-muted-foreground flex items-center gap-2">
-            <Zap className="h-4 w-4" />
+        <div className="space-y-4 lg:col-span-2">
+          <h2 className="flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.12em] text-muted-foreground">
+            <Zap className="h-3.5 w-3.5 text-accent" aria-hidden />
             Smart Insights
           </h2>
           {insights.length === 0 ? (
             <Card>
-              <CardContent className="p-8 text-center">
-                <Sparkles className="h-8 w-8 text-muted-foreground/30 mx-auto mb-3" />
-                <p className="text-sm text-muted-foreground">Add more transactions to unlock AI insights</p>
-              </CardContent>
+              <EmptyState icon={Sparkles} title="No insights yet" description="Add more transactions to unlock AI insights" />
             </Card>
           ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-              {insights.map((insight) => {
+            <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
+              {insights.map((insight, index) => {
                 const Icon = insight.icon;
+                const tone = toneOf(insight);
+                const kind = TYPE_LABEL[insight.type];
                 return (
-                  <Card key={insight.id}>
-                    <CardContent className="p-4">
+                  <InView key={insight.id} index={index} className="h-full">
+                    <Card className="h-full overflow-hidden p-4">
+                      <span aria-hidden className={cn('absolute inset-y-4 left-0 w-[3px] rounded-r-full bg-gradient-to-b to-transparent', tone.edge)} />
                       <div className="flex gap-3">
-                        <div className={`flex h-9 w-9 items-center justify-center rounded-lg flex-shrink-0 ${
-                          insight.type === 'alert' ? 'bg-rose-500/10' :
-                          insight.type === 'suggestion' ? 'bg-amber-500/10' : 'bg-blue-500/10'
-                        }`}>
-                          <Icon className={`h-4 w-4 ${insight.color}`} />
+                        <div className={cn('flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-xl ring-1 ring-inset', tone.well)}>
+                          <Icon className="h-4 w-4" aria-hidden />
                         </div>
-                        <div className="min-w-0">
-                          <div className="flex items-center gap-2 mb-0.5">
-                            <p className="text-xs font-medium truncate">{insight.title}</p>
+                        <div className="min-w-0 flex-1">
+                          <div className="mb-1 flex flex-wrap items-center gap-1.5">
+                            <span className="inline-flex items-center gap-1 text-[10px] font-semibold uppercase tracking-[0.1em] text-muted-foreground">
+                              <kind.icon className="h-3 w-3" aria-hidden />
+                              {kind.label}
+                            </span>
                             {insight.severity === 'high' && (
-                              <span className="text-[9px] px-1.5 py-0.5 rounded-full bg-rose-500/20 text-rose-300 flex-shrink-0">
-                                HIGH
+                              <span className="rounded-full border border-negative/25 bg-negative/10 px-1.5 py-px text-[9px] font-semibold uppercase tracking-wide text-negative">
+                                High priority
                               </span>
                             )}
                           </div>
-                          <p className="text-[11px] text-muted-foreground leading-relaxed">{insight.description}</p>
+                          <p className="text-sm font-semibold leading-snug">{insight.title}</p>
+                          <p className="mt-1 text-xs leading-relaxed text-muted-foreground">{insight.description}</p>
                         </div>
                       </div>
-                    </CardContent>
-                  </Card>
+                    </Card>
+                  </InView>
                 );
               })}
             </div>
@@ -474,20 +518,24 @@ export default function Insights() {
         </div>
       </div>
 
-      <Card>
-        <CardHeader className="pb-3">
-          <CardTitle className="text-sm font-medium flex items-center gap-2">
-            <Brain className="h-4 w-4 text-emerald-400" />
+      <Card className="overflow-hidden">
+        {isThinking && <BorderTrail tone="accent" />}
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Brain className="h-4 w-4 text-accent" aria-hidden />
             Ask FinBrain
           </CardTitle>
+          <CardDescription>Follow up on any insight in plain language</CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="h-[300px] overflow-y-auto mb-4 space-y-3 scrollbar-thin">
+          <div className="mb-4 h-[300px] space-y-4 overflow-y-auto pr-1">
             {messages.length === 0 && (
-              <div className="flex flex-col items-center justify-center h-full text-center">
-                <Brain className="h-8 w-8 text-emerald-400/20 mb-3" />
-                <p className="text-sm text-muted-foreground mb-4">Ask me anything about your finances</p>
-                <div className="flex flex-wrap gap-2 justify-center max-w-lg">
+              <div className="flex h-full flex-col items-center justify-center text-center">
+                <span className="mb-3 flex h-11 w-11 items-center justify-center rounded-2xl border border-accent/25 bg-accent/10 text-accent">
+                  <Sparkles className="h-5 w-5" aria-hidden />
+                </span>
+                <p className="mb-4 text-sm text-muted-foreground">Ask me anything about your finances</p>
+                <div className="flex max-w-lg flex-wrap justify-center gap-2">
                   {[
                     'Can I afford a €1,200 laptop?',
                     'How can I improve my savings rate?',
@@ -497,7 +545,7 @@ export default function Insights() {
                     <button
                       key={q}
                       onClick={() => { setChatInput(q); }}
-                      className="text-[11px] px-3 py-1.5 rounded-full bg-emerald-500/10 text-emerald-300 hover:bg-emerald-500/20 transition-colors"
+                      className="rounded-full border border-accent/20 bg-accent/[0.06] px-3 py-1.5 text-xs text-foreground transition-colors hover:border-accent/40 hover:bg-accent/10"
                     >
                       {q}
                     </button>
@@ -508,40 +556,22 @@ export default function Insights() {
             {messages.map((msg, i) => (
               <ChatBubble key={i} message={msg} onRetry={retryChat} />
             ))}
-            {isThinking && (
-              <div className="flex justify-start">
-                <div className="rounded-xl px-4 py-3 bg-white/[0.04]">
-                  <div className="flex items-center gap-2">
-                    <Brain className="h-3 w-3 text-emerald-400 animate-pulse" />
-                    <span className="text-xs text-muted-foreground">Thinking...</span>
-                  </div>
-                </div>
-              </div>
-            )}
             <div ref={chatEndRef} />
           </div>
 
-          <div className="flex gap-2">
+          <div className="flex items-center gap-2 rounded-xl border border-input bg-surface-sunken/60 p-1.5 pl-3.5 transition-[border-color,box-shadow] focus-within:border-accent/60 focus-within:ring-4 focus-within:ring-accent/15">
             <input
               type="text"
               value={chatInput}
               onChange={(e) => setChatInput(e.target.value)}
               onKeyDown={handleKeyDown}
               placeholder="Ask about your spending, budgets, goals..."
-              className="flex-1 h-10 px-3 rounded-lg bg-white/[0.03] border border-white/[0.06] text-sm text-foreground placeholder:text-muted-foreground/50 focus:outline-none focus:ring-2 focus:ring-emerald-500/20"
+              aria-label="Ask about your spending, budgets, goals"
+              className="min-w-0 flex-1 bg-transparent py-1.5 text-sm placeholder:text-muted-foreground/70 focus-visible:outline-none"
               disabled={isThinking}
             />
-            <Button
-              size="sm"
-              onClick={handleSend}
-              disabled={!chatInput.trim() || isThinking}
-              className="h-10 px-4"
-            >
-              {isThinking ? (
-                <Loader2 className="h-4 w-4 animate-spin" />
-              ) : (
-                <Send className="h-4 w-4" />
-              )}
+            <Button variant="accent" size="icon" onClick={handleSend} disabled={!chatInput.trim() || isThinking} aria-label="Send">
+              <Send className="h-4 w-4" />
             </Button>
           </div>
         </CardContent>

@@ -11,7 +11,10 @@ import {
   ArrowUpRight,
   Loader2,
 } from 'lucide-react';
+import { AnimatePresence, m } from 'motion/react';
 import api from '@/lib/api';
+import { ActiveHighlight } from '@/components/motion/animated-background';
+import { duration, spring } from '@/lib/motion';
 import { formatCurrency } from '@/lib/utils';
 
 interface SearchResult {
@@ -33,11 +36,11 @@ interface SearchResults {
 }
 
 const SECTION_CONFIG = [
-  { key: 'transactions' as const, label: 'Transactions', icon: ArrowRightLeft, color: 'text-emerald-400' },
-  { key: 'categories' as const, label: 'Categories', icon: Tags, color: 'text-violet-400' },
-  { key: 'accounts' as const, label: 'Accounts', icon: Building2, color: 'text-blue-400' },
-  { key: 'budgets' as const, label: 'Budgets', icon: PiggyBank, color: 'text-amber-400' },
-  { key: 'goals' as const, label: 'Goals', icon: Target, color: 'text-rose-400' },
+  { key: 'transactions' as const, label: 'Transactions', icon: ArrowRightLeft, color: 'text-primary' },
+  { key: 'categories' as const, label: 'Categories', icon: Tags, color: 'text-accent' },
+  { key: 'accounts' as const, label: 'Accounts', icon: Building2, color: 'text-info' },
+  { key: 'budgets' as const, label: 'Budgets', icon: PiggyBank, color: 'text-warning' },
+  { key: 'goals' as const, label: 'Goals', icon: Target, color: 'text-negative' },
 ];
 
 export function SearchModal({ open, onClose }: { open: boolean; onClose: () => void }) {
@@ -112,90 +115,131 @@ export function SearchModal({ open, onClose }: { open: boolean; onClose: () => v
     }
   }, [selectedIndex]);
 
-  if (!open) return null;
-
   let flatIndex = -1;
 
   return (
-    <div className="fixed inset-0 z-[100] flex items-start justify-center pt-[10vh] md:pt-[15vh] bg-black/60 backdrop-blur-sm" onClick={onClose}>
-      <div
-        className="w-full max-w-lg mx-2 md:mx-4 glass rounded-xl overflow-hidden shadow-2xl md:max-h-[70vh]"
-        onClick={(e) => e.stopPropagation()}
-        onKeyDown={handleKeyDown}
-      >
-        <div className="flex items-center gap-3 px-4 py-3 border-b border-white/[0.06]">
-          <Search className="h-4 w-4 text-muted-foreground flex-shrink-0" />
-          <input
-            ref={inputRef}
-            type="text"
-            value={query}
-            onChange={(e) => setQuery(e.target.value)}
-            placeholder="Search transactions, categories, accounts..."
-            className="flex-1 bg-transparent text-sm outline-none placeholder:text-muted-foreground/50"
-          />
-          {loading && <Loader2 className="h-4 w-4 text-muted-foreground animate-spin" />}
-          <button onClick={onClose} className="p-1 rounded hover:bg-white/[0.06] text-muted-foreground">
-            <X className="h-4 w-4" />
-          </button>
-        </div>
-
-        <div ref={listRef} className="max-h-[50vh] overflow-y-auto">
-          {query.length < 2 ? (
-            <div className="py-8 text-center text-sm text-muted-foreground/50">
-              Type at least 2 characters to search
+    <AnimatePresence>
+      {open && (
+        <m.div
+          key="search"
+          className="fixed inset-0 z-[100] flex items-start justify-center bg-background/60 pt-[10vh] backdrop-blur-md md:pt-[14vh]"
+          onClick={onClose}
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0, transition: { duration: duration.fast } }}
+        >
+          <m.div
+            role="dialog"
+            aria-modal="true"
+            aria-label="Search"
+            className="mx-2 w-full max-w-xl overflow-hidden rounded-2xl border bg-popover/95 shadow-float backdrop-blur-2xl md:mx-4 md:max-h-[70vh]"
+            onClick={(e) => e.stopPropagation()}
+            onKeyDown={handleKeyDown}
+            initial={{ opacity: 0, scale: 0.96, y: -8 }}
+            animate={{ opacity: 1, scale: 1, y: 0 }}
+            exit={{ opacity: 0, scale: 0.98, y: -4, transition: { duration: duration.fast } }}
+            transition={spring.smooth}
+          >
+            <div className="flex items-center gap-3 border-b px-4 py-3.5">
+              <Search className="h-4 w-4 flex-shrink-0 text-muted-foreground" aria-hidden />
+              <input
+                ref={inputRef}
+                type="text"
+                value={query}
+                onChange={(e) => setQuery(e.target.value)}
+                placeholder="Search transactions, categories, accounts..."
+                aria-label="Search query"
+                className="flex-1 bg-transparent text-[15px] outline-none placeholder:text-muted-foreground/60 focus-visible:outline-none"
+              />
+              {loading && <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" aria-hidden />}
+              <button
+                onClick={onClose}
+                aria-label="Close search"
+                className="rounded-md p-1 text-muted-foreground transition-colors hover:bg-foreground/[0.06] hover:text-foreground"
+              >
+                <X className="h-4 w-4" />
+              </button>
             </div>
-          ) : allResults.length === 0 && !loading ? (
-            <div className="py-8 text-center text-sm text-muted-foreground/50">
-              No results found for &ldquo;{query}&rdquo;
-            </div>
-          ) : (
-            SECTION_CONFIG.map((section) => {
-              const items = results?.[section.key] || [];
-              if (items.length === 0) return null;
-              const SectionIcon = section.icon;
 
-              return (
-                <div key={section.key}>
-                  <div className="px-4 py-2 text-[10px] font-medium text-muted-foreground uppercase tracking-wider flex items-center gap-1.5">
-                    <SectionIcon className={`h-3 w-3 ${section.color}`} />
-                    {section.label}
-                  </div>
-                  {items.map((item) => {
-                    flatIndex++;
-                    const idx = flatIndex;
-                    return (
-                      <button
-                        key={item.id}
-                        data-index={idx}
-                        onClick={() => { navigate(item.navigateTo); onClose(); }}
-                        className={`w-full px-4 py-2.5 flex items-center gap-3 text-left transition-colors ${
-                          idx === selectedIndex ? 'bg-white/[0.06]' : 'hover:bg-white/[0.03]'
-                        }`}
-                      >
-                        {item.color ? (
-                          <span className="w-3 h-3 rounded-full flex-shrink-0" style={{ backgroundColor: item.color }} />
-                        ) : (
-                          <SectionIcon className={`h-4 w-4 flex-shrink-0 ${section.color}`} />
-                        )}
-                        <div className="flex-1 min-w-0">
-                          <p className="text-sm font-medium truncate">{item.label}</p>
-                          <p className="text-xs text-muted-foreground truncate">{item.sublabel}</p>
-                        </div>
-                        {item.amount !== undefined && (
-                          <span className="text-sm font-medium text-muted-foreground flex-shrink-0">
-                            {formatCurrency(item.amount)}
-                          </span>
-                        )}
-                        <ArrowUpRight className="h-3.5 w-3.5 text-muted-foreground/30 flex-shrink-0" />
-                      </button>
-                    );
-                  })}
+            <div ref={listRef} className="max-h-[50vh] overflow-y-auto p-1.5">
+              {query.length < 2 ? (
+                <div className="py-10 text-center text-sm text-muted-foreground">
+                  Type at least 2 characters to search
                 </div>
-              );
-            })
-          )}
-        </div>
-      </div>
-    </div>
+              ) : allResults.length === 0 && !loading ? (
+                <div className="py-10 text-center text-sm text-muted-foreground">
+                  No results found for &ldquo;{query}&rdquo;
+                </div>
+              ) : (
+                SECTION_CONFIG.map((section) => {
+                  const items = results?.[section.key] || [];
+                  if (items.length === 0) return null;
+                  const SectionIcon = section.icon;
+
+                  return (
+                    <div key={section.key} className="pb-1">
+                      <div className="flex items-center gap-1.5 px-3 pb-1 pt-2.5 text-[10px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">
+                        <SectionIcon className={`h-3 w-3 ${section.color}`} aria-hidden />
+                        {section.label}
+                      </div>
+                      {items.map((item) => {
+                        flatIndex++;
+                        const idx = flatIndex;
+                        const active = idx === selectedIndex;
+                        return (
+                          <button
+                            key={item.id}
+                            data-index={idx}
+                            onClick={() => { navigate(item.navigateTo); onClose(); }}
+                            onMouseMove={() => !active && setSelectedIndex(idx)}
+                            className="relative isolate flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-left"
+                          >
+                            {active && (
+                              <ActiveHighlight layoutId="search-active" className="rounded-lg bg-foreground/[0.06]" />
+                            )}
+                            {item.color ? (
+                              <span className="h-3 w-3 flex-shrink-0 rounded-full" style={{ backgroundColor: item.color }} />
+                            ) : (
+                              <SectionIcon className={`h-4 w-4 flex-shrink-0 ${section.color}`} aria-hidden />
+                            )}
+                            <div className="min-w-0 flex-1">
+                              <p className="truncate text-sm font-medium">{item.label}</p>
+                              <p className="truncate text-xs text-muted-foreground">{item.sublabel}</p>
+                            </div>
+                            {item.amount !== undefined && (
+                              <span className="flex-shrink-0 text-sm font-medium tabular-nums text-muted-foreground">
+                                {formatCurrency(item.amount)}
+                              </span>
+                            )}
+                            <ArrowUpRight
+                              className={`h-3.5 w-3.5 flex-shrink-0 transition-opacity ${active ? 'text-foreground opacity-100' : 'opacity-30'}`}
+                              aria-hidden
+                            />
+                          </button>
+                        );
+                      })}
+                    </div>
+                  );
+                })
+              )}
+            </div>
+
+            <div className="flex items-center gap-4 border-t px-4 py-2.5 text-[11px] text-muted-foreground">
+              <span className="flex items-center gap-1.5"><Kbd>↑</Kbd><Kbd>↓</Kbd> navigate</span>
+              <span className="flex items-center gap-1.5"><Kbd>↵</Kbd> open</span>
+              <span className="ml-auto flex items-center gap-1.5"><Kbd>esc</Kbd> close</span>
+            </div>
+          </m.div>
+        </m.div>
+      )}
+    </AnimatePresence>
+  );
+}
+
+function Kbd({ children }: { children: React.ReactNode }) {
+  return (
+    <kbd className="inline-flex h-5 min-w-5 items-center justify-center rounded border bg-background px-1 font-mono text-[10px]">
+      {children}
+    </kbd>
   );
 }

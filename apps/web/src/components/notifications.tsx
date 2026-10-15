@@ -79,29 +79,31 @@ export function NotificationBell() {
   };
 
   const getIcon = (type: string) => {
-    if (type.includes('exceeded')) return 'bg-rose-500/10 text-rose-400';
-    if (type.includes('warning')) return 'bg-amber-500/10 text-amber-400';
-    if (type.includes('alert')) return 'bg-amber-500/10 text-amber-400';
-    return 'bg-blue-500/10 text-blue-400';
+    if (type.includes('exceeded')) return 'bg-negative/10 text-negative';
+    if (type.includes('warning')) return 'bg-warning/10 text-warning';
+    if (type.includes('alert')) return 'bg-warning/10 text-warning';
+    return 'bg-info/10 text-info';
   };
 
   return (
     <div className="relative" ref={dropdownRef}>
       <button
         onClick={() => setIsOpen(!isOpen)}
-        className="relative p-2 rounded-lg hover:bg-white/[0.04] transition-colors"
+        aria-label={unreadCount > 0 ? `Notifications, ${unreadCount} unread` : 'Notifications'}
+        aria-expanded={isOpen}
+        className="relative flex h-9 w-9 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-foreground/[0.05] hover:text-foreground"
       >
-        <Bell className="h-5 w-5 text-muted-foreground" />
+        <Bell className="h-4 w-4" />
         {unreadCount > 0 && (
-          <span className="absolute -top-0.5 -right-0.5 flex h-4 w-4 items-center justify-center rounded-full bg-emerald-500 text-[9px] font-bold text-white">
+          <span className="absolute right-1 top-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-primary px-1 text-[9px] font-bold text-primary-foreground ring-2 ring-background">
             {unreadCount > 9 ? '9+' : unreadCount}
           </span>
         )}
       </button>
 
       {isOpen && (
-        <div className="absolute right-0 top-full mt-2 w-80 glass rounded-xl border border-white/[0.06] shadow-xl z-50">
-          <div className="flex items-center justify-between p-3 border-b border-white/[0.04]">
+        <div className="absolute right-0 top-full z-50 mt-2 w-80 origin-top-right animate-in fade-in-0 zoom-in-95 rounded-xl border bg-popover/95 shadow-float backdrop-blur-xl">
+          <div className="flex items-center justify-between p-3 border-b border-foreground/[0.04]">
             <h3 className="text-sm font-medium">Notifications</h3>
             {unreadCount > 0 && (
               <Button
@@ -127,8 +129,8 @@ export function NotificationBell() {
               notifications.map((n) => (
                 <div
                   key={n.id}
-                  className={`flex gap-3 p-3 border-b border-white/[0.02] hover:bg-white/[0.02] transition-colors ${
-                    !n.read ? 'bg-emerald-500/[0.02]' : ''
+                  className={`flex gap-3 p-3 border-b border-foreground/[0.02] hover:bg-foreground/[0.02] transition-colors ${
+                    !n.read ? 'bg-primary/[0.02]' : ''
                   }`}
                 >
                   <div className={`flex h-8 w-8 items-center justify-center rounded-lg flex-shrink-0 ${getIcon(n.type)}`}>
@@ -137,7 +139,7 @@ export function NotificationBell() {
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2">
                       <p className="text-xs font-medium truncate">{n.title}</p>
-                      {!n.read && <span className="h-1.5 w-1.5 rounded-full bg-emerald-400 flex-shrink-0" />}
+                      {!n.read && <span className="h-1.5 w-1.5 rounded-full bg-primary flex-shrink-0" />}
                     </div>
                     <p className="text-[11px] text-muted-foreground mt-0.5 line-clamp-2">{n.message}</p>
                     <p className="text-[10px] text-muted-foreground/50 mt-1">
@@ -148,7 +150,7 @@ export function NotificationBell() {
                     {!n.read && (
                       <button
                         onClick={() => handleMarkRead(n.id)}
-                        className="p-1 rounded hover:bg-white/[0.04] text-muted-foreground hover:text-emerald-400 transition-colors"
+                        className="p-1 rounded hover:bg-foreground/[0.04] text-muted-foreground hover:text-primary transition-colors"
                         title="Mark as read"
                       >
                         <Check className="h-3 w-3" />
@@ -156,7 +158,7 @@ export function NotificationBell() {
                     )}
                     <button
                       onClick={() => handleDelete(n.id)}
-                      className="p-1 rounded hover:bg-white/[0.04] text-muted-foreground hover:text-rose-400 transition-colors"
+                      className="p-1 rounded hover:bg-foreground/[0.04] text-muted-foreground hover:text-negative transition-colors"
                       title="Delete"
                     >
                       <Trash2 className="h-3 w-3" />

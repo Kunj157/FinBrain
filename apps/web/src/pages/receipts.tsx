@@ -1,7 +1,10 @@
 import { useState, useCallback, useRef } from 'react';
-import { Receipt as ReceiptIcon, Store, CalendarDays, DollarSign, Loader2, FileText, X, Check, AlertCircle, ArrowLeft } from 'lucide-react';
+import { Receipt as ReceiptIcon, Store, CalendarDays, DollarSign, Loader2, FileText, X, Check, AlertCircle, ArrowLeft, Upload } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { PageHeader } from '@/components/ui/page-header';
+import { BorderTrail } from '@/components/motion/border-trail';
+import { TextShimmer } from '@/components/motion/text-shimmer';
 import { useNavigate } from 'react-router-dom';
 import api from '@/lib/api';
 import { formatCurrency } from '@/lib/utils';
@@ -60,16 +63,18 @@ export default function ReceiptsPage() {
   );
 
   return (
-    <div className="space-y-6 animate-fade-in max-w-2xl">
-      <div className="flex items-center gap-4">
-        <Button variant="ghost" size="icon" onClick={() => navigate('/dashboard')}>
-          <ArrowLeft className="h-5 w-5" />
-        </Button>
-        <div>
-          <h1 className="text-2xl font-semibold tracking-tight">Receipt OCR</h1>
-          <p className="text-sm text-muted-foreground mt-1">Upload a receipt image to extract transaction details</p>
-        </div>
-      </div>
+    <div className="mx-auto max-w-3xl space-y-6">
+      <PageHeader
+        icon={ReceiptIcon}
+        title="Receipt OCR"
+        description="Upload a receipt image to extract transaction details"
+        actions={
+          <Button variant="outline" size="sm" onClick={() => navigate('/dashboard')}>
+            <ArrowLeft className="h-4 w-4" />
+            Dashboard
+          </Button>
+        }
+      />
 
       {!result && (
         <div
@@ -77,12 +82,17 @@ export default function ReceiptsPage() {
           onDragLeave={() => setDragOver(false)}
           onDrop={onDrop}
           onClick={() => inputRef.current?.click()}
-          className={`cursor-pointer rounded-xl border-2 border-dashed p-14 text-center transition-all ${
+          onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); inputRef.current?.click(); } }}
+          role="button"
+          tabIndex={0}
+          aria-busy={loading}
+          className={`group relative cursor-pointer overflow-hidden rounded-2xl border-2 border-dashed p-14 text-center transition-colors duration-300 ${
             dragOver
-              ? 'border-emerald-500/50 bg-emerald-500/5'
-              : 'border-white/[0.08] hover:border-white/[0.15] bg-white/[0.02]'
+              ? 'border-primary/60 bg-primary/[0.06]'
+              : 'border-border-strong bg-card/60 hover:border-primary/40 hover:bg-primary/[0.03]'
           }`}
         >
+          {loading && <BorderTrail size={120} />}
           <input
             ref={inputRef}
             type="file"
@@ -90,14 +100,19 @@ export default function ReceiptsPage() {
             className="hidden"
             onChange={(e) => e.target.files?.[0] && handleFile(e.target.files[0])}
           />
+          <span className="relative mx-auto flex h-16 w-16 items-center justify-center rounded-2xl border bg-card shadow-edge transition-transform duration-300 group-hover:-translate-y-1">
+            <span aria-hidden className="absolute inset-0 -z-10 scale-150 rounded-full bg-primary/15 blur-2xl" />
+            {loading ? (
+              <Loader2 className="h-7 w-7 animate-spin text-primary" aria-hidden />
+            ) : (
+              <Upload className="h-7 w-7 text-primary" aria-hidden />
+            )}
+          </span>
           {loading ? (
-            <Loader2 className="h-12 w-12 mx-auto text-muted-foreground animate-spin" />
+            <TextShimmer as="p" className="mt-5 text-sm font-medium">Processing receipt...</TextShimmer>
           ) : (
-            <ReceiptIcon className="h-12 w-12 mx-auto text-muted-foreground/50" />
+            <p className="mt-5 text-sm font-medium">Drop receipt image here or click to browse</p>
           )}
-          <p className="mt-4 text-sm font-medium">
-            {loading ? 'Processing receipt...' : 'Drop receipt image here or click to browse'}
-          </p>
           <p className="mt-1 text-xs text-muted-foreground">
             Supports PNG, JPG — text will be extracted using OCR
           </p>
@@ -105,7 +120,7 @@ export default function ReceiptsPage() {
       )}
 
       {error && (
-        <div className="flex items-center gap-2 rounded-lg bg-rose-500/10 border border-rose-500/20 p-3 text-sm text-rose-400">
+        <div role="alert" className="flex items-center gap-2 rounded-xl border border-negative/20 bg-negative/10 p-3 text-sm text-negative">
           <AlertCircle className="h-4 w-4 flex-shrink-0" />
           {error}
         </div>
@@ -117,24 +132,24 @@ export default function ReceiptsPage() {
             <CardHeader>
               <div className="flex items-center justify-between">
                 <CardTitle className="text-base flex items-center gap-2">
-                  <FileText className="h-4 w-4 text-emerald-400" />
+                  <FileText className="h-4 w-4 text-primary" />
                   Extracted Data
                 </CardTitle>
-                <Button variant="ghost" size="sm" onClick={() => { setResult(null); setFile(null); }}>
+                <Button variant="ghost" size="sm" aria-label="Discard result" onClick={() => { setResult(null); setFile(null); }}>
                   <X className="h-4 w-4" />
                 </Button>
               </div>
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="grid gap-3 grid-cols-1 sm:grid-cols-3">
-                <div className="rounded-xl bg-white/[0.02] border border-white/[0.06] p-4">
+                <div className="rounded-xl border border-input bg-surface-sunken/60 p-4">
                   <div className="flex items-center gap-2 text-sm text-muted-foreground mb-1">
                     <Store className="h-4 w-4" />
                     Merchant
                   </div>
                   <p className="text-sm font-medium">{result.merchant || 'Not detected'}</p>
                 </div>
-                <div className="rounded-xl bg-white/[0.02] border border-white/[0.06] p-4">
+                <div className="rounded-xl border border-input bg-surface-sunken/60 p-4">
                   <div className="flex items-center gap-2 text-sm text-muted-foreground mb-1">
                     <DollarSign className="h-4 w-4" />
                     Amount
@@ -143,7 +158,7 @@ export default function ReceiptsPage() {
                     {result.amount ? formatCurrency(result.amount, currency) : 'Not detected'}
                   </p>
                 </div>
-                <div className="rounded-xl bg-white/[0.02] border border-white/[0.06] p-4">
+                <div className="rounded-xl border border-input bg-surface-sunken/60 p-4">
                   <div className="flex items-center gap-2 text-sm text-muted-foreground mb-1">
                     <CalendarDays className="h-4 w-4" />
                     Date
@@ -155,7 +170,7 @@ export default function ReceiptsPage() {
               {result.text && (
                 <div>
                   <p className="text-xs text-muted-foreground uppercase tracking-wider font-medium mb-2">Raw OCR Text</p>
-                  <pre className="text-xs text-muted-foreground bg-white/[0.02] rounded-lg p-3 border border-white/[0.06] whitespace-pre-wrap max-h-40 overflow-y-auto">
+                  <pre className="max-h-40 overflow-y-auto whitespace-pre-wrap rounded-xl border bg-surface-sunken/60 p-3 font-mono text-xs text-muted-foreground">
                     {result.text}
                   </pre>
                 </div>
@@ -167,13 +182,13 @@ export default function ReceiptsPage() {
             <Card>
               <CardHeader>
                 <CardTitle className="text-base flex items-center gap-2">
-                  <Check className="h-4 w-4 text-emerald-400" />
+                  <Check className="h-4 w-4 text-primary" />
                   Ready to Create Transaction
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="flex items-center gap-3 rounded-xl bg-white/[0.02] border border-white/[0.06] p-4">
-                  <ReceiptIcon className="h-8 w-8 text-emerald-400" />
+                <div className="flex items-center gap-3 rounded-xl border border-input bg-surface-sunken/60 p-4">
+                  <ReceiptIcon className="h-8 w-8 text-primary" />
                   <div className="flex-1">
                     <p className="text-sm font-medium">{result.merchant || 'Unknown merchant'}</p>
                     <p className="text-xs text-muted-foreground">
