@@ -41,11 +41,11 @@ export interface WidgetConfig {
 export const AVAILABLE_WIDGETS: WidgetConfig[] = [
   { id: 'stat-cards', title: 'Stat Cards', defaultOrder: 0, colSpan: 3 },
   { id: 'quick-actions', title: 'Quick Actions', defaultOrder: 1, colSpan: 3 },
-  { id: 'income-expense', title: 'Income vs Expenses', defaultOrder: 2, colSpan: 1 },
+  { id: 'income-expense', title: 'Income vs Expenses', defaultOrder: 2, colSpan: 2 },
   { id: 'category-breakdown', title: 'Category Breakdown', defaultOrder: 3, colSpan: 1 },
   { id: 'spending-trend', title: 'Spending Trend', defaultOrder: 4, colSpan: 2 },
   { id: 'recent-transactions', title: 'Recent Transactions', defaultOrder: 5, colSpan: 2 },
-  { id: 'weekly-recap', title: 'Weekly Recap', defaultOrder: 6, colSpan: 1 },
+  { id: 'weekly-recap', title: 'Weekly Recap', defaultOrder: 6, colSpan: 2 },
   { id: 'data-quality', title: 'Data Quality', defaultOrder: 7, colSpan: 1 },
   { id: 'ai-insights', title: 'AI Insights', defaultOrder: 8, colSpan: 1 },
   { id: 'ask-finbrain', title: 'Ask FinBrain', defaultOrder: 9, colSpan: 1 },
@@ -85,7 +85,10 @@ interface SortableWidgetProps {
   isEditing: boolean;
 }
 
+const SPAN = { 1: 'lg:col-span-1', 2: 'lg:col-span-2', 3: 'lg:col-span-3' } as const;
+
 export function SortableWidget({ id, children, isEditing }: SortableWidgetProps) {
+  const span = SPAN[AVAILABLE_WIDGETS.find((w) => w.id === id)?.colSpan ?? 3];
   const {
     attributes,
     listeners,
@@ -103,12 +106,17 @@ export function SortableWidget({ id, children, isEditing }: SortableWidgetProps)
   };
 
   return (
-    <div ref={setNodeRef} style={style} className="relative">
+    <div
+      ref={setNodeRef}
+      style={style}
+      className={`relative min-w-0 ${span} ${isEditing ? 'rounded-xl outline-dashed outline-1 outline-offset-4 outline-border-strong' : ''}`}
+    >
       {isEditing && (
         <button
           {...attributes}
           {...listeners}
-          className="absolute top-2 left-2 z-10 p-1 rounded-lg bg-foreground/10 hover:bg-foreground/20 transition-colors cursor-grab active:cursor-grabbing"
+          aria-label="Drag to reorder"
+          className="absolute left-2 top-2 z-20 cursor-grab rounded-lg border bg-popover p-1 shadow-raised transition-colors hover:bg-muted active:cursor-grabbing"
         >
           <GripVertical className="h-4 w-4 text-muted-foreground" />
         </button>
@@ -143,7 +151,7 @@ export function DashboardGrid({ widgets, onReorder, isEditing, children }: Dashb
   return (
     <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
       <SortableContext items={widgets} strategy={rectSortingStrategy} disabled={!isEditing}>
-        {children}
+        <div className="grid grid-flow-row-dense gap-5 lg:grid-cols-3">{children}</div>
       </SortableContext>
     </DndContext>
   );
