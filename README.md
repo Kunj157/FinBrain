@@ -6,8 +6,8 @@
     <strong>AI-Powered Personal Finance Co-Pilot</strong>
   </p>
   <p align="center">
-    A production-ready, cloud-native personal finance dashboard that combines modern full-stack development,
-    machine learning, and data visualization into a single portfolio-quality application.
+    A full-stack personal finance dashboard that combines bank and file import, machine-learning
+    categorization, budgeting, forecasting and an AI advisor in one application.
   </p>
   <br/>
 </div>
@@ -25,7 +25,7 @@
 </div>
 
 <p align="center">
-  <a href="https://kunj157.github.io/FinBrain/"><strong>Live site →</strong> kunj157.github.io/FinBrain</a>
+  <a href="https://kunj157.github.io/FinBrain/"><strong>Live site:</strong> kunj157.github.io/FinBrain</a>
 </p>
 
 <p align="center">
@@ -69,52 +69,44 @@ FinBrain is a full-stack AI-powered personal finance tracker built as a monorepo
 
 ### Key Features
 
-| Feature | Status |
-|---------|--------|
-| Secure Authentication (Clerk) | ✅ Done |
-| Dashboard & Summary Cards | ✅ Done |
-| Bank Integration (Plaid Sandbox) | ✅ Done |
-| CSV & PDF Import (German banks) | ✅ Done |
-| Receipt OCR (Tesseract) | ✅ Done |
-| Multi-Currency Support (7 currencies) | ✅ Done |
-| Transaction CRUD, Search, Filters, Bulk Ops | ✅ Done |
-| ML Auto-Categorization (XLM-RoBERTa, 86.5% accuracy) | ✅ Done |
-| Category Management with Icons & Colors | ✅ Done |
-| Adaptive Budgets with Rollover & Alerts (75/90/100%) | ✅ Done |
-| Savings Goals with Auto-Contribute & Projections | ✅ Done |
-| Analytics (category/type filters, merchants, day-of-week) | ✅ Done |
-| Reports (monthly/quarterly/annual, CSV export) | ✅ Done |
-| AI Assistant (Groq/OpenAI, financial context reasoning) | ✅ Done |
-| Investment Portfolio & Holdings Tracking | ✅ Done |
-| Notification System (bell, mark read) | ✅ Done |
-| Recurring Transaction Detection | ✅ Done |
-| Net Worth Tracking with Historical Trends | ✅ Done |
-| Global Search (Cmd+K) | ✅ Done |
-| Financial Health Score | ✅ Done |
-| ML Forecasting (Prophet, ARIMA, Linear Regression, Moving Average) | ✅ Done |
-| Sankey Diagrams (money flow visualization) | ✅ Done |
-| PDF Report Export (jsPDF + autoTable) | ✅ Done |
-| Cash Flow Projection (recurring-aware, 6-month) | ✅ Done |
-| Public Landing Page ([live](https://kunj157.github.io/FinBrain/)) | ✅ Done |
-| Mobile Responsive Layout | ✅ Done |
-| Categorization Rules Engine (CRUD, auto-apply) | ✅ Done |
-| Advisor Profile & Memory Layer | ✅ Done |
-| Deterministic Affordability Engine | ✅ Done |
-| Persistent Advisor Chat (multi-turn) | ✅ Done |
-| AI Insights & Weekly Recap | ✅ Done |
-| Couples / Household Accounts | ✅ Done |
-| Credit Score Tracking | ✅ Done |
-| Recurring Calendar View & Bill Reminders | ✅ Done |
-| Flex Budgeting (fixed/non-monthly/flexible buckets) | ✅ Done |
-| Tax Summary Report | ✅ Done |
-| Data Quality Dashboard | ✅ Done |
-| Scenario Simulator | ✅ Done |
-| Spending Pattern Detection | ✅ Done |
-| Anomaly Detection | ✅ Done |
-| Customizable Dashboard (drag-and-drop) | ✅ Done |
-| Interface redesign (tokens, motion, 3D) | ✅ Done |
-| Scheduled Reports (email) | 📋 Planned |
-| Mobile Apps (React Native / Capacitor) | 📋 Planned |
+**Accounts and import**
+- Secure authentication with Clerk
+- Bank integration through Plaid (sandbox)
+- CSV and PDF statement import, including German bank formats
+- Receipt OCR with Tesseract
+- Multi-currency support (7 currencies)
+
+**Transactions and categorization**
+- Transaction CRUD with search, filters and bulk operations
+- ML auto-categorization (XLM-RoBERTa, 86.5% accuracy) with a keyword fallback
+- Category management with icons and colours, and a categorization rules engine
+- Recurring transaction detection
+- Data quality dashboard
+
+**Budgets and goals**
+- Adaptive budgets with rollover and alerts at 75, 90 and 100%
+- Flex budgeting with fixed, non-monthly and flexible buckets
+- Savings goals with auto-contribute and projections
+- Recurring calendar view and bill reminders
+
+**Insights and planning**
+- Customizable drag-and-drop dashboard with summary cards
+- Analytics by category, type, merchant and day of week, with Sankey money-flow diagrams
+- Net worth tracking with historical trends and a financial health score
+- Forecasting (Prophet, ARIMA, linear regression, moving average) and a 6-month cash flow projection
+- Scenario simulator, spending pattern detection and anomaly detection
+- Investment portfolio and holdings tracking, and credit score tracking
+
+**AI advisor**
+- Financial assistant (Groq or OpenAI) that reasons over your full financial context
+- Persistent multi-turn chat backed by an advisor profile and memory layer
+- Deterministic affordability engine
+- AI insights and a weekly recap
+
+**Reports and collaboration**
+- Monthly, quarterly and annual reports with CSV and PDF export, plus a tax summary
+- Couples and household accounts
+- Notifications, global search (Cmd+K) and a mobile-responsive layout
 
 ---
 
@@ -182,8 +174,7 @@ FinBrain/
 ├── docker-compose.yml        # Local development
 ├── docs/
 │   ├── media/                # Screenshots and the hero recording (README + landing)
-│   ├── FEATURE_ROADMAP.md    # Gap analysis vs Industry Standard
-│   └── SPRINTS.md            # Sprint plan
+│   └── OPERATIONS.md         # Running in production
 └── package.json              # Root workspace config
 ```
 
@@ -272,22 +263,6 @@ procedure (including how to verify a restore actually works).
 | `main` | Stable releases |
 | `dev` | Active development — all tested code |
 | `feature/*` | Feature branches merged into `dev` |
-
----
-
-## Development Roadmap
-
-| Wave | Focus | Status |
-|------|-------|--------|
-| 1 | LLM AI Assistant, Investment Tracking, Budget Alerts | ✅ Complete |
-| 2 | ML Forecasting, Sankey Diagrams, PDF Export, Cash Flow | ✅ Complete |
-| 3 | Advisor Foundation: Finance Math, Data Quality, Profile Engine | 📋 Planned |
-| 4 | Advisor: Affordability Engine, Persistent Chat, Insights | 📋 Planned |
-| 5 | Flex Budgeting, Recurring Calendar, Household/Couples | 📋 Planned |
-| 6 | Credit Score, Investment Intelligence, Forecasting v2 | 📋 Planned |
-| 7 | Reports, UX Polish, Mobile PWA, Security, Billing | 📋 Planned |
-
-See [FEATURE_ROADMAP.md](./docs/FEATURE_ROADMAP.md) for the full gap analysis vs Industry Standard.
 
 ---
 
