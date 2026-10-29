@@ -14,17 +14,6 @@ services:
       timeout: 5s
       retries: 5
 
-  redis:
-    image: redis:7-alpine
-    container_name: finbrain-redis
-    volumes:
-      - redis_data:/data
-    healthcheck:
-      test: ["CMD", "redis-cli", "ping"]
-      interval: 5s
-      timeout: 5s
-      retries: 5
-
   api:
     build:
       context: .
@@ -34,7 +23,6 @@ services:
       - "4000:4000"
     environment:
       DATABASE_URL: postgresql://finbrain:finbrain@postgres:5432/finbrain
-      REDIS_URL: redis://redis:6379
       PORT: "4000"
       FRONTEND_URL: http://localhost:5173
       DEV_MODE: "true"
@@ -42,8 +30,6 @@ services:
       - apps/api/.env
     depends_on:
       postgres:
-        condition: service_healthy
-      redis:
         condition: service_healthy
     volumes:
       - ./apps/api/src:/app/apps/api/src
@@ -80,5 +66,4 @@ services:
 
 volumes:
   postgres_data:
-  redis_data:
   ml_data:
