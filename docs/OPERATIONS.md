@@ -30,8 +30,15 @@ included in the body of a `500`, so a user reporting a failure can quote the
 exact request. Health probes are excluded so they do not drown everything
 else. Logs carry a `userId` but never an email, name or transaction detail.
 
-To forward errors to a vendor (Sentry or similar), extend `reportError` in
-`apps/api/src/middleware/observability.ts` — it is the single sink.
+`reportError` in `apps/api/src/middleware/observability.ts` is the single sink
+for unhandled errors. It always writes the structured log line above. Set
+`SENTRY_DSN` and it also sends the error to Sentry, with the request id, path
+and method as context. Default integrations are off and no user info, cookies,
+headers, request bodies or query strings are attached. Leave `SENTRY_DSN`
+empty and nothing is loaded or sent.
+
+For the web app, set `VITE_SENTRY_DSN` **when building**: Vite inlines it at
+build time. The Sentry SDK is a separate chunk fetched only when it is set.
 
 ## Backups
 

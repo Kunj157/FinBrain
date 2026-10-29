@@ -2,6 +2,26 @@
 
 All notable changes to FinBrain will be documented in this file.
 
+## 0.10.0 — 2026-10-29
+
+Optional integrations and cleanup. Every new integration is off until configured.
+
+### Added
+
+- **Scheduled report email.** Set `SMTP_URL` and `REPORTS_FROM` and the API emails each enabled schedule when it comes due: monthly on its day, quarterly in January, April, July and October, annually in January. Each send is claimed in the database first, so several API instances send one email, and a failed delivery is retried on the next hourly check. Setting only one of the two variables stops the API at boot. Without them schedules are stored and nothing is sent.
+- **Error monitoring.** Set `SENTRY_DSN` (API) and `VITE_SENTRY_DSN` (web, at build time) and unhandled errors, including React render errors, go to Sentry with the request id as context. User info, cookies, headers, request bodies and query strings are never attached. The web SDK is a separate chunk loaded only when configured, so the entry bundle is unchanged.
+
+### Changed
+
+- The scheduled-report preview and the emailed report share one aggregation.
+- README corrected: route and model counts, which services are required, and a note that the XLM-RoBERTa weights are not in the repository, so a fresh checkout categorizes with the keyword fallback.
+- `docs/OPERATIONS.md` documents the Sentry sink.
+
+### Removed
+
+- The unused Redis service and `REDIS_URL` from both compose files and the env examples. Nothing in the code used it.
+- Dead code: five unreferenced source files, the no-op `POST /seed/categories` route, and unused dependencies (`stripe`, 15 Radix packages, `react-hook-form`, `@hookform/resolvers`, `date-fns`, web `zod`, `react-query-devtools`, `google-cloud-*` and `pdf2image` in the ML service).
+
 ## 0.9.0 — 2026-10-15
 
 Interface redesign.

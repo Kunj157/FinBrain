@@ -50,7 +50,7 @@ A short recording of the 3D hero is also available as [MP4](docs/media/hero.mp4)
 
 ## Overview
 
-FinBrain is a full-stack AI-powered personal finance tracker built as a monorepo. It combines ML-powered transaction categorization (XLM-RoBERTa, 86.5% accuracy), an LLM financial advisor (Groq/OpenAI), German bank PDF parsing, investment portfolio tracking, and a premium light and dark interface with motion and 3D into a single application.
+FinBrain is a full-stack AI-powered personal finance tracker built as a monorepo. It combines ML-powered transaction categorization (XLM-RoBERTa, 86.5% test accuracy once the weights are trained), an LLM financial advisor (Groq/OpenAI), German bank PDF parsing, investment portfolio tracking, and a premium light and dark interface with motion and 3D into a single application.
 
 ### Core Philosophy
 
@@ -78,7 +78,7 @@ FinBrain is a full-stack AI-powered personal finance tracker built as a monorepo
 
 **Transactions and categorization**
 - Transaction CRUD with search, filters and bulk operations
-- ML auto-categorization (XLM-RoBERTa, 86.5% accuracy) with a keyword fallback
+- ML auto-categorization (XLM-RoBERTa, 86.5% test accuracy) with a keyword fallback. The fine-tuned weights are not in the repository (see [ML model weights](#ml-model-weights)); without them the keyword categorizer does the work
 - Category management with icons and colours, and a categorization rules engine
 - Recurring transaction detection
 - Data quality dashboard
@@ -143,11 +143,11 @@ FinBrain is a full-stack AI-powered personal finance tracker built as a monorepo
          ┌─────────────┴──────────────┐
          ▼                            ▼
   Express REST API             FastAPI ML Service
-  (18 route files)            (categorization, OCR)
+  (24 route files)            (categorization, OCR)
          │                            │
          ▼                            ▼
   PostgreSQL              XLM-RoBERTa + sklearn
-  (16 Prisma models)      (86.5% accuracy)
+  (31 Prisma models)      (86.5% test acc.)
          │
          ├── Clerk Auth (JWT verification)
          ├── Plaid Link (sandbox)
@@ -166,7 +166,7 @@ FinBrain/
 ├── apps/
 │   ├── web/                  # React 19 + Vite frontend (design system, motion, 3D)
 │   ├── landing/              # Static marketing site published to GitHub Pages
-│   ├── api/                  # Express REST API (18 route files, 16 Prisma models)
+│   ├── api/                  # Express REST API (24 route files, 31 Prisma models)
 │   └── ml-service/           # FastAPI Python ML service (XLM-RoBERTa + sklearn)
 ├── packages/
 │   └── shared/               # Shared TypeScript types & interfaces
@@ -239,12 +239,26 @@ cp apps/web/.env.example apps/web/.env
 cp apps/api/.env.example apps/api/.env
 ```
 
-Required services:
-- **Clerk** — Authentication ([clerk.com](https://clerk.com))
-- **Plaid** — Bank data integration (sandbox mode) ([plaid.com](https://plaid.com))
+Needed to run at all:
 - **PostgreSQL** — Database (local Docker or Cloud SQL)
+
+Needed for production, optional locally:
+- **Clerk** — Authentication ([clerk.com](https://clerk.com)). Required when `NODE_ENV=production`; in development without a key you are signed in as a local user.
+
+Needed only for the matching feature:
+- **Plaid** — Bank linking (sandbox mode) ([plaid.com](https://plaid.com)). CSV and PDF import work without it.
 - **Groq** — LLM AI assistant (free tier, no credit card) ([groq.com](https://groq.com))
 - **OpenAI** *(optional)* — Fallback LLM if Groq is unavailable
+
+Optional, off unless configured:
+- **Scheduled report email** — set `SMTP_URL` (any SMTP provider, for example `smtp://user:pass@smtp.example.com:587`) and `REPORTS_FROM` (the sender address) in `apps/api/.env`. The API then emails each enabled schedule from Settings when it comes due: monthly on its day, quarterly in January, April, July and October, annually in January. Set both or neither; with neither, schedules are stored but nothing is sent.
+- **Error monitoring** — set `SENTRY_DSN` (API) and `VITE_SENTRY_DSN` (web, at build time) to send unhandled errors to Sentry without user info, cookies or request bodies. Without them errors are only logged.
+
+---
+
+## ML model weights
+
+The 86.5% figure is the held-out test accuracy recorded in `apps/ml-service/data/training_metrics.json` (4,000 samples, 10 categories). The repository contains the model's `config.json` and tokenizer but not `model.safetensors`, which is git-ignored for size. Train it with `apps/ml-service/scripts/train_xlmr.py`. Without the weights the ML service returns no prediction and the API falls back to the keyword categorizer.
 
 ---
 
