@@ -246,6 +246,9 @@ Required services:
 - **Groq** — LLM AI assistant (free tier, no credit card) ([groq.com](https://groq.com))
 - **OpenAI** *(optional)* — Fallback LLM if Groq is unavailable
 
+Optional, off unless configured:
+- **Scheduled report email** — set `SMTP_URL` (any SMTP provider, for example `smtp://user:pass@smtp.example.com:587`) and `REPORTS_FROM` (the sender address) in `apps/api/.env`. The API then emails each enabled schedule from Settings when it comes due: monthly on its day, quarterly in January, April, July and October, annually in January. Set both or neither; with neither, schedules are stored but nothing is sent.
+
 ---
 
 ## Running in Production

@@ -16,6 +16,7 @@ import { seedDefaultCategories } from './seed-defaults';
 import { requireAuth } from './middleware/auth';
 import { assertProductionConfig, devAuthBypassEnabled, isProduction } from './config';
 import { requestContext, log, reportError } from './middleware/observability';
+import { readMailConfig, startReportWorker } from './services/report-mailer';
 import { MAX_UPLOAD_MB } from './middleware/upload';
 import './types';
 
@@ -221,6 +222,8 @@ app.use((err: Error, _req: express.Request, res: express.Response, _next: expres
 async function start() {
   // Before anything else: a misconfigured production deploy must not boot.
   assertProductionConfig();
+  // Null when SMTP_URL and REPORTS_FROM are both unset; throws if only one is.
+  const mailConfig = readMailConfig();
 
   if (devAuthBypassEnabled) {
     console.warn(
@@ -238,6 +241,8 @@ async function start() {
   app.listen(PORT, () => {
     log('info', 'API listening', { port: PORT, environment: process.env.NODE_ENV || 'development' });
   });
+
+  if (mailConfig && process.env.NODE_ENV !== 'test') startReportWorker(prisma, mailConfig);
 }
 
 start().catch((err) => {
