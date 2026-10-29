@@ -248,6 +248,7 @@ Required services:
 
 Optional, off unless configured:
 - **Scheduled report email** — set `SMTP_URL` (any SMTP provider, for example `smtp://user:pass@smtp.example.com:587`) and `REPORTS_FROM` (the sender address) in `apps/api/.env`. The API then emails each enabled schedule from Settings when it comes due: monthly on its day, quarterly in January, April, July and October, annually in January. Set both or neither; with neither, schedules are stored but nothing is sent.
+- **Error monitoring** — set `SENTRY_DSN` (API) and `VITE_SENTRY_DSN` (web, at build time) to send unhandled errors to Sentry without user info, cookies or request bodies. Without them errors are only logged.
 
 ---
 
