@@ -226,9 +226,10 @@ app.use((err: Error, _req: express.Request, res: express.Response, _next: expres
 
 async function start() {
   // Before anything else: a misconfigured production deploy must not boot.
-  assertProductionConfig();
-  // No-op unless SENTRY_DSN is set.
+  // First, so a boot failure such as missing production secrets is reported
+  // too. No-op unless SENTRY_DSN is set.
   await initErrorMonitoring();
+  assertProductionConfig();
 
   if (devAuthBypassEnabled) {
     console.warn(
