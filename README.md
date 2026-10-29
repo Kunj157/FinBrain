@@ -250,6 +250,9 @@ Needed only for the matching feature:
 - **Groq** — LLM AI assistant (free tier, no credit card) ([groq.com](https://groq.com))
 - **OpenAI** *(optional)* — Fallback LLM if Groq is unavailable
 
+Optional, off unless configured:
+- **Error monitoring** — set `SENTRY_DSN` (API) and `VITE_SENTRY_DSN` (web, at build time) to send unhandled errors to Sentry without user info, cookies or request bodies. Without them errors are only logged.
+
 ---
 
 ## ML model weights
