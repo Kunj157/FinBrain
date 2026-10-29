@@ -1,6 +1,7 @@
 import { Router, type Request, type Response } from 'express';
 import { z } from 'zod';
 import { prisma } from '../prisma';
+import { buildReport } from '../services/report-builder';
 
 const router = Router();
 
@@ -126,48 +127,8 @@ router.post('/preview', async (req: Request, res: Response) => {
   }
 
   try {
-    const now = new Date();
-    let start: Date;
-    const end = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59);
-
-    if (parsed.data.reportType === 'monthly') {
-      start = new Date(now.getFullYear(), now.getMonth() - 1, 1);
-    } else if (parsed.data.reportType === 'quarterly') {
-      start = new Date(now.getFullYear(), now.getMonth() - 3, 1);
-    } else {
-      start = new Date(now.getFullYear() - 1, 0, 1);
-    }
-
-    const transactions = await prisma.transaction.findMany({
-      where: { userId: req.userId, deletedAt: null, date: { gte: start, lte: end } },
-      include: { category: { select: { name: true } } },
-    });
-
-    const income = transactions.filter((t) => t.type === 'income').reduce((s, t) => s + Math.abs(t.amount), 0);
-    const expenses = transactions.filter((t) => t.type === 'expense').reduce((s, t) => s + Math.abs(t.amount), 0);
-
-    const byCategory: Record<string, number> = {};
-    for (const t of transactions.filter((t) => t.type === 'expense')) {
-      const cat = t.category?.name || 'Other';
-      byCategory[cat] = (byCategory[cat] || 0) + Math.abs(t.amount);
-    }
-
-    const topCategories = Object.entries(byCategory)
-      .sort(([, a], [, b]) => b - a)
-      .slice(0, 10)
-      .map(([name, amount]) => ({ name, amount: Math.round(amount * 100) / 100 }));
-
-    res.json({
-      success: true,
-      data: {
-        period: { start: start.toISOString().split('T')[0], end: end.toISOString().split('T')[0] },
-        totalIncome: Math.round(income * 100) / 100,
-        totalExpenses: Math.round(expenses * 100) / 100,
-        netCashFlow: Math.round((income - expenses) * 100) / 100,
-        transactionCount: transactions.length,
-        topCategories,
-      },
-    });
+    const data = await buildReport(prisma, req.userId, parsed.data.reportType);
+    res.json({ success: true, data });
   } catch (err) {
     console.error('Preview report error:', err);
     res.status(500).json({ success: false, error: 'Failed to generate report' });
