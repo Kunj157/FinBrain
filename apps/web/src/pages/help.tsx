@@ -12,7 +12,7 @@ import { cn } from '@/lib/utils';
 const faqs = [
   {
     question: 'How do I connect my bank account?',
-    answer: 'Go to Settings → Bank Connections and click "Connect Bank". You can connect via Plaid (US banks) or use the DevBank sandbox for testing. Once connected, transactions are synced automatically.',
+    answer: 'Go to Settings → Bank Connections and click "Connect Bank". You can connect through Plaid. Once connected, transactions are synced automatically.',
     icon: Banknote,
   },
   {
