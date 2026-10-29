@@ -23,6 +23,7 @@
     "@clerk/backend": "^3.11.4",
     "@finbrain/shared": "workspace:*",
     "@prisma/client": "^5.18.0",
+    "@sentry/node": "^11.10.0",
     "bcryptjs": "^3.0.3",
     "cors": "^2.8.5",
     "csv-parse": "^7.0.1",
