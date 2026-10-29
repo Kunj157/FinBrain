@@ -82,12 +82,63 @@ export function requestContext(req: Request, res: Response, next: NextFunction):
   next();
 }
 
+/** Vendor sink, set by initErrorMonitoring. Null means errors are only logged. */
+type ErrorSink = {
+  capture(error: Error, context: Record<string, unknown>): void;
+  flush(timeoutMs: number): Promise<unknown>;
+};
+let sink: ErrorSink | null = null;
+
+/**
+ * Forward errors to Sentry when SENTRY_DSN is set. With no DSN this does
+ * nothing and @sentry/node is never loaded.
+ *
+ * Auto-instrumentation and default integrations are off: this sends only
+ * errors that reportError is handed, with the context passed there. Personal
+ * data (cookies, IPs, request bodies) is not attached, because this is
+ * financial data.
+ */
+export async function initErrorMonitoring(dsn: string | undefined = process.env.SENTRY_DSN): Promise<boolean> {
+  if (!dsn?.trim()) return false;
+  const Sentry = await import('@sentry/node');
+  Sentry.init({
+    dsn: dsn.trim(),
+    environment: process.env.NODE_ENV || 'development',
+    dataCollection: {
+      userInfo: false,
+      cookies: false,
+      httpHeaders: false,
+      httpBodies: [],
+      urlQueryParams: false,
+    },
+    defaultIntegrations: false,
+    tracesSampleRate: 0,
+  });
+  sink = {
+    capture: (error, context) => {
+      Sentry.captureException(error, { extra: context });
+    },
+    flush: (timeoutMs) => Sentry.flush(timeoutMs),
+  };
+  log('info', 'error monitoring enabled');
+  return true;
+}
+
+/** Waits for queued events to leave the process; call before exiting on a fatal error. */
+export async function flushErrorMonitoring(timeoutMs = 2000): Promise<void> {
+  await sink?.flush(timeoutMs).catch(() => undefined);
+}
+
+/** Test seam: drop the vendor sink. */
+export function resetErrorMonitoring(): void {
+  sink = null;
+}
+
 /**
  * Report an unhandled error.
  *
- * Deliberately not tied to a specific vendor: if SENTRY_DSN (or any other
- * sink) is wired up later it belongs here. With nothing configured this still
- * produces a structured, searchable record rather than a bare stack trace.
+ * Always writes a structured, searchable log record. When SENTRY_DSN is set
+ * (see initErrorMonitoring) it is also sent to Sentry.
  */
 export function reportError(error: Error, context: Record<string, unknown> = {}): void {
   log('error', error.message, {
@@ -95,4 +146,9 @@ export function reportError(error: Error, context: Record<string, unknown> = {})
     errorName: error.name,
     stack: error.stack,
   });
+  try {
+    sink?.capture(error, context);
+  } catch {
+    // Monitoring must never turn one failure into two.
+  }
 }

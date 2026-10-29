@@ -4,6 +4,10 @@ import { ClerkProvider } from '@clerk/clerk-react';
 import { dark } from '@clerk/themes';
 import App from './App';
 import './index.css';
+import { initErrorMonitoring, reportRenderError } from './lib/error-monitoring';
+
+// No-op unless VITE_SENTRY_DSN is set.
+void initErrorMonitoring();
 
 const clerkKey = import.meta.env.VITE_CLERK_PUBLISHABLE_KEY || '';
 
@@ -28,7 +32,17 @@ function Root({ children }: { children: ReactNode }) {
   );
 }
 
-createRoot(document.getElementById('root')!).render(
+createRoot(document.getElementById('root')!, {
+  // Passing these replaces React's default console logging, so keep it.
+  onUncaughtError: (error, info) => {
+    console.error(error, info.componentStack);
+    reportRenderError(error);
+  },
+  onCaughtError: (error, info) => {
+    console.error(error, info.componentStack);
+    reportRenderError(error);
+  },
+}).render(
   <StrictMode>
     <Root>
       <App />

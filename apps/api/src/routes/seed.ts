@@ -5,10 +5,6 @@ import { suggestCategoryWithML } from '../services/auto-categorize';
 
 const router = Router();
 
-router.post('/categories', async (req: Request, res: Response) => {
-  res.json({ success: true, data: { message: 'Categories already seeded on startup' } });
-});
-
 router.delete('/transactions', async (req: Request, res: Response) => {
   const result = await prisma.transaction.deleteMany({ where: { userId: req.userId } });
   res.json({ success: true, data: { count: result.count, message: `Deleted ${result.count} transactions` } });
