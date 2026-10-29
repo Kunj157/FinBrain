@@ -15,7 +15,13 @@ import { ensureDevUser, prisma } from './prisma';
 import { seedDefaultCategories } from './seed-defaults';
 import { requireAuth } from './middleware/auth';
 import { assertProductionConfig, devAuthBypassEnabled, isProduction } from './config';
-import { requestContext, log, reportError } from './middleware/observability';
+import {
+  requestContext,
+  log,
+  reportError,
+  initErrorMonitoring,
+  flushErrorMonitoring,
+} from './middleware/observability';
 import { MAX_UPLOAD_MB } from './middleware/upload';
 import './types';
 
@@ -221,6 +227,8 @@ app.use((err: Error, _req: express.Request, res: express.Response, _next: expres
 async function start() {
   // Before anything else: a misconfigured production deploy must not boot.
   assertProductionConfig();
+  // No-op unless SENTRY_DSN is set.
+  await initErrorMonitoring();
 
   if (devAuthBypassEnabled) {
     console.warn(
@@ -242,7 +250,7 @@ async function start() {
 
 start().catch((err) => {
   reportError(err as Error, { phase: 'startup' });
-  process.exit(1);
+  void flushErrorMonitoring().finally(() => process.exit(1));
 });
 
 process.on('unhandledRejection', (err) => {
