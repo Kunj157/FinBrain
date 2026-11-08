@@ -2,6 +2,12 @@
 
 All notable changes to FinBrain will be documented in this file.
 
+## Unreleased
+
+### Changed
+
+- CI builds both Docker images on every run, so a broken Dockerfile fails the pull request. It pushes them to Google Artifact Registry only from `main` and only when `GCP_SA_KEY` and `GCP_PROJECT_ID` are set; without them the job builds, says so, and passes. Before, the job ran only on `main`, failed at the registry login whenever the secrets were missing, and was ignored (`continue-on-error`).
+
 ## 0.10.0 — 2026-10-29
 
 Optional integrations and cleanup. Every new integration is off until configured.
