@@ -1,67 +1,105 @@
-import { useState, useEffect } from 'react';
-import { Plus, Check, GripVertical, ToggleLeft, ToggleRight, Trash2, Wand2 } from 'lucide-react';
+import { useState, useEffect, useCallback } from 'react';
+import { Plus, Trash2, Wand2, ToggleLeft, ToggleRight, ChevronUp, ChevronDown, Play } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Select } from '@/components/ui/select';
-import { Input } from '@/components/ui/input';
 import { Skeleton } from '@/components/ui/skeleton';
 import { EmptyState } from '@/components/ui/empty-state';
 import { Dialog, DialogClose, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { RuleDialog } from './rule-dialog';
 import api from '@/lib/api';
-import type { CategorizationRule, Category } from '@finbrain/shared';
+import type { ApplyRulesResult, CategorizationRule, Category } from '@finbrain/shared';
+
+function errorMessage(err: unknown, fallback: string): string {
+  return (err as { response?: { data?: { error?: string } } }).response?.data?.error ?? fallback;
+}
+
+/** The conditions a rule sets, as short chips. Amounts are shown as plain numbers. */
+function criteriaChips(rule: CategorizationRule): string[] {
+  const chips: string[] = [];
+  if (rule.merchantPattern) chips.push(`merchant: ${rule.merchantPattern}`);
+  if (rule.descriptionPattern) chips.push(`desc: ${rule.descriptionPattern}`);
+  if (rule.amountMin !== null && rule.amountMax !== null) chips.push(`${rule.amountMin} to ${rule.amountMax}`);
+  else if (rule.amountMin !== null) chips.push(`at least ${rule.amountMin}`);
+  else if (rule.amountMax !== null) chips.push(`at most ${rule.amountMax}`);
+  if (rule.accountId) chips.push(`account: ${rule.account?.name ?? 'unknown'}`);
+  return chips;
+}
 
 export function RulesSection() {
   const [rules, setRules] = useState<CategorizationRule[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
-  const [form, setForm] = useState({
-    merchantPattern: '',
-    descriptionPattern: '',
-    categoryId: '',
-    priority: 0,
-  });
+  const [notice, setNotice] = useState<string | null>(null);
+  const [applyPreview, setApplyPreview] = useState<ApplyRulesResult | null>(null);
+  const [applying, setApplying] = useState(false);
 
-  const fetchRules = async () => {
+  const fetchRules = useCallback(async () => {
     try {
-      const [rulesRes, catsRes] = await Promise.all([
-        api.get('/rules'),
-        api.get('/categories'),
-      ]);
+      const [rulesRes, catsRes] = await Promise.all([api.get('/rules'), api.get('/categories')]);
       setRules(rulesRes.data.data);
       setCategories(catsRes.data.data);
-    } catch { /* silent */
+    } catch (err) {
+      setNotice(errorMessage(err, 'Could not load rules'));
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
 
-  useEffect(() => { fetchRules(); }, []);
+  useEffect(() => { fetchRules(); }, [fetchRules]);
 
-  const handleSave = async () => {
-    if ((!form.merchantPattern && !form.descriptionPattern) || !form.categoryId) return;
+  // Moves a rule one place. The server answers with the full list in its new order.
+  const move = async (index: number, delta: -1 | 1) => {
+    const target = index + delta;
+    if (target < 0 || target >= rules.length) return;
+    const ids = rules.map((rule) => rule.id);
+    [ids[index], ids[target]] = [ids[target], ids[index]];
     try {
-      await api.post('/rules', {
-        ...form,
-        priority: rules.length,
-      });
-      await fetchRules();
-      setShowForm(false);
-      setForm({ merchantPattern: '', descriptionPattern: '', categoryId: '', priority: 0 });
-    } catch { /* silent */ }
+      const res = await api.post('/rules/reorder', { ids });
+      setRules(res.data.data);
+    } catch (err) {
+      setNotice(errorMessage(err, 'Could not change the order'));
+    }
   };
 
   const handleToggle = async (rule: CategorizationRule) => {
     try {
       await api.put(`/rules/${rule.id}`, { isActive: !rule.isActive });
       await fetchRules();
-    } catch { /* silent */ }
+    } catch (err) {
+      setNotice(errorMessage(err, 'Could not update the rule'));
+    }
   };
 
   const handleDelete = async (id: string) => {
     try {
       await api.delete(`/rules/${id}`);
       await fetchRules();
-    } catch { /* silent */ }
+    } catch (err) {
+      setNotice(errorMessage(err, 'Could not delete the rule'));
+    }
+  };
+
+  const openApply = async () => {
+    setNotice(null);
+    try {
+      const res = await api.post('/rules/apply', { dryRun: true });
+      setApplyPreview(res.data.data);
+    } catch (err) {
+      setNotice(errorMessage(err, 'Could not check the rules'));
+    }
+  };
+
+  const confirmApply = async () => {
+    setApplying(true);
+    try {
+      const res = await api.post('/rules/apply', { dryRun: false });
+      setApplyPreview(null);
+      setNotice(`Updated ${res.data.data.changed} transaction${res.data.data.changed === 1 ? '' : 's'}.`);
+    } catch (err) {
+      setNotice(errorMessage(err, 'Could not apply the rules'));
+    } finally {
+      setApplying(false);
+    }
   };
 
   if (loading) {
@@ -74,19 +112,27 @@ export function RulesSection() {
     );
   }
 
+  const activeCount = rules.filter((r) => r.isActive).length;
+
   return (
     <div className="space-y-4">
-      <div className="flex items-center justify-between">
-        <div>
-          <p className="text-sm text-muted-foreground">
-            {rules.filter((r) => r.isActive).length} active rules
-          </p>
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <p className="text-sm text-muted-foreground">
+          {activeCount} active rule{activeCount === 1 ? '' : 's'}. Checked top first; the first match wins.
+        </p>
+        <div className="flex gap-2">
+          <Button onClick={openApply} variant="outline" size="sm" className="gap-2" disabled={activeCount === 0}>
+            <Play className="h-4 w-4" />
+            Apply to transactions
+          </Button>
+          <Button onClick={() => setShowForm(true)} size="sm" className="gap-2">
+            <Plus className="h-4 w-4" />
+            Add Rule
+          </Button>
         </div>
-        <Button onClick={() => setShowForm(true)} size="sm" className="gap-2">
-          <Plus className="h-4 w-4" />
-          Add Rule
-        </Button>
       </div>
+
+      {notice && <p role="status" className="text-sm text-muted-foreground">{notice}</p>}
 
       {rules.length === 0 ? (
         <EmptyState
@@ -96,29 +142,44 @@ export function RulesSection() {
           className="rounded-xl border border-dashed py-10"
         />
       ) : (
-        <div className="space-y-2">
-          {rules.map((rule) => (
-            <div
+        <ol className="space-y-2">
+          {rules.map((rule, index) => (
+            <li
               key={rule.id}
-              className={`flex items-center gap-4 rounded-xl border p-3.5 transition-colors ${
+              className={`flex items-center gap-3 rounded-xl border p-3.5 transition-colors ${
                 rule.isActive
                   ? 'bg-surface-sunken/40 hover:border-border-strong'
                   : 'border-border/60 bg-transparent opacity-55'
               }`}
             >
-              <GripVertical className="h-4 w-4 text-muted-foreground flex-shrink-0" />
+              <div className="flex flex-col">
+                <button
+                  onClick={() => move(index, -1)}
+                  disabled={index === 0}
+                  aria-label="Move rule up"
+                  className="rounded p-0.5 text-muted-foreground transition-colors hover:text-foreground disabled:opacity-30"
+                >
+                  <ChevronUp className="h-4 w-4" />
+                </button>
+                <button
+                  onClick={() => move(index, 1)}
+                  disabled={index === rules.length - 1}
+                  aria-label="Move rule down"
+                  className="rounded p-0.5 text-muted-foreground transition-colors hover:text-foreground disabled:opacity-30"
+                >
+                  <ChevronDown className="h-4 w-4" />
+                </button>
+              </div>
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2 text-sm flex-wrap">
-                  {rule.merchantPattern && (
-                    <span className="rounded-md border border-primary/20 bg-primary/10 px-2 py-0.5 font-mono text-xs text-primary">
-                      merchant: {rule.merchantPattern}
+                  {criteriaChips(rule).map((chip) => (
+                    <span
+                      key={chip}
+                      className="rounded-md border border-primary/20 bg-primary/10 px-2 py-0.5 font-mono text-xs text-primary"
+                    >
+                      {chip}
                     </span>
-                  )}
-                  {rule.descriptionPattern && (
-                    <span className="rounded-md border border-info/20 bg-info/10 px-2 py-0.5 font-mono text-xs text-info">
-                      desc: {rule.descriptionPattern}
-                    </span>
-                  )}
+                  ))}
                   <span className="text-muted-foreground">→</span>
                   <span
                     className="px-2 py-0.5 rounded-md text-xs font-medium"
@@ -149,58 +210,48 @@ export function RulesSection() {
               >
                 <Trash2 className="h-4 w-4" />
               </button>
-            </div>
+            </li>
           ))}
-        </div>
+        </ol>
       )}
 
-      <Dialog open={showForm} onClose={() => setShowForm(false)} className="max-w-md">
-        <DialogClose onClose={() => setShowForm(false)} />
+      <RuleDialog
+        open={showForm}
+        onClose={() => setShowForm(false)}
+        onSaved={fetchRules}
+        categories={categories}
+      />
+
+      <Dialog open={applyPreview !== null} onClose={() => setApplyPreview(null)} className="max-w-md">
+        <DialogClose onClose={() => setApplyPreview(null)} />
         <DialogHeader className="p-5 pb-0">
-          <DialogTitle>Add Rule</DialogTitle>
-          <DialogDescription>Matching transactions get this category automatically.</DialogDescription>
+          <DialogTitle>Apply rules to existing transactions</DialogTitle>
+          <DialogDescription>
+            {applyPreview?.changed
+              ? `${applyPreview.changed} transaction${applyPreview.changed === 1 ? '' : 's'} will change category. Transactions marked reviewed are skipped.`
+              : 'No transactions would change category.'}
+          </DialogDescription>
         </DialogHeader>
-        <div className="space-y-4 p-5">
-          <div>
-            <label htmlFor="rule-merchant" className="mb-1.5 block text-xs font-medium text-muted-foreground">Merchant Pattern</label>
-            <Input
-              id="rule-merchant"
-              type="text"
-              value={form.merchantPattern}
-              onChange={(e) => setForm((f) => ({ ...f, merchantPattern: e.target.value }))}
-              placeholder="e.g. amazon, netflix, shell"
-            />
-          </div>
-          <div>
-            <label htmlFor="rule-description" className="mb-1.5 block text-xs font-medium text-muted-foreground">Description Pattern</label>
-            <Input
-              id="rule-description"
-              type="text"
-              value={form.descriptionPattern}
-              onChange={(e) => setForm((f) => ({ ...f, descriptionPattern: e.target.value }))}
-              placeholder="e.g. monthly subscription"
-            />
-          </div>
-          <div>
-            <label className="mb-1.5 block text-xs font-medium text-muted-foreground">Category *</label>
-            <Select
-              value={form.categoryId}
-              onValueChange={(value) => setForm((f) => ({ ...f, categoryId: value }))}
-              options={categories.map((c) => ({ value: c.id, label: c.name }))}
-            />
-          </div>
-          <div className="flex gap-3 pt-2">
-            <Button type="button" variant="outline" className="flex-1" onClick={() => setShowForm(false)}>Cancel</Button>
-            <Button
-              type="button"
-              className="flex-1 gap-2"
-              onClick={handleSave}
-              disabled={(!form.merchantPattern && !form.descriptionPattern) || !form.categoryId}
-            >
-              <Check className="h-4 w-4" />
-              Add Rule
-            </Button>
-          </div>
+        {applyPreview && applyPreview.byRule.length > 0 && (
+          <ul className="mx-5 mt-4 divide-y divide-border/60 rounded-xl border text-sm">
+            {applyPreview.byRule.map((row) => (
+              <li key={row.ruleId} className="flex justify-between px-3.5 py-2">
+                <span>{row.categoryName}</span>
+                <span className="tabular-nums text-muted-foreground">{row.count}</span>
+              </li>
+            ))}
+          </ul>
+        )}
+        <div className="flex gap-3 p-5">
+          <Button type="button" variant="outline" className="flex-1" onClick={() => setApplyPreview(null)}>Cancel</Button>
+          <Button
+            type="button"
+            className="flex-1"
+            onClick={confirmApply}
+            disabled={applying || !applyPreview?.changed}
+          >
+            Apply
+          </Button>
         </div>
       </Dialog>
     </div>

@@ -1,5 +1,5 @@
 import { useState, useMemo, useCallback, useEffect } from 'react';
-import { Plus, Search, ArrowUpDown, Pencil, Trash2, ArrowRightLeft, X, Check, Loader2, ChevronLeft, ChevronRight, Trash } from 'lucide-react';
+import { Plus, Search, ArrowUpDown, Pencil, Trash2, ArrowRightLeft, X, Check, Loader2, ChevronLeft, ChevronRight, Trash, Wand2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -9,6 +9,8 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import { Select } from '@/components/ui/select';
+import { RuleDialog } from '@/components/settings/rule-dialog';
+import type { RuleFormValues } from '@/components/settings/rule-form';
 import { useAuth } from '@/hooks/use-auth';
 import api from '@/lib/api';
 import { formatCurrency, formatDate } from '@/lib/utils';
@@ -51,6 +53,7 @@ export default function TransactionsPage() {
   const [clearing, setClearing] = useState(false);
   const [formMode, setFormMode] = useState<FormMode>('create');
   const [editingTxn, setEditingTxn] = useState<Transaction | null>(null);
+  const [ruleSeed, setRuleSeed] = useState<Transaction | null>(null);
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [txns, setTxns] = useState<Transaction[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
@@ -339,6 +342,9 @@ export default function TransactionsPage() {
                     </TableCell>
                     <TableCell className="pr-4">
                       <div className="flex items-center justify-end gap-0.5 opacity-60 transition-opacity group-hover:opacity-100 group-focus-within:opacity-100">
+                        <button onClick={() => setRuleSeed(txn)} aria-label="Create rule from this transaction" title="Always categorize like this" className="rounded-md p-1.5 text-muted-foreground transition-colors hover:bg-foreground/[0.06] hover:text-foreground">
+                          <Wand2 className="h-3.5 w-3.5" />
+                        </button>
                         <button onClick={() => openEdit(txn)} aria-label="Edit transaction" className="rounded-md p-1.5 text-muted-foreground transition-colors hover:bg-foreground/[0.06] hover:text-foreground">
                           <Pencil className="h-3.5 w-3.5" />
                         </button>
@@ -409,8 +415,23 @@ export default function TransactionsPage() {
           onSave={() => setShowForm(false)}
         />
       )}
+
+      <RuleDialog
+        open={ruleSeed !== null}
+        onClose={() => setRuleSeed(null)}
+        onSaved={() => {}}
+        categories={categories}
+        initial={ruleSeed ? seedRuleFrom(ruleSeed) : undefined}
+      />
     </div>
   );
+}
+
+/** A new rule for one transaction: its merchant, or its description when there is no merchant. */
+function seedRuleFrom(txn: Transaction): Partial<RuleFormValues> {
+  return txn.merchant
+    ? { merchantPattern: txn.merchant, categoryId: txn.categoryId }
+    : { descriptionPattern: txn.description, categoryId: txn.categoryId };
 }
 
 function SortHead({
