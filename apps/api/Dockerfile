@@ -1,4 +1,7 @@
 FROM node:20-alpine AS base
+# node:alpine has libssl but not the openssl CLI Prisma uses to detect the version.
+# Without it Prisma falls back to the OpenSSL 1.1 engine, which fails to load.
+RUN apk add --no-cache openssl
 
 FROM base AS deps
 RUN corepack enable && corepack prepare pnpm@9 --activate
@@ -7,6 +10,8 @@ COPY package.json pnpm-lock.yaml pnpm-workspace.yaml .npmrc ./
 COPY apps/api/package.json ./apps/api/package.json
 COPY packages/shared/package.json ./packages/shared/package.json
 COPY packages/config/package.json ./packages/config/package.json
+# apps/api's postinstall runs `prisma generate`, which needs the schema.
+COPY apps/api/prisma ./apps/api/prisma
 RUN pnpm install --frozen-lockfile
 
 FROM base AS builder
