@@ -8,6 +8,10 @@ All notable changes to FinBrain will be documented in this file.
 
 - CI builds both Docker images on every run, so a broken Dockerfile fails the pull request. It pushes them to Google Artifact Registry only from `main` and only when `GCP_SA_KEY` and `GCP_PROJECT_ID` are set; without them the job builds, says so, and passes. Before, the job ran only on `main`, failed at the registry login whenever the secrets were missing, and was ignored (`continue-on-error`).
 
+### Fixed
+
+- The API image failed to build: the deps stage ran `pnpm install` before `apps/api/prisma` was copied, so `prisma generate` in its postinstall found no schema. The image also installs the `openssl` CLI: without it Prisma cannot detect the OpenSSL version and falls back to an engine that fails to load on Alpine.
+
 ## 0.10.0 — 2026-10-29
 
 Optional integrations and cleanup. Every new integration is off until configured.
