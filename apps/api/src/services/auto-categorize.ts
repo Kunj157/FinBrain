@@ -1,5 +1,7 @@
 import { prisma } from '../prisma';
 import { suggestCategoryML, trainCategoryML } from './auto-categorize-ml';
+import { loadRules, toRuleView } from './categorization-rules';
+import { firstMatchingRule } from './categorization-rule-match';
 
 const MERCHANT_CATEGORY_MAP: Record<string, string[]> = {
   'Food & Drink': [
@@ -274,36 +276,32 @@ async function suggestCategory(userId: string, merchant: string, description: st
   return null;
 }
 
+/** Transaction facts that only some callers know. A rule criterion the caller cannot supply does not match. */
+export interface RuleContext {
+  amount?: number | null;
+  accountId?: string | null;
+}
+
 async function suggestCategoryByRule(
-  userId: string, merchant: string, description: string,
+  userId: string, merchant: string, description: string, context: RuleContext,
 ): Promise<{ categoryId: string | null; categoryName: string | null } | null> {
-  const rules = await prisma.categorizationRule.findMany({
-    where: { userId, isActive: true },
-    include: { category: { select: { id: true, name: true } } },
-    orderBy: { priority: 'desc' },
+  const rules = await loadRules(userId, { activeOnly: true });
+  const match = firstMatchingRule(rules.map(toRuleView), {
+    merchant: merchant || null,
+    description,
+    amount: context.amount ?? null,
+    accountId: context.accountId ?? null,
   });
-
-  const text = `${merchant} ${description}`.toLowerCase().trim();
-  if (!text) return null;
-
-  for (const rule of rules) {
-    if (rule.merchantPattern && text.includes(rule.merchantPattern.toLowerCase())) {
-      return { categoryId: rule.categoryId, categoryName: rule.category.name };
-    }
-    if (rule.descriptionPattern && text.includes(rule.descriptionPattern.toLowerCase())) {
-      return { categoryId: rule.categoryId, categoryName: rule.category.name };
-    }
-  }
-
-  return null;
+  return match ? { categoryId: match.categoryId, categoryName: match.categoryName } : null;
 }
 
 export async function suggestCategoryWithML(
   userId: string,
   merchant: string,
   description: string,
+  context: RuleContext = {},
 ): Promise<{ categoryId: string | null; categoryName: string | null; confidence?: number } | null> {
-  const byRule = await suggestCategoryByRule(userId, merchant, description);
+  const byRule = await suggestCategoryByRule(userId, merchant, description, context);
   if (byRule) return { ...byRule, confidence: 1.0 };
 
   const byKeyword = await suggestCategory(userId, merchant, description);

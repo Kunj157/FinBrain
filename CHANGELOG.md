@@ -4,9 +4,15 @@ All notable changes to FinBrain will be documented in this file.
 
 ## Unreleased
 
+### Added
+
+- Categorization rules can match on an amount range and on an account, not only on merchant and description text. `POST /api/v1/rules/preview` counts the existing transactions a rule would match before it is saved. `POST /api/v1/rules/apply` runs the active rules over existing transactions, and `{ "dryRun": true }` returns the counts without writing. Apply leaves transactions marked reviewed alone and writes an audit entry. `POST /api/v1/rules/reorder` sets precedence. A new rule goes to the top unless a priority is given.
+
 ### Changed
 
 - CI builds both Docker images on every run, so a broken Dockerfile fails the pull request. It pushes them to Google Artifact Registry only from `main` and only when `GCP_SA_KEY` and `GCP_PROJECT_ID` are set; without them the job builds, says so, and passes. Before, the job ran only on `main`, failed at the registry login whenever the secrets were missing, and was ignored (`continue-on-error`).
+- A categorization rule matches only when every condition it sets matches. Before, a merchant pattern and a description pattern on the same rule were alternatives, so either one was enough. Rules are checked highest priority first, with ties going to the older rule, so the result no longer depends on database row order.
+- A rule can only refer to a category and an account that belong to the caller. Previously only the category was checked.
 
 ### Fixed
 

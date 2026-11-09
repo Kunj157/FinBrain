@@ -33,7 +33,9 @@ router.post('/ocr', uploadReceipt.single('file'), async (req: Request, res: Resp
 
     let category = null;
     if (data.merchant) {
-      category = await suggestCategoryWithML(req.userId, data.merchant, data.text || '');
+      category = await suggestCategoryWithML(req.userId, data.merchant, data.text || '', {
+        amount: typeof data.amount === 'number' ? Math.abs(data.amount) : null,
+      });
     }
 
     res.json({
