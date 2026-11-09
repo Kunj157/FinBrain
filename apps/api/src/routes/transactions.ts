@@ -153,7 +153,7 @@ router.post('/', async (req: Request, res: Response) => {
 
   const validCat = await prisma.category.findFirst({ where: { id: categoryId, userId: req.userId } });
   if (!validCat) {
-    const suggestion = await suggestCategoryWithML(req.userId, rest.merchant || '', rest.description);
+    const suggestion = await suggestCategoryWithML(req.userId, rest.merchant || '', rest.description, { amount: rest.amount, accountId: rest.accountId ?? null });
     if (suggestion?.categoryId) {
       categoryId = suggestion.categoryId;
     } else {
@@ -238,7 +238,7 @@ router.post('/bulk', async (req: Request, res: Response) => {
     const data = await Promise.all(items.map(async (item) => {
       let categoryId = item.categoryId ?? '';
       if (!validCatIds.has(categoryId)) {
-        const suggestion = await suggestCategoryWithML(req.userId, item.merchant || '', item.description);
+        const suggestion = await suggestCategoryWithML(req.userId, item.merchant || '', item.description, { amount: item.amount, accountId: item.accountId ?? null });
         if (suggestion?.categoryId && validCatIds.has(suggestion.categoryId)) {
           categoryId = suggestion.categoryId;
         } else {
