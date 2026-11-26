@@ -11,9 +11,10 @@ createRoot(document.getElementById('root')!).render(
   <StrictMode>
     <ThemeProvider>
       <MotionProvider>
-        {/* Marketing only: no sign-in here, every call to action leads to the code. */}
+        {/* Marketing only: no sign-in here. The demo is the real app on sample data (apps/web, VITE_DEMO=1). */}
         <Landing
-          primary={{ label: 'View on GitHub', href: REPO_URL }}
+          primary={{ label: 'Try the live demo', href: `${import.meta.env.BASE_URL}demo/` }}
+          navLink={{ label: 'View on GitHub', href: REPO_URL }}
           shots={{
             dashboard: media('dashboard-dark.webp'),
             advisor: media('advisor-dark.webp'),

@@ -25,6 +25,8 @@
 </div>
 
 <p align="center">
+  <a href="https://kunj157.github.io/FinBrain/demo/"><strong>Live demo:</strong> the real app on a sample account, in your browser</a>
+  ·
   <a href="https://kunj157.github.io/FinBrain/"><strong>Live site:</strong> kunj157.github.io/FinBrain</a>
 </p>
 
