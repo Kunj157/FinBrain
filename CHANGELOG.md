@@ -6,6 +6,8 @@ All notable changes to FinBrain will be documented in this file.
 
 ### Added
 
+- A live demo at `/FinBrain/demo/` on GitHub Pages: the web app built with `VITE_DEMO=1` (`pnpm --filter @finbrain/web build:demo`) answers every API call in the browser from a deterministic sample account (six months of transactions, budgets, goals, accounts, investments), keeps edits in memory for the visit, and gives prepared advisor answers that say so. Receipt OCR, CSV import, bank linking and households say they need the full app. The landing page's main button opens it, and the sample data never ships in the normal build.
+
 - Categorization rules can match on an amount range and on an account, not only on merchant and description text. `POST /api/v1/rules/preview` counts the existing transactions a rule would match before it is saved. `POST /api/v1/rules/apply` runs the active rules over existing transactions, and `{ "dryRun": true }` returns the counts without writing. Apply leaves transactions marked reviewed alone and writes an audit entry. `POST /api/v1/rules/reorder` sets precedence. A new rule goes to the top unless a priority is given.
 - Settings > Rules: reorder rules with the up and down buttons, test a rule against existing transactions before saving it, and apply the active rules to existing transactions after a dry-run count. The transactions list has a button that opens a rule for that merchant, prefilled with the row's category.
 
