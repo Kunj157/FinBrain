@@ -2,6 +2,11 @@ import axios from 'axios';
 
 const api = axios.create({
   baseURL: import.meta.env.VITE_API_URL || '/api/v1',
+  // The static demo build answers every call in the browser from sample data.
+  // Loaded on demand, so the sample data never ships in the real app's bundle.
+  ...(import.meta.env.VITE_DEMO === '1' && {
+    adapter: async (config) => (await import('@/demo/server')).demoAdapter(config),
+  }),
 });
 
 let _getToken: (() => Promise<string | null>) | null = null;

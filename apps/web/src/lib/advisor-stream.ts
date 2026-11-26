@@ -38,6 +38,7 @@ export async function streamAdvisorChat(
   { message, conversationId, signal }: StreamRequest,
   handlers: StreamHandlers,
 ): Promise<void> {
+  if (import.meta.env.VITE_DEMO === '1') return streamDemoReply({ message, conversationId, signal }, handlers);
   const baseUrl = import.meta.env.VITE_API_URL || '/api/v1';
   const token = await getAuthToken();
 
@@ -125,4 +126,18 @@ export async function streamAdvisorChat(
   } finally {
     await reader.cancel().catch(() => {});
   }
+}
+
+/** Demo build: types out a prepared answer word by word, as the live stream would. */
+async function streamDemoReply({ message, conversationId, signal }: StreamRequest, handlers: StreamHandlers) {
+  const { advisorReply, recordConversation } = await import('@/demo/server');
+  const reply = advisorReply(message);
+  const ids = recordConversation(conversationId, message, reply);
+  handlers.onStart?.({ conversationId: ids.conversationId, confidence: 'high' });
+  for (const word of reply.split(/(?<=\s)/)) {
+    if (signal?.aborted) return;
+    await new Promise((r) => setTimeout(r, 18));
+    handlers.onDelta?.(word);
+  }
+  handlers.onDone?.({ ...ids, confidence: 'high' });
 }

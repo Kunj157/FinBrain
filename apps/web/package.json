@@ -10,7 +10,8 @@
     "lint": "eslint . --ext ts,tsx --report-unused-disable-directives",
     "typecheck": "tsc --noEmit",
     "clean": "rm -rf dist",
-    "test": "vitest run"
+    "test": "vitest run",
+    "build:demo": "tsc -b && VITE_DEMO=1 VITE_CLERK_PUBLISHABLE_KEY= vite build --outDir dist-demo --sourcemap false"
   },
   "dependencies": {
     "@clerk/clerk-react": "^5.0.0",
