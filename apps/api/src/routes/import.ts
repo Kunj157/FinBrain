@@ -3,7 +3,7 @@ import { parse } from 'csv-parse/sync';
 import fs from 'fs';
 import pdfParse from 'pdf-parse';
 import { prisma } from '../prisma';
-import { suggestCategoryWithML } from '../services/auto-categorize';
+import { suggestCategoryWithML, type RuleContext } from '../services/auto-categorize';
 import { parsePdfText } from '../services/pdf-parser';
 import { uploadStatement, discardUpload } from '../middleware/upload';
 
@@ -101,8 +101,8 @@ async function enrichTransaction(userId: string, record: Record<string, string>)
   const mapped = normalizeColumnNames(record);
   const merchant = mapped.merchant || mapped.vendor || mapped.payee || '';
   const description = mapped.description || mapped.name || mapped.memo || '';
-  const detectedCategory = await suggestCategoryWithML(userId, merchant, description);
   const signedAmount = parseAmount(mapped.amount);
+  const detectedCategory = await suggestCategoryWithML(userId, merchant, description, { amount: Math.abs(signedAmount) });
 
   return {
     date: mapped.date || '',
@@ -209,25 +209,40 @@ router.post('/csv', uploadStatement.single('file'), async (req: Request, res: Re
   }
 });
 
+/** Rule context from an untyped request body. Anything that is not a usable value is treated as unknown. */
+function ruleContextFrom(amount: unknown, accountId: unknown): RuleContext {
+  return {
+    amount: typeof amount === 'number' && Number.isFinite(amount) ? Math.abs(amount) : null,
+    accountId: typeof accountId === 'string' && accountId !== '' ? accountId : null,
+  };
+}
+
 router.post('/suggest-category', async (req: Request, res: Response) => {
-  const { merchant, description } = req.body;
+  const { merchant, description, amount, accountId } = req.body;
   if (!merchant && !description) {
     return res.status(400).json({ success: false, error: 'Merchant or description required' });
   }
 
-  const result = await suggestCategoryWithML(req.userId, merchant || '', description || '');
+  const result = await suggestCategoryWithML(req.userId, merchant || '', description || '', ruleContextFrom(amount, accountId));
   res.json({ success: true, data: result });
 });
 
 router.post('/suggest-batch', async (req: Request, res: Response) => {
-  const { transactions } = req.body as { transactions: { merchant: string; description: string }[] };
+  const { transactions } = req.body as {
+    transactions: { merchant: string; description: string; amount?: number; accountId?: string }[];
+  };
   if (!Array.isArray(transactions)) {
     return res.status(400).json({ success: false, error: 'Transactions array required' });
   }
 
   const suggestions = await Promise.all(transactions.map(async (tx) => ({
     ...tx,
-    suggestion: await suggestCategoryWithML(req.userId, tx.merchant || '', tx.description || ''),
+    suggestion: await suggestCategoryWithML(
+      req.userId,
+      tx.merchant || '',
+      tx.description || '',
+      ruleContextFrom(tx.amount, tx.accountId),
+    ),
   })));
 
   res.json({ success: true, data: suggestions });

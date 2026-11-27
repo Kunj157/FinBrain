@@ -235,6 +235,7 @@ model Account {
   user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   transactions Transaction[]
+  categorizationRules CategorizationRule[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -475,17 +476,24 @@ model AuditLog {
   @@map("audit_logs")
 }
 
+// A rule matches a transaction when every criterion that is set matches
+// (AND). A rule with no criteria set never matches. Amounts are compared to
+// the stored magnitude, in the transaction's own currency.
 model CategorizationRule {
   id                 String   @id @default(cuid())
   priority           Int      @default(0)
   merchantPattern    String?
   descriptionPattern String?
+  amountMin          Decimal? @db.Decimal(19, 4)
+  amountMax          Decimal? @db.Decimal(19, 4)
   isActive           Boolean  @default(true)
 
   userId     String
   user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   categoryId String
   category   Category @relation(fields: [categoryId], references: [id])
+  accountId  String?
+  account    Account? @relation(fields: [accountId], references: [id], onDelete: Cascade)
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt

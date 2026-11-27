@@ -121,34 +121,46 @@ jobs:
       - run: pnpm build
 
   docker:
+    # Builds both images on every run, so a broken Dockerfile shows up on the
+    # pull request. Pushes to Google Artifact Registry only from main and only
+    # when the GCP_SA_KEY and GCP_PROJECT_ID secrets are set.
     runs-on: ubuntu-latest
     needs: [build]
-    if: github.ref == 'refs/heads/main'
-    continue-on-error: true
+    env:
+      PUSH: ${{ github.ref == 'refs/heads/main' && secrets.GCP_SA_KEY != '' && secrets.GCP_PROJECT_ID != '' }}
+      REGISTRY: us-central1-docker.pkg.dev/${{ secrets.GCP_PROJECT_ID }}/finbrain
     steps:
       - uses: actions/checkout@v4
+      - name: Push or build only
+        run: |
+          if [ "$PUSH" = true ]; then
+            echo "Pushing to $REGISTRY"
+          else
+            echo "::notice::Building the images without pushing (pushing needs main and the GCP_SA_KEY and GCP_PROJECT_ID secrets)"
+          fi
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
       - name: Login to Google Artifact Registry
+        if: env.PUSH == 'true'
         uses: docker/login-action@v3
         with:
           registry: us-central1-docker.pkg.dev
           username: _json_key
           password: ${{ secrets.GCP_SA_KEY }}
-      - name: Build and push API
+      - name: Build (and push) API
         uses: docker/build-push-action@v6
         with:
           context: .
           file: apps/api/Dockerfile
-          push: true
-          tags: us-central1-docker.pkg.dev/${{ secrets.GCP_PROJECT_ID }}/finbrain/api:latest
-      - name: Build and push Web
+          push: ${{ env.PUSH == 'true' }}
+          tags: ${{ env.PUSH == 'true' && format('{0}/api:latest', env.REGISTRY) || 'finbrain-api:ci' }}
+      - name: Build (and push) Web
         uses: docker/build-push-action@v6
         with:
           context: .
           file: apps/web/Dockerfile
-          push: true
-          tags: us-central1-docker.pkg.dev/${{ secrets.GCP_PROJECT_ID }}/finbrain/web:latest
+          push: ${{ env.PUSH == 'true' }}
+          tags: ${{ env.PUSH == 'true' && format('{0}/web:latest', env.REGISTRY) || 'finbrain-web:ci' }}
 
   release:
     runs-on: ubuntu-latest

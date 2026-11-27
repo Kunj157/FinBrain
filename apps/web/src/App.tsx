@@ -1,5 +1,5 @@
 import { lazy, Suspense } from 'react';
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import { BrowserRouter, HashRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { QueryClientProvider } from '@tanstack/react-query';
 import { queryClient } from '@/lib/query';
 import { AuthProvider } from '@/auth/auth-provider';
@@ -8,6 +8,7 @@ import { ProtectedRoute } from '@/auth/protected-route';
 import { AppLayout } from '@/components/layout/app-layout';
 import { MotionProvider } from '@/components/motion/motion-provider';
 
+import { DemoBanner } from '@/demo/banner';
 import SignIn from '@/auth/sign-in';
 import SignUp from '@/auth/sign-up';
 
@@ -32,16 +33,20 @@ const AdvisorPage = lazy(() => import('@/pages/advisor'));
 const HouseholdPage = lazy(() => import('@/pages/household'));
 const CreditScorePage = lazy(() => import('@/pages/credit-score'));
 
+// GitHub Pages has no SPA fallback, so the demo routes in the hash (deep links and refresh keep working).
+const Router = import.meta.env.VITE_DEMO === '1' ? HashRouter : BrowserRouter;
+
 export default function App() {
   return (
     <QueryClientProvider client={queryClient}>
-      <BrowserRouter>
+      <Router>
+        <DemoBanner />
         <ThemeProvider>
         <MotionProvider>
         <AuthProvider>
           <Suspense fallback={null}>
           <Routes>
-            <Route path="/" element={<HomePage />} />
+            <Route path="/" element={import.meta.env.VITE_DEMO === '1' ? <Navigate to="/dashboard" replace /> : <HomePage />} />
             <Route path="/sign-in" element={<SignIn />} />
             <Route path="/sign-up" element={<SignUp />} />
 
@@ -77,7 +82,7 @@ export default function App() {
         </AuthProvider>
         </MotionProvider>
         </ThemeProvider>
-      </BrowserRouter>
+      </Router>
     </QueryClientProvider>
   );
 }

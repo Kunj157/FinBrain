@@ -41,6 +41,9 @@ services:
       GROQ_API_KEY: ${GROQ_API_KEY}
       OPENAI_API_KEY: ${OPENAI_API_KEY:-}
       FRONTEND_URL: ${FRONTEND_URL:-http://localhost:5173}
+      # Forecasting, receipt OCR and ML categorization call the ML service; the
+      # code's default (localhost:8000) is the API container itself here.
+      ML_SERVICE_URL: ${ML_SERVICE_URL:-http://ml-service:8000}
     # /ready verifies the database; /health only says the process is alive, so
     # an instance with a dead connection pool used to keep receiving traffic.
     healthcheck:
@@ -91,8 +94,10 @@ services:
 
   ml-service:
     build:
-      context: .
-      dockerfile: apps/ml-service/Dockerfile
+      # The Dockerfile copies requirements.txt and the service's own tree, so
+      # the build context is the service directory (as in docker-compose.yml).
+      context: apps/ml-service
+      dockerfile: Dockerfile
     restart: unless-stopped
     ports:
       - "${ML_PORT:-8000}:8000"

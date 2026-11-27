@@ -2,6 +2,25 @@
 
 All notable changes to FinBrain will be documented in this file.
 
+## Unreleased
+
+### Added
+
+- A live demo at `/FinBrain/demo/` on GitHub Pages: the web app built with `VITE_DEMO=1` (`pnpm --filter @finbrain/web build:demo`) answers every API call in the browser from a deterministic sample account (six months of transactions, budgets, goals, accounts, investments), keeps edits in memory for the visit, and gives prepared advisor answers that say so. Receipt OCR, CSV import, bank linking and households say they need the full app. The landing page's main button opens it, and the sample data never ships in the normal build.
+
+- Categorization rules can match on an amount range and on an account, not only on merchant and description text. `POST /api/v1/rules/preview` counts the existing transactions a rule would match before it is saved. `POST /api/v1/rules/apply` runs the active rules over existing transactions, and `{ "dryRun": true }` returns the counts without writing. Apply leaves transactions marked reviewed alone and writes an audit entry. `POST /api/v1/rules/reorder` sets precedence. A new rule goes to the top unless a priority is given.
+- Settings > Rules: reorder rules with the up and down buttons, test a rule against existing transactions before saving it, and apply the active rules to existing transactions after a dry-run count. The transactions list has a button that opens a rule for that merchant, prefilled with the row's category.
+
+### Changed
+
+- CI builds both Docker images on every run, so a broken Dockerfile fails the pull request. It pushes them to Google Artifact Registry only from `main` and only when `GCP_SA_KEY` and `GCP_PROJECT_ID` are set; without them the job builds, says so, and passes. Before, the job ran only on `main`, failed at the registry login whenever the secrets were missing, and was ignored (`continue-on-error`).
+- A categorization rule matches only when every condition it sets matches. Before, a merchant pattern and a description pattern on the same rule were alternatives, so either one was enough. Rules are checked highest priority first, with ties going to the older rule, so the result no longer depends on database row order.
+- A rule can only refer to a category and an account that belong to the caller. Previously only the category was checked.
+
+### Fixed
+
+- The API image failed to build: the deps stage ran `pnpm install` before `apps/api/prisma` was copied, so `prisma generate` in its postinstall found no schema. The image also installs the `openssl` CLI: without it Prisma cannot detect the OpenSSL version and falls back to an engine that fails to load on Alpine.
+
 ## 0.10.0 — 2026-10-29
 
 Optional integrations and cleanup. Every new integration is off until configured.

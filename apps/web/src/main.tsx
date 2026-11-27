@@ -55,7 +55,8 @@ createRoot(document.getElementById('root')!, {
 // Production only: in dev the worker's cache sits in front of Vite's module
 // graph and serves stale modules straight through HMR, which makes edits
 // look like they had no effect.
-if (import.meta.env.PROD && 'serviceWorker' in navigator) {
+// Not in the demo build: it is served under a sub-path and the worker's cache paths are root-absolute.
+if (import.meta.env.PROD && import.meta.env.VITE_DEMO !== '1' && 'serviceWorker' in navigator) {
   window.addEventListener('load', () => {
     navigator.serviceWorker.register('/sw.js').catch((error) => {
       console.warn('Service worker registration failed:', error);

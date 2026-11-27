@@ -47,7 +47,7 @@ const features: { icon: LucideIcon; title: string; body: string; tone: string; s
   {
     icon: Brain,
     title: 'AI-powered categorization',
-    body: 'A transformer model sorts transactions in 10+ languages with 86.5% accuracy, with a keyword fallback when it is unsure.',
+    body: 'A transformer model sorts transactions in 10+ languages (86.5% held-out test accuracy once its weights are trained), with a keyword categorizer as the fallback.',
     tone: 'text-primary bg-primary/10 ring-primary/20',
     shot: 'transactions',
   },
@@ -236,7 +236,7 @@ export function Landing({ primary, navLink, shots }: LandingProps) {
       <section className="border-y bg-foreground/[0.015]">
         <div className="mx-auto grid max-w-6xl grid-cols-2 gap-8 px-6 py-14 md:grid-cols-4">
           {[
-            { value: 86.5, format: (n: number) => `${n.toFixed(1)}%`, label: 'Categorization accuracy' },
+            { value: 86.5, format: (n: number) => `${n.toFixed(1)}%`, label: 'Model test accuracy' },
             { value: 7, format: (n: number) => `${Math.round(n)}`, label: 'Currencies converted' },
             { value: 4, format: (n: number) => `${Math.round(n)}`, label: 'Forecasting models' },
             { value: 40, format: (n: number) => `${Math.round(n)}+`, label: 'Features shipped' },

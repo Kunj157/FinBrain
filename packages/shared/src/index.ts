@@ -138,17 +138,50 @@ export interface NetWorthData {
   accounts: { id: string; name: string; type: AccountType; balance: number; currency: Currency }[];
 }
 
-export interface CategorizationRule {
+/**
+ * Which transactions a rule matches. Every criterion that is set must match.
+ * Patterns are case-insensitive substrings of "merchant description". Amounts
+ * are inclusive bounds on the transaction's magnitude, in its own currency.
+ */
+export interface RuleCriteria {
+  merchantPattern: string | null;
+  descriptionPattern: string | null;
+  amountMin: number | null;
+  amountMax: number | null;
+  accountId: string | null;
+}
+
+export interface CategorizationRule extends RuleCriteria {
   id: string;
   userId: string;
+  /** Higher priority is checked first. */
   priority: number;
-  merchantPattern?: string;
-  descriptionPattern?: string;
   categoryId: string;
   isActive: boolean;
   category?: { id: string; name: string; color: string };
+  account?: { id: string; name: string } | null;
   createdAt: string;
   updatedAt: string;
+}
+
+export interface RulePreview {
+  matched: number;
+  scanned: number;
+  sample: {
+    id: string;
+    date: string;
+    description: string;
+    merchant: string | null;
+    amount: number;
+    categoryName: string;
+  }[];
+}
+
+export interface ApplyRulesResult {
+  dryRun: boolean;
+  scanned: number;
+  changed: number;
+  byRule: { ruleId: string; categoryName: string; count: number }[];
 }
 
 export type RecurringFrequency = 'weekly' | 'biweekly' | 'monthly' | 'quarterly' | 'yearly';
